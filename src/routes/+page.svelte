@@ -15,6 +15,12 @@
 	let apps: TauriApp[] = [];
 	let loading = false;
 	let showAddDialog = false;
+	let contextMenu: { show: boolean; x: number; y: number; appId: string } = {
+		show: false,
+		x: 0,
+		y: 0,
+		appId: ''
+	};
 	let newApp = {
 		id: '',
 		name: '',
@@ -78,6 +84,31 @@
 		}
 	}
 
+	function showContextMenu(event: MouseEvent, appId: string) {
+		event.preventDefault();
+		contextMenu = {
+			show: true,
+			x: event.clientX,
+			y: event.clientY,
+			appId
+		};
+	}
+
+	function hideContextMenu() {
+		contextMenu.show = false;
+	}
+
+	async function removeApp(appId: string) {
+		try {
+			await invoke('remove_app', { appId });
+			hideContextMenu();
+			await loadApps();
+		} catch (error) {
+			console.error('Failed to remove app:', error);
+			alert('Failed to remove app: ' + error);
+		}
+	}
+
 	function getStatusColor(status: string) {
 		switch (status) {
 			case 'Running': return 'bg-green-100 text-green-800';
@@ -98,6 +129,11 @@
 
 	onMount(() => {
 		loadApps();
+		// Hide context menu on click anywhere
+		document.addEventListener('click', hideContextMenu);
+		return () => {
+			document.removeEventListener('click', hideContextMenu);
+		};
 	});
 </script>
 
@@ -134,7 +170,10 @@
 		{:else}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
 				{#each apps as app (app.id)}
-					<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105">
+					<div 
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105"
+						on:contextmenu={(e) => showContextMenu(e, app.id)}
+					>
 						<div class="flex items-start justify-between mb-4">
 							<div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
 								{app.icon || '📱'}
@@ -264,5 +303,20 @@
 				</button>
 			</div>
 		</div>
+	</div>
+{/if}
+
+<!-- Context Menu -->
+{#if contextMenu.show}
+	<div 
+		class="fixed bg-white rounded-lg shadow-xl py-2 z-50 min-w-[150px]"
+		style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
+	>
+		<button
+			on:click={() => removeApp(contextMenu.appId)}
+			class="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 font-medium transition-colors flex items-center gap-2"
+		>
+			🗑️ Remove App
+		</button>
 	</div>
 {/if}

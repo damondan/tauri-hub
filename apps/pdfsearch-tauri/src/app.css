@@ -1,0 +1,17 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+:root {
+  --color-primary: #2196f3;
+  --color-secondary: #f5f5f5;
+  --color-spinner: #007bff;
+  
+  --font-family-comic: 'Comic Sans MS', sans-serif;
+  --font-family-georgia: 'Georgia', serif;
+  
+  --letter-spacing-wider2: 0.125em;
+  
+  --shadow-soft: 0 8px 8px rgba(0, 0, 0, 0.2);
+}
+
