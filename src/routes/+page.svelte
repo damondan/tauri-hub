@@ -12,9 +12,13 @@
 		status: 'Running' | 'Stopped' | 'Error';
 	}
 
+	type RecordingStatus = 'Idle' | 'Recording' | 'Paused' | 'Processing';
+
 	let apps: TauriApp[] = [];
 	let loading = false;
 	let showAddDialog = false;
+	let recordingStatus: RecordingStatus = 'Idle';
+	let transcribedText = '';
 	let contextMenu: { show: boolean; x: number; y: number; appId: string } = {
 		show: false,
 		x: 0,
@@ -127,6 +131,61 @@
 		}
 	}
 
+	// Speech-to-text functions
+	async function startRecording() {
+		try {
+			await invoke('start_recording');
+			recordingStatus = 'Recording';
+			transcribedText = '';
+		} catch (error) {
+			console.error('Failed to start recording:', error);
+			alert('Failed to start recording: ' + error);
+		}
+	}
+
+	async function pauseRecording() {
+		try {
+			await invoke('pause_recording');
+			recordingStatus = 'Paused';
+		} catch (error) {
+			console.error('Failed to pause recording:', error);
+			alert('Failed to pause recording: ' + error);
+		}
+	}
+
+	async function resumeRecording() {
+		try {
+			await invoke('resume_recording');
+			recordingStatus = 'Recording';
+		} catch (error) {
+			console.error('Failed to resume recording:', error);
+			alert('Failed to resume recording: ' + error);
+		}
+	}
+
+	async function stopRecordingAndTranscribe() {
+		try {
+			recordingStatus = 'Processing';
+			const text = await invoke<string>('stop_recording_and_transcribe');
+			transcribedText = text;
+			recordingStatus = 'Idle';
+		} catch (error) {
+			console.error('Failed to stop and transcribe:', error);
+			alert('Failed to transcribe: ' + error);
+			recordingStatus = 'Idle';
+		}
+	}
+
+	function handlePlayPause() {
+		if (recordingStatus === 'Idle') {
+			startRecording();
+		} else if (recordingStatus === 'Recording') {
+			pauseRecording();
+		} else if (recordingStatus === 'Paused') {
+			resumeRecording();
+		}
+	}
+
 	onMount(() => {
 		loadApps();
 		// Hide context menu on click anywhere
@@ -198,6 +257,65 @@
 						</div>
 					</div>
 				{/each}
+			</div>
+
+			<!-- Speech to Text Controls -->
+			<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 mt-8 w-64">
+				<div class="flex items-center gap-2">
+					<!-- Microphone Icon -->
+					<div class="text-white text-2xl">
+						🎤
+					</div>
+
+					<!-- Play/Pause Button -->
+					<button
+						on:click={handlePlayPause}
+						disabled={recordingStatus === 'Processing'}
+						class="w-12 h-12 rounded-lg font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+						class:bg-green-500={recordingStatus === 'Recording'}
+						class:hover:bg-green-600={recordingStatus === 'Recording'}
+						class:bg-yellow-500={recordingStatus === 'Paused'}
+						class:hover:bg-yellow-600={recordingStatus === 'Paused'}
+						class:bg-gray-700={recordingStatus === 'Idle'}
+						class:hover:bg-gray-600={recordingStatus === 'Idle'}
+						class:text-white={true}
+					>
+						{#if recordingStatus === 'Recording'}
+							⏸️
+						{:else if recordingStatus === 'Processing'}
+							⏳
+						{:else}
+							▶️
+						{/if}
+					</button>
+
+					<!-- Stop Button -->
+					<button
+						on:click={stopRecordingAndTranscribe}
+						disabled={recordingStatus === 'Idle' || recordingStatus === 'Processing'}
+						class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+					>
+						⏹️
+					</button>
+
+					<!-- Status Text -->
+					<div class="ml-2 flex-1">
+						<p class="text-white font-semibold text-sm">
+							{#if recordingStatus === 'Recording'}
+								Recording...
+							{:else if recordingStatus === 'Paused'}
+								Paused
+							{:else if recordingStatus === 'Processing'}
+								Processing...
+							{:else}
+								Ready
+							{/if}
+						</p>
+						{#if transcribedText}
+							<p class="text-green-300 text-xs mt-0.5">✓ Copied</p>
+						{/if}
+					</div>
+				</div>
 			</div>
 
 			<!-- Controls -->
