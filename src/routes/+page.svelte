@@ -137,16 +137,13 @@
 	});
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
+<div class="min-h-screen bg-gradient-to-br from-blue-500 via-white-500 to-green-500">
 	<div class="container mx-auto px-4 py-8">
 		<!-- Header -->
 		<div class="text-center mb-12">
 			<h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
 				🚀 Tauri Hub
 			</h1>
-			<p class="text-xl text-white/90 drop-shadow">
-				Your Desktop Application Management Center
-			</p>
 		</div>
 
 		<!-- Apps Grid -->
@@ -168,26 +165,21 @@
 				</div>
 			</div>
 		{:else}
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+			<div class="flex flex-wrap gap-6">
 				{#each apps as app (app.id)}
-					<div 
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105"
-						on:contextmenu={(e) => showContextMenu(e, app.id)}
-					>
+					<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 w-64 h-64 flex flex-col"
+						on:contextmenu={(e) => showContextMenu(e, app.id)}>
 						<div class="flex items-start justify-between mb-4">
-							<div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
-								{app.icon || '📱'}
-							</div>
-							<span class="px-3 py-1 rounded-full text-xs font-medium {getStatusColor(app.status)}">
+							<h3 class="text-xl font-semibold text-white">{app.name}</h3>
+							<span class="px-3 py-1 rounded-full text-xs font-medium {getStatusColor(app.status)} whitespace-nowrap ml-2">
 								{getStatusIcon(app.status)} {app.status}
 							</span>
 						</div>
 
-						<h3 class="text-xl font-semibold text-white mb-2">{app.name}</h3>
-						<p class="text-white/80 text-sm mb-4">{app.description}</p>
-						<p class="text-white/60 text-xs mb-4">📁 {app.path}</p>
+						<!-- <p class="text-white/80 text-sm mb-4">{app.description}</p> -->
+						<p class="text-white/60 text-xs mb-auto">📁 {app.path}</p>
 
-						<div class="flex gap-2">
+						<div class="flex gap-2" style="margin-top: 10px;">
 							{#if app.status === 'Running'}
 								<button 
 									on:click={() => stopApp(app.id)}
@@ -207,26 +199,26 @@
 					</div>
 				{/each}
 			</div>
-		{/if}
 
-		<!-- Controls -->
-		<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-			<h2 class="text-2xl font-semibold text-white mb-6">Hub Controls</h2>
-			<div class="flex flex-wrap gap-4">
-				<button 
-					on:click={loadApps}
-					class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
-				>
-					🔄 Refresh Apps
-				</button>
-				<button 
-					on:click={() => showAddDialog = true}
-					class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
-				>
-					➕ Add Application
-				</button>
+			<!-- Controls -->
+			<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mt-8">
+				<h2 class="text-2xl font-semibold text-white mb-6">Hub Controls</h2>
+				<div class="flex flex-wrap gap-4">
+					<button 
+						on:click={loadApps}
+						class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+					>
+						🔄 Refresh Apps
+					</button>
+					<button 
+						on:click={() => showAddDialog = true}
+						class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+					>
+						➕ Add Application
+					</button>
+				</div>
 			</div>
-		</div>
+		{/if}
 	</div>
 </div>
 

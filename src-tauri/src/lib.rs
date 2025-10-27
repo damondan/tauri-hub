@@ -85,10 +85,30 @@ async fn launch_app(
     let mut apps = registry.lock().map_err(|e| e.to_string())?;
     
     if let Some(app) = apps.get_mut(&app_id) {
-        // Launch the Tauri app
-        let result = Command::new(&app.executable)
-            .current_dir(&app.path)
-            .spawn();
+        // Expand '~' in path if present
+        let mut workdir = app.path.clone();
+        let workdir_str = workdir.to_string_lossy();
+        if workdir_str.starts_with("~") {
+            if let Ok(home) = std::env::var("HOME") {
+                let rest = workdir_str.trim_start_matches('~');
+                workdir = PathBuf::from(home).join(rest.trim_start_matches('/'));
+            }
+        }
+
+        // Build command, supporting dev commands with pnpm/cargo
+        let mut cmd = Command::new(&app.executable);
+        match app.executable.as_str() {
+            // Support running package.json scripts like: pnpm run tauri:dev
+            "pnpm" => {
+                cmd.arg("run").arg("tauri:dev");
+            }
+            // Support cargo tauri dev
+            "cargo" => {
+                cmd.arg("tauri").arg("dev");
+            }
+            _ => {}
+        }
+        let result = cmd.current_dir(&workdir).spawn();
             
         match result {
             Ok(_) => {
