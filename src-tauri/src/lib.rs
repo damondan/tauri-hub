@@ -297,8 +297,11 @@ async fn stop_recording_and_transcribe(recording: State<'_, RecordingRegistry>) 
     let whisper_bin = format!("{}/.pyenv/versions/whisper-py312/bin/whisper", home);
     
     // Run Whisper transcription directly
+    // Model options: "small" (faster) or "medium" (better quality)
+    let model = "small";  // Change to "medium" for better quality
+    // let model = "medium";  // Uncomment to use medium model
     let output = Command::new(&whisper_bin)
-        .args([&audio_file, "--model", "medium", "--device", "cuda", "--output_format", "txt", "--output_dir", "/tmp"])
+        .args([&audio_file, "--model", model, "--device", "cuda", "--output_format", "txt", "--output_dir", "/tmp"])
         .output()
         .map_err(|e| format!("Failed to run Whisper: {}", e))?;
     

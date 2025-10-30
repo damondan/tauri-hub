@@ -199,11 +199,11 @@
 <div class="min-h-screen bg-gradient-to-br from-blue-500 via-white-500 to-green-500">
 	<div class="container mx-auto px-4 py-8">
 		<!-- Header -->
-		<div class="text-center mb-12">
+		<!-- <div class="text-center mb-12">
 			<h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
-				🚀 Tauri Hub
+				🚀 Tauri Hu
 			</h1>
-		</div>
+		</div> -->
 
 		<!-- Apps Grid -->
 		{#if loading}
