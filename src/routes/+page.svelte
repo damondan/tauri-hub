@@ -177,12 +177,37 @@
 	}
 
 	function handlePlayPause() {
+		console.log("in handlePlayPause");
 		if (recordingStatus === 'Idle') {
 			startRecording();
 		} else if (recordingStatus === 'Recording') {
 			pauseRecording();
 		} else if (recordingStatus === 'Paused') {
 			resumeRecording();
+		}
+	}
+
+	// Keyboard shortcuts handler
+	function handleKeydown(e: KeyboardEvent) {
+		// Ignore modifier keys by themselves
+		if (e.key === 'Control' || e.key === 'Shift' || e.key === 'Alt' || e.key === 'Meta') {
+			return;
+		}
+		
+		console.log('Key:', e.key, 'Alt:', e.altKey);
+		
+		if (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+			if (e.key === '3') {
+				e.preventDefault();
+				console.log('Alt+3 detected! Starting handlePlayPause');
+				handlePlayPause();
+			} else if (e.key === '4') {
+				e.preventDefault();
+				console.log('Alt+4 detected! Status:', recordingStatus);
+				if (recordingStatus !== 'Idle' && recordingStatus !== 'Processing') {
+					stopRecordingAndTranscribe();
+				}
+			}
 		}
 	}
 
@@ -196,7 +221,9 @@
 	});
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-500 via-white-500 to-green-500">
+<svelte:window on:keydown={handleKeydown} />
+
+<div class="min-h-screen bg-black">
 	<div class="container mx-auto px-4 py-8">
 		<!-- Header -->
 		<!-- <div class="text-center mb-12">

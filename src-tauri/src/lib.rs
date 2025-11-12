@@ -199,15 +199,15 @@ async fn start_recording(recording: State<'_, RecordingRegistry>) -> Result<(), 
     
     // Get home directory
     let home = std::env::var("HOME").map_err(|e| format!("Failed to get HOME: {}", e))?;
-    let music_dir = format!("{}/Music/SpeechToText", home);
+    let media_dir = format!("{}/Media/SpeechToText", home);
     
     // Create directory if it doesn't exist
-    std::fs::create_dir_all(&music_dir)
+    std::fs::create_dir_all(&media_dir)
         .map_err(|e| format!("Failed to create directory: {}", e))?;
     
     // Generate filename with timestamp
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let filename = format!("{}/recording_{}.wav", music_dir, timestamp);
+    let filename = format!("{}/recording_{}.wav", media_dir, timestamp);
     
     // Start arecord process with high quality settings
     // 48kHz, 16-bit, mono WAV format for best Whisper quality
