@@ -30,7 +30,8 @@
 	let aideUpdateTooltipTimeout: number | null = null;
 	let aideLastCheckDate: string = "";
 	let opensnitchRunning = false;
-	let contextMenu: { show: boolean; x: number; y: number; appId: string } = {
+	let openwebuiRunning = false;
+	let contextMenu: { show: boolean; x: number; y: number; appId: string} = {
 		show: false,
 		x: 0,
 		y: 0,
@@ -382,6 +383,25 @@
 		}
 	}
 
+	// Open WebUI functions
+	async function checkOpenWebUIStatus() {
+		try {
+			openwebuiRunning = await invoke<boolean>("check_openwebui_status");
+		} catch (error) {
+			console.error("Failed to check Open WebUI status:", error);
+		}
+	}
+
+	async function toggleOpenWebUI() {
+		try {
+			await invoke("toggle_openwebui", { start: !openwebuiRunning });
+			await checkOpenWebUIStatus();
+		} catch (error) {
+			console.error("Failed to toggle Open WebUI:", error);
+			alert("Failed to toggle Open WebUI: " + error);
+		}
+	}
+
 	// Keyboard shortcuts handler
 	function handleKeydown(e: KeyboardEvent) {
 		// Ignore modifier keys by themselves
@@ -420,6 +440,7 @@
 		checkAlertsLogModified();
 		checkOssecNotificationsEnabled();
 		checkOpenSnitchStatus();
+		checkOpenWebUIStatus();
 		// Load AIDE last check date from localStorage
 		const savedDate = localStorage.getItem("aideLastCheckDate");
 		if (savedDate) {
@@ -795,6 +816,26 @@
 									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
 							>
 								{opensnitchRunning ? "On" : "Off"}
+							</button>
+						</div>
+					</div>
+
+					<!-- Open WebUI Controls -->
+					<div
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-64 h-[72px]"
+					>
+						<div class="text-white text-center font-semibold text-xs mb-1">
+							Open WebUI
+						</div>
+						<div class="flex items-center gap-2 justify-center">
+							<!-- Toggle Open WebUI Button -->
+							<button
+								on:click={toggleOpenWebUI}
+								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
+									? 'bg-green-500 hover:bg-green-600'
+									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+							>
+								{openwebuiRunning ? "On" : "Off"}
 							</button>
 						</div>
 					</div>
