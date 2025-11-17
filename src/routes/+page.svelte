@@ -31,6 +31,8 @@
 	let aideLastCheckDate: string = "";
 	let opensnitchRunning = false;
 	let openwebuiRunning = false;
+	let dockerEnabled = false;
+	let dockerActive = false;
 	let contextMenu: { show: boolean; x: number; y: number; appId: string} = {
 		show: false,
 		x: 0,
@@ -402,6 +404,36 @@
 		}
 	}
 
+	// Docker functions
+	async function checkDockerStatus() {
+		try {
+			dockerEnabled = await invoke<boolean>("check_docker_enabled");
+			dockerActive = await invoke<boolean>("check_docker_active");
+		} catch (error) {
+			console.error("Failed to check Docker status:", error);
+		}
+	}
+
+	async function toggleDockerEnable() {
+		try {
+			await invoke("toggle_docker_enable", { enable: !dockerEnabled });
+			await checkDockerStatus();
+		} catch (error) {
+			console.error("Failed to toggle Docker enable:", error);
+			alert("Failed to toggle Docker enable: " + error);
+		}
+	}
+
+	async function toggleDockerActive() {
+		try {
+			await invoke("toggle_docker_active", { start: !dockerActive });
+			await checkDockerStatus();
+		} catch (error) {
+			console.error("Failed to toggle Docker active:", error);
+			alert("Failed to toggle Docker active: " + error);
+		}
+	}
+
 	// Keyboard shortcuts handler
 	function handleKeydown(e: KeyboardEvent) {
 		// Ignore modifier keys by themselves
@@ -441,6 +473,7 @@
 		checkOssecNotificationsEnabled();
 		checkOpenSnitchStatus();
 		checkOpenWebUIStatus();
+		checkDockerStatus();
 		// Load AIDE last check date from localStorage
 		const savedDate = localStorage.getItem("aideLastCheckDate");
 		if (savedDate) {
@@ -802,12 +835,12 @@
 
 					<!-- OpenSnitch Controls -->
 					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-64 h-[72px]"
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
 					>
 						<div class="text-white text-center font-semibold text-xs mb-1">
 							OpSni
 						</div>
-						<div class="flex items-center gap-2 justify-center">
+						<div class="flex items-center gap-2 justify-center px-2">
 							<!-- Toggle OpenSnitch Button -->
 							<button
 								on:click={toggleOpenSnitch}
@@ -822,12 +855,12 @@
 
 					<!-- Open WebUI Controls -->
 					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-64 h-[72px]"
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
 					>
 						<div class="text-white text-center font-semibold text-xs mb-1">
-							Open WebUI
+							OpWebUI
 						</div>
-						<div class="flex items-center gap-2 justify-center">
+						<div class="flex items-center gap-2 justify-center px-2">
 							<!-- Toggle Open WebUI Button -->
 							<button
 								on:click={toggleOpenWebUI}
@@ -836,6 +869,37 @@
 									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
 							>
 								{openwebuiRunning ? "On" : "Off"}
+							</button>
+						</div>
+					</div>
+
+					<!-- Docker Controls -->
+					<div
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
+					>
+						<div class="text-white text-center font-semibold text-xs mb-1">
+							Docker
+						</div>
+						<div class="flex items-center gap-2 justify-center px-2">
+							<!-- Enable/Disable Button -->
+							<button
+								on:click={toggleDockerEnable}
+								class="px-2 py-1 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center {dockerEnabled
+									? 'bg-green-500 hover:bg-green-600'
+									: 'bg-red-500 hover:bg-red-600'} text-white w-20 h-10"
+							>
+								{dockerEnabled ? "Enabled" : "Disabled"}
+							</button>
+
+							<!-- On/Off Button -->
+							<button
+								on:click={toggleDockerActive}
+								disabled={!dockerEnabled}
+								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerActive && dockerEnabled
+									? 'bg-green-500 hover:bg-green-600'
+									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								{dockerActive ? "On" : "Off"}
 							</button>
 						</div>
 					</div>

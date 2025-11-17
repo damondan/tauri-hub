@@ -792,6 +792,72 @@ async fn toggle_openwebui(start: bool) -> Result<(), String> {
     }
 }
 
+// Docker commands
+
+#[tauri::command]
+async fn check_docker_enabled() -> Result<bool, String> {
+    // Check if Docker service is enabled
+    let output = Command::new("systemctl")
+        .arg("is-enabled")
+        .arg("docker")
+        .output()
+        .map_err(|e| format!("Failed to check Docker enabled status: {}", e))?;
+    
+    // systemctl is-enabled returns "enabled" and exit code 0 if enabled
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+async fn check_docker_active() -> Result<bool, String> {
+    // Check if Docker service is active (running)
+    let output = Command::new("systemctl")
+        .arg("is-active")
+        .arg("docker")
+        .output()
+        .map_err(|e| format!("Failed to check Docker active status: {}", e))?;
+    
+    // systemctl is-active returns "active" and exit code 0 if running
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+async fn toggle_docker_enable(enable: bool) -> Result<(), String> {
+    let action = if enable { "enable" } else { "disable" };
+    
+    let output = Command::new("pkexec")
+        .arg("systemctl")
+        .arg(action)
+        .arg("docker")
+        .output()
+        .map_err(|e| format!("Failed to {} Docker: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} Docker: {}", action, stderr))
+    }
+}
+
+#[tauri::command]
+async fn toggle_docker_active(start: bool) -> Result<(), String> {
+    let action = if start { "start" } else { "stop" };
+    
+    let output = Command::new("pkexec")
+        .arg("systemctl")
+        .arg(action)
+        .arg("docker")
+        .output()
+        .map_err(|e| format!("Failed to {} Docker: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} Docker: {}", action, stderr))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -820,7 +886,11 @@ pub fn run() {
             check_opensnitch_status,
             toggle_opensnitch,
             check_openwebui_status,
-            toggle_openwebui
+            toggle_openwebui,
+            check_docker_enabled,
+            check_docker_active,
+            toggle_docker_enable,
+            toggle_docker_active
         ])
         .setup(|app| {
             // Load registry from disk
