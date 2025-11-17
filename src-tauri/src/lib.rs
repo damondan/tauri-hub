@@ -2,11 +2,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::{Command, Child, Stdio};
-use tauri::{State, Manager};
-use std::sync::Mutex;
+use tauri::{State, Manager, AppHandle};
+use std::sync::{Mutex, Arc};
 use std::fs;
 use std::io::Write;
 use regex::Regex;
+use std::time::SystemTime;
+use notify::{Watcher, RecursiveMode};
+use std::sync::mpsc::channel;
+use std::thread;
+use std::io::{BufRead, BufReader, Seek, SeekFrom};
+use tauri_plugin_notification::NotificationExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TauriApp {
@@ -45,6 +51,15 @@ pub struct RecordingState {
 }
 
 type RecordingRegistry = Mutex<RecordingState>;
+
+#[derive(Debug)]
+pub struct OssecState {
+    pub alerts_log_mtime: Option<SystemTime>,
+    pub notifications_enabled: bool,
+    pub last_file_position: u64,
+}
+
+type OssecRegistry = Mutex<OssecState>;
 
 fn get_registry_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_dir = app_handle.path().app_data_dir()
@@ -387,10 +402,401 @@ async fn stop_recording_and_transcribe(recording: State<'_, RecordingRegistry>) 
     Ok(text)
 }
 
+// OSSEC commands
+
+#[tauri::command]
+async fn check_ossec_status() -> Result<bool, String> {
+    // Check if OSSEC is running by looking for ossec processes
+    let output = Command::new("pgrep")
+        .arg("-f")
+        .arg("ossec")
+        .output()
+        .map_err(|e| format!("Failed to check OSSEC status: {}", e))?;
+    
+    Ok(output.status.success() && !output.stdout.is_empty())
+}
+
+#[tauri::command]
+async fn toggle_ossec(start: bool) -> Result<(), String> {
+    let action = if start { "start" } else { "stop" };
+    
+    // Use sh -c so the path resolution happens after privilege escalation
+    let command_str = format!("/var/ossec/bin/ossec-control {}", action);
+    
+    let output = Command::new("pkexec")
+        .arg("sh")
+        .arg("-c")
+        .arg(&command_str)
+        .output()
+        .map_err(|e| format!("Failed to {} OSSEC: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} OSSEC: {}", action, stderr))
+    }
+}
+
+#[tauri::command]
+async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
+    // Open file in nano using the user's default terminal emulator
+    // Use pkexec for files that require elevated permissions
+    let needs_sudo = file_path.starts_with("/var/ossec/") || 
+                      file_path.starts_with("/var/log/aide") ||
+                      file_path == "/var/ossec/etc/ossec.conf";
+    
+    // Try common terminal emulators in order of preference
+    let terminals = vec![
+        ("alacritty", vec!["-e"]),
+        ("kitty", vec![]),
+        ("gnome-terminal", vec!["--"]),
+        ("konsole", vec!["-e"]),
+        ("xterm", vec!["-e"]),
+    ];
+    
+    for (terminal, args) in terminals {
+        if Command::new("which").arg(terminal).output().map(|o| o.status.success()).unwrap_or(false) {
+            let mut cmd = Command::new(terminal);
+            for arg in &args {
+                cmd.arg(arg);
+            }
+            
+            // Use pkexec for restricted files
+            if needs_sudo {
+                cmd.arg("pkexec");
+            }
+            cmd.arg("nano");
+            cmd.arg(&file_path);
+            
+            cmd.spawn()
+                .map_err(|e| format!("Failed to open file: {}", e))?;
+            return Ok(());
+        }
+    }
+    
+    Err("No supported terminal emulator found".to_string())
+}
+
+#[tauri::command]
+async fn check_alerts_log_modified(ossec_state: State<'_, OssecRegistry>) -> Result<bool, String> {
+    let log_path = "/var/ossec/logs/alerts/alerts.log";
+    
+    let metadata = fs::metadata(log_path)
+        .map_err(|e| format!("Failed to read log file metadata: {}", e))?;
+    
+    let current_mtime = metadata.modified()
+        .map_err(|e| format!("Failed to get modification time: {}", e))?;
+    
+    let mut state = ossec_state.lock().map_err(|e| e.to_string())?;
+    
+    if let Some(last_mtime) = state.alerts_log_mtime {
+        let modified = current_mtime > last_mtime;
+        if !modified {
+            // Update the stored time even if not modified
+            state.alerts_log_mtime = Some(current_mtime);
+        }
+        Ok(modified)
+    } else {
+        // First check - initialize the time and return false (not modified)
+        state.alerts_log_mtime = Some(current_mtime);
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+async fn reset_alerts_log_baseline(ossec_state: State<'_, OssecRegistry>) -> Result<(), String> {
+    let log_path = "/var/ossec/logs/alerts/alerts.log";
+    
+    let metadata = fs::metadata(log_path)
+        .map_err(|e| format!("Failed to read log file metadata: {}", e))?;
+    
+    let current_mtime = metadata.modified()
+        .map_err(|e| format!("Failed to get modification time: {}", e))?;
+    
+    let mut state = ossec_state.lock().map_err(|e| e.to_string())?;
+    state.alerts_log_mtime = Some(current_mtime);
+    
+    // Also update file position to current end
+    if let Ok(file) = fs::File::open(log_path) {
+        if let Ok(metadata) = file.metadata() {
+            state.last_file_position = metadata.len();
+        }
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+async fn toggle_ossec_notifications(
+    enabled: bool,
+    ossec_state: State<'_, OssecRegistry>
+) -> Result<(), String> {
+    let mut state = ossec_state.lock().map_err(|e| e.to_string())?;
+    state.notifications_enabled = enabled;
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_ossec_notifications_enabled(
+    ossec_state: State<'_, OssecRegistry>
+) -> Result<bool, String> {
+    let state = ossec_state.lock().map_err(|e| e.to_string())?;
+    Ok(state.notifications_enabled)
+}
+
+fn parse_alert_level(alert_text: &str) -> Option<u8> {
+    // Extract level from "Rule: 502 (level 3)"
+    if let Some(level_start) = alert_text.find("(level ") {
+        let rest = &alert_text[level_start + 7..];
+        if let Some(level_end) = rest.find(')') {
+            return rest[..level_end].parse().ok();
+        }
+    }
+    None
+}
+
+fn check_for_new_alerts(app_handle: &AppHandle, ossec_state: &Arc<OssecRegistry>) {
+    let log_path = "/var/ossec/logs/alerts/alerts.log";
+    
+    // Check if notifications are enabled
+    let notifications_enabled = {
+        let state = match ossec_state.lock() {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        state.notifications_enabled
+    };
+    
+    if !notifications_enabled {
+        return;
+    }
+    
+    // Open file and seek to last position
+    let mut file = match fs::File::open(log_path) {
+        Ok(f) => f,
+        Err(_) => return,
+    };
+    
+    let last_pos = {
+        let state = match ossec_state.lock() {
+            Ok(s) => s,
+            Err(_) => return,
+        };
+        state.last_file_position
+    };
+    
+    if file.seek(SeekFrom::Start(last_pos)).is_err() {
+        return;
+    }
+    
+    let reader = BufReader::new(file);
+    let mut new_alerts = Vec::new();
+    let mut current_alert = String::new();
+    
+    for line in reader.lines() {
+        if let Ok(line) = line {
+            if line.starts_with("** Alert") && !current_alert.is_empty() {
+                new_alerts.push(current_alert.clone());
+                current_alert.clear();
+            }
+            current_alert.push_str(&line);
+            current_alert.push('\n');
+        }
+    }
+    
+    if !current_alert.is_empty() {
+        new_alerts.push(current_alert);
+    }
+    
+    // Send notifications for new alerts
+    for alert in new_alerts {
+        if let Some(level) = parse_alert_level(&alert) {
+            let (title, body) = if level >= 12 {
+                ("🚨 Critical OSSEC Alert", format!("High severity alert detected (Level {})!", level))
+            } else if level >= 8 {
+                ("⚠️ OSSEC Security Alert", format!("Suspicious activity detected (Level {}).", level))
+            } else if level >= 5 {
+                ("📋 OSSEC Alert", format!("Alert detected (Level {}).", level))
+            } else {
+                continue; // Skip low-level informational alerts
+            };
+            
+            let _ = app_handle.notification()
+                .builder()
+                .title(title)
+                .body(body)
+                .show();
+        }
+    }
+    
+    // Update file position
+    if let Ok(metadata) = fs::metadata(log_path) {
+        if let Ok(mut state) = ossec_state.lock() {
+            state.last_file_position = metadata.len();
+        }
+    }
+}
+
+fn start_alert_monitor(app_handle: AppHandle, ossec_state: Arc<OssecRegistry>) {
+    let log_path = "/var/ossec/logs/alerts/alerts.log";
+    let log_dir = "/var/ossec/logs/alerts";
+    
+    // Initialize file position
+    if let Ok(metadata) = fs::metadata(log_path) {
+        if let Ok(mut state) = ossec_state.lock() {
+            state.last_file_position = metadata.len();
+        }
+    }
+    
+    let app_handle_clone = app_handle.clone();
+    let ossec_state_clone = ossec_state.clone();
+    
+    thread::spawn(move || {
+        let (tx, rx) = channel();
+        
+        let mut watcher = match notify::recommended_watcher(tx) {
+            Ok(w) => w,
+            Err(e) => {
+                eprintln!("Failed to create file watcher: {}", e);
+                return;
+            }
+        };
+        
+        if let Err(e) = watcher.watch(std::path::Path::new(log_dir), RecursiveMode::NonRecursive) {
+            eprintln!("Failed to watch alerts directory: {}", e);
+            return;
+        }
+        
+        loop {
+            match rx.recv() {
+                Ok(Ok(event)) => {
+                    // Check if the alerts.log file was modified
+                    if event.paths.iter().any(|p| p.ends_with("alerts.log")) {
+                        check_for_new_alerts(&app_handle_clone, &ossec_state_clone);
+                    }
+                }
+                Ok(Err(e)) => eprintln!("Watch error: {:?}", e),
+                Err(e) => {
+                    eprintln!("Channel error: {:?}", e);
+                    break;
+                }
+            }
+        }
+    });
+}
+
+// AIDE commands
+
+#[tauri::command]
+async fn aide_check() -> Result<String, String> {
+    let output = Command::new("pkexec")
+        .arg("aide")
+        .arg("--check")
+        .output()
+        .map_err(|e| format!("Failed to run AIDE check: {}", e))?;
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    
+    // AIDE returns non-zero exit code when changes are detected, which is not an error
+    Ok(format!("{}{}", stdout, stderr))
+}
+
+#[tauri::command]
+async fn aide_update() -> Result<String, String> {
+    // Run aide --update and move the new database
+    // Note: AIDE writes informational output to stderr even on success
+    let output = Command::new("pkexec")
+        .arg("sh")
+        .arg("-c")
+        .arg("aide --update 2>&1 && mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz 2>&1")
+        .output()
+        .map_err(|e| format!("Failed to run AIDE update: {}", e))?;
+    
+    // AIDE returns exit code 0 on success, even when differences are found
+    // Only check the exit code, not stderr content
+    if output.status.success() {
+        Ok("AIDE database updated successfully".to_string())
+    } else {
+        let output_text = String::from_utf8_lossy(&output.stdout);
+        Err(format!("AIDE update failed: {}", output_text))
+    }
+}
+
+// OpenSnitch commands
+
+#[tauri::command]
+async fn check_opensnitch_status() -> Result<bool, String> {
+    // Check if OpenSnitch is running by checking systemd service
+    let output = Command::new("systemctl")
+        .arg("is-active")
+        .arg("opensnitchd")
+        .output()
+        .map_err(|e| format!("Failed to check OpenSnitch status: {}", e))?;
+    
+    // systemctl is-active returns "active" and exit code 0 if running
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+async fn toggle_opensnitch(start: bool) -> Result<(), String> {
+    let action = if start { "start" } else { "stop" };
+    
+    let output = Command::new("pkexec")
+        .arg("systemctl")
+        .arg(action)
+        .arg("opensnitchd")
+        .output()
+        .map_err(|e| format!("Failed to {} OpenSnitch: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} OpenSnitch: {}", action, stderr))
+    }
+}
+
+// Open WebUI commands
+
+#[tauri::command]
+async fn check_openwebui_status() -> Result<bool, String> {
+    // Check if Open WebUI is running by checking systemd service
+    let output = Command::new("systemctl")
+        .arg("is-active")
+        .arg("open-webui")
+        .output()
+        .map_err(|e| format!("Failed to check Open WebUI status: {}", e))?;
+    
+    // systemctl is-active returns "active" and exit code 0 if running
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+async fn toggle_openwebui(start: bool) -> Result<(), String> {
+    let action = if start { "start" } else { "stop" };
+    
+    let output = Command::new("pkexec")
+        .arg("systemctl")
+        .arg(action)
+        .arg("open-webui")
+        .output()
+        .map_err(|e| format!("Failed to {} Open WebUI: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} Open WebUI: {}", action, stderr))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             get_registered_apps,
             register_app,
@@ -401,7 +807,20 @@ pub fn run() {
             start_recording,
             pause_recording,
             resume_recording,
-            stop_recording_and_transcribe
+            stop_recording_and_transcribe,
+            check_ossec_status,
+            toggle_ossec,
+            open_file_in_terminal,
+            check_alerts_log_modified,
+            reset_alerts_log_baseline,
+            toggle_ossec_notifications,
+            get_ossec_notifications_enabled,
+            aide_check,
+            aide_update,
+            check_opensnitch_status,
+            toggle_opensnitch,
+            check_openwebui_status,
+            toggle_openwebui
         ])
         .setup(|app| {
             // Load registry from disk
@@ -422,6 +841,17 @@ pub fn run() {
                 current_file: None,
             });
             app.manage(recording_state);
+            
+            // Initialize OSSEC state
+            let ossec_state = Arc::new(OssecRegistry::new(OssecState {
+                alerts_log_mtime: None,
+                notifications_enabled: true, // Enabled by default
+                last_file_position: 0,
+            }));
+            app.manage(ossec_state.clone());
+            
+            // Start OSSEC alert monitor
+            start_alert_monitor(app.handle().clone(), ossec_state.clone());
             
             if cfg!(debug_assertions) {
                 app.handle().plugin(

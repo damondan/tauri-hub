@@ -1,0 +1,3 @@
+****apps = await invoke<TauriApp[]>("get_registered_apps");****
+invoke is Tauri's IPC (Inter-Process Communication) function that 
+calls Rust backend commands from the JavaScript/TypeScript frontend.

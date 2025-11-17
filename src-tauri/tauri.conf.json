@@ -9,11 +9,7 @@
     "beforeDevCommand": "pnpm run dev",
     "beforeBuildCommand": "pnpm run build"
   },
-  "plugins": {
-    "shell": {
-      "open": true
-    }
-  },
+  "plugins": {},
   "app": {
     "windows": [
       {
