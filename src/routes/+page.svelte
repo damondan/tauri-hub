@@ -33,6 +33,8 @@
 	let openwebuiRunning = false;
 	let dockerEnabled = false;
 	let dockerActive = false;
+	let dockerDesktopEnabled = false;
+	let dockerDesktopActive = false;
 	let contextMenu: { show: boolean; x: number; y: number; appId: string} = {
 		show: false,
 		x: 0,
@@ -434,6 +436,36 @@
 		}
 	}
 
+	// Docker Desktop functions
+	async function checkDockerDesktopStatus() {
+		try {
+			dockerDesktopEnabled = await invoke<boolean>("check_docker_desktop_enabled");
+			dockerDesktopActive = await invoke<boolean>("check_docker_desktop_active");
+		} catch (error) {
+			console.error("Failed to check Docker Desktop status:", error);
+		}
+	}
+
+	async function toggleDockerDesktopEnable() {
+		try {
+			await invoke("toggle_docker_desktop_enable", { enable: !dockerDesktopEnabled });
+			await checkDockerDesktopStatus();
+		} catch (error) {
+			console.error("Failed to toggle Docker Desktop enable:", error);
+			alert("Failed to toggle Docker Desktop enable: " + error);
+		}
+	}
+
+	async function toggleDockerDesktopActive() {
+		try {
+			await invoke("toggle_docker_desktop_active", { start: !dockerDesktopActive });
+			await checkDockerDesktopStatus();
+		} catch (error) {
+			console.error("Failed to toggle Docker Desktop active:", error);
+			alert("Failed to toggle Docker Desktop active: " + error);
+		}
+	}
+
 	// Keyboard shortcuts handler
 	function handleKeydown(e: KeyboardEvent) {
 		// Ignore modifier keys by themselves
@@ -474,6 +506,7 @@
 		checkOpenSnitchStatus();
 		checkOpenWebUIStatus();
 		checkDockerStatus();
+		checkDockerDesktopStatus();
 		// Load AIDE last check date from localStorage
 		const savedDate = localStorage.getItem("aideLastCheckDate");
 		if (savedDate) {
@@ -489,7 +522,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="min-h-screen bg-black">
+<div class="h-screen bg-black overflow-y-auto">
 	<div class="container mx-auto px-4 py-8">
 		<!-- Header -->
 		<!-- <div class="text-center mb-12">
@@ -573,26 +606,37 @@
 
 			<!-- Controls -->
 			<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mt-8">
-				<!-- <h2 class="text-2xl font-semibold text-white mb-6">
-					Hub Controls
-				</h2> -->
-				<div class="flex flex-wrap gap-4 items-stretch">
-					<button
-						on:click={loadApps}
-						class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-semibold transition-colors flex items-center gap-2 h-[72px]"
-					>
-						🔄 RefApps
-					</button>
-					<button
-						on:click={() => (showAddDialog = true)}
-						class="bg-green-500 hover:bg-green-600 text-white px-6 rounded-lg font-semibold transition-colors flex items-center gap-2 h-[72px]"
-					>
-						➕ AddApps
-					</button>
-					<!-- Speech to Text Controls -->
-					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-64 h-[72px]"
-					>
+				<!-- Hub Controls Sub-Container -->
+				<div class="bg-stone-300 rounded-xl p-4 mb-4">
+					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+						Hub Controls
+					</h2>
+					<div class="flex flex-wrap gap-4 items-stretch">
+						<button
+							on:click={loadApps}
+							class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-semibold transition-colors flex items-center gap-2 h-[72px]"
+						>
+							🔄 RefApps
+						</button>
+						<button
+							on:click={() => (showAddDialog = true)}
+							class="bg-green-500 hover:bg-green-600 text-white px-6 rounded-lg font-semibold transition-colors flex items-center gap-2 h-[72px]"
+						>
+							➕ AddApps
+						</button>
+					</div>
+				</div>
+
+				<!-- Base Services Sub-Container -->
+				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
+					<h2 class="text-xl font-semibold text-white mb-3">
+						Base Services
+					</h2>
+					<div class="flex flex-wrap gap-4 items-stretch">
+						<!-- Speech to Text Controls -->
+						<div
+							class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-64 h-[72px]"
+						>
 						<div class="flex items-center gap-2">
 							<!-- Microphone Icon -->
 							<div class="text-white text-2xl">🎤</div>
@@ -652,13 +696,110 @@
 										✓ Copied
 									</p>
 								{/if}
+								</div>
 							</div>
 						</div>
 					</div>
+				</div>
 
-					<!-- OSSEC Controls -->
-					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-80 h-[72px]"
+				
+
+				<!-- Prog Services Sub-Container -->
+				<div class="rounded-xl p-4 mb-4" style="background-color: #44ff44;">
+					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+						Prog Services
+					</h2>
+					<div class="flex flex-wrap gap-4 items-stretch">
+						<!-- Docker Controls -->
+						<div
+							class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
+						>
+							<div class="text-black text-center font-semibold text-base mb-1">
+								Docker
+							</div>
+							<div class="flex items-center gap-1 justify-center px-1">
+								<!-- Enable/Disable Button -->
+								<button
+									on:click={toggleDockerEnable}
+									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerEnabled
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[4rem] h-10 whitespace-nowrap"
+								>
+									{dockerEnabled ? "Enabled" : "Disabled"}
+								</button>
+
+								<!-- On/Off Button -->
+								<button
+									on:click={toggleDockerActive}
+									disabled={!dockerEnabled}
+									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerActive && dockerEnabled
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[3rem] h-10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+								>
+									{dockerActive ? "On" : "Off"}
+								</button>
+
+								<!-- Desktop Enable/Disable Button -->
+								<button
+									on:click={toggleDockerDesktopEnable}
+									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerDesktopEnabled
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[4rem] h-10 whitespace-nowrap"
+								>
+									{dockerDesktopEnabled ? "DEnabled" : "DDisabled"}
+								</button>
+
+								<!-- Desktop On/Off Button -->
+								<button
+									on:click={toggleDockerDesktopActive}
+									disabled={!dockerDesktopEnabled}
+									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerDesktopActive && dockerDesktopEnabled
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[3rem] h-10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+								>
+									{dockerDesktopActive ? "DOn" : "DOff"}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- AI Services Sub-Container -->
+				<div class="rounded-xl p-4 mb-4" style="background-color: #bb44ff;">
+					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+						AI Services
+					</h2>
+					<div class="flex flex-wrap gap-4 items-stretch">
+						<!-- Open WebUI Controls -->
+						<div
+							class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
+						>
+							<div class="text-white text-center font-semibold text-xs mb-1">
+								OpWebUI
+							</div>
+							<div class="flex items-center gap-2 justify-center px-2">
+								<!-- Toggle Open WebUI Button -->
+								<button
+									on:click={toggleOpenWebUI}
+									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+								>
+									{openwebuiRunning ? "On" : "Off"}
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- SecOp Services Sub-Container -->
+				<div class="rounded-xl p-4 mb-4" style="background-color: #ff4444;">
+					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+						SecOp Services
+					</h2>
+					<div class="flex flex-wrap gap-4 items-stretch">
+						<!-- OSSEC Controls -->
+						<div
+							class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-80 h-[72px]"
 					>
 						<div class="text-white text-center font-semibold text-xs mb-1">
 							OSSEC
@@ -830,15 +971,15 @@
 									</div>
 								{/if}
 							</div>
+							</div>
 						</div>
-					</div>
 
-					<!-- OpenSnitch Controls -->
-					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
+						<!-- OpenSnitch Controls -->
+						<div
+							class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
 					>
 						<div class="text-white text-center font-semibold text-xs mb-1">
-							OpSni
+							OpenSni
 						</div>
 						<div class="flex items-center gap-2 justify-center px-2">
 							<!-- Toggle OpenSnitch Button -->
@@ -849,58 +990,8 @@
 									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
 							>
 								{opensnitchRunning ? "On" : "Off"}
-							</button>
-						</div>
-					</div>
-
-					<!-- Open WebUI Controls -->
-					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
-					>
-						<div class="text-white text-center font-semibold text-xs mb-1">
-							OpWebUI
-						</div>
-						<div class="flex items-center gap-2 justify-center px-2">
-							<!-- Toggle Open WebUI Button -->
-							<button
-								on:click={toggleOpenWebUI}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
-							>
-								{openwebuiRunning ? "On" : "Off"}
-							</button>
-						</div>
-					</div>
-
-					<!-- Docker Controls -->
-					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
-					>
-						<div class="text-white text-center font-semibold text-xs mb-1">
-							Docker
-						</div>
-						<div class="flex items-center gap-2 justify-center px-2">
-							<!-- Enable/Disable Button -->
-							<button
-								on:click={toggleDockerEnable}
-								class="px-2 py-1 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center {dockerEnabled
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-20 h-10"
-							>
-								{dockerEnabled ? "Enabled" : "Disabled"}
-							</button>
-
-							<!-- On/Off Button -->
-							<button
-								on:click={toggleDockerActive}
-								disabled={!dockerEnabled}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerActive && dockerEnabled
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10 disabled:opacity-50 disabled:cursor-not-allowed"
-							>
-								{dockerActive ? "On" : "Off"}
-							</button>
+								</button>
+							</div>
 						</div>
 					</div>
 				</div>

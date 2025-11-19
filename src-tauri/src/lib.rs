@@ -858,6 +858,72 @@ async fn toggle_docker_active(start: bool) -> Result<(), String> {
     }
 }
 
+// Docker Desktop commands (user service)
+
+#[tauri::command]
+async fn check_docker_desktop_enabled() -> Result<bool, String> {
+    // Check if Docker Desktop user service is enabled
+    let output = Command::new("systemctl")
+        .arg("--user")
+        .arg("is-enabled")
+        .arg("docker-desktop.service")
+        .output()
+        .map_err(|e| format!("Failed to check Docker Desktop enabled status: {}", e))?;
+    
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+async fn check_docker_desktop_active() -> Result<bool, String> {
+    // Check if Docker Desktop user service is active (running)
+    let output = Command::new("systemctl")
+        .arg("--user")
+        .arg("is-active")
+        .arg("docker-desktop.service")
+        .output()
+        .map_err(|e| format!("Failed to check Docker Desktop active status: {}", e))?;
+    
+    Ok(output.status.success())
+}
+
+#[tauri::command]
+async fn toggle_docker_desktop_enable(enable: bool) -> Result<(), String> {
+    let action = if enable { "enable" } else { "disable" };
+    
+    let output = Command::new("systemctl")
+        .arg("--user")
+        .arg(action)
+        .arg("docker-desktop.service")
+        .output()
+        .map_err(|e| format!("Failed to {} Docker Desktop: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} Docker Desktop: {}", action, stderr))
+    }
+}
+
+#[tauri::command]
+async fn toggle_docker_desktop_active(start: bool) -> Result<(), String> {
+    let action = if start { "start" } else { "stop" };
+    
+    let output = Command::new("systemctl")
+        .arg("--user")
+        .arg(action)
+        .arg("docker-desktop.service")
+        .output()
+        .map_err(|e| format!("Failed to {} Docker Desktop: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} Docker Desktop: {}", action, stderr))
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -890,7 +956,11 @@ pub fn run() {
             check_docker_enabled,
             check_docker_active,
             toggle_docker_enable,
-            toggle_docker_active
+            toggle_docker_active,
+            check_docker_desktop_enabled,
+            check_docker_desktop_active,
+            toggle_docker_desktop_enable,
+            toggle_docker_desktop_active
         ])
         .setup(|app| {
             // Load registry from disk
