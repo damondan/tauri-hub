@@ -29,12 +29,22 @@
 	let showAideUpdateTooltip = false;
 	let aideUpdateTooltipTimeout: number | null = null;
 	let aideLastCheckDate: string = "";
+	let aideRunning = false;
 	let opensnitchRunning = false;
+	let showOpenSnitchTooltip = false;
+	let openSnitchTooltipTimeout: number | null = null;
 	let openwebuiRunning = false;
 	let dockerEnabled = false;
 	let dockerActive = false;
 	let dockerDesktopEnabled = false;
 	let dockerDesktopActive = false;
+	let ramUsed = 0;
+	let ramTotal = 0;
+	let ramPercent = 0;
+	let gpuUsed = 0;
+	let gpuTotal = 0;
+	let gpuPercent = 0;
+	let gpuAvailable = true;
 	let contextMenu: { show: boolean; x: number; y: number; appId: string} = {
 		show: false,
 		x: 0,
@@ -316,7 +326,12 @@
 	}
 
 	async function runAideCheck() {
+		if (aideRunning) {
+			alert("AIDE is already running. Please wait for it to complete.");
+			return;
+		}
 		try {
+			aideRunning = true;
 			const result = await invoke<string>("aide_check");
 			console.log("AIDE check result:", result);
 			// Update last check date
@@ -326,17 +341,36 @@
 			alert("AIDE check completed. Check console for details.");
 		} catch (error) {
 			console.error("Failed to run AIDE check:", error);
-			alert("Failed to run AIDE check: " + error);
+			const errorMsg = String(error);
+			if (errorMsg.includes("cannot get lock")) {
+				alert("AIDE is already running. Please wait for the current operation to finish.");
+			} else {
+				alert("Failed to run AIDE check: " + error);
+			}
+		} finally {
+			aideRunning = false;
 		}
 	}
 
 	async function runAideUpdate() {
+		if (aideRunning) {
+			alert("AIDE is already running. Please wait for it to complete.");
+			return;
+		}
 		try {
+			aideRunning = true;
 			const result = await invoke<string>("aide_update");
 			alert(result);
 		} catch (error) {
 			console.error("Failed to update AIDE database:", error);
-			alert("Failed to update AIDE database: " + error);
+			const errorMsg = String(error);
+			if (errorMsg.includes("cannot get lock")) {
+				alert("AIDE is already running. Please wait for the current operation to finish.");
+			} else {
+				alert("Failed to update AIDE database: " + error);
+			}
+		} finally {
+			aideRunning = false;
 		}
 	}
 
@@ -385,6 +419,20 @@
 			console.error("Failed to toggle OpenSnitch:", error);
 			alert("Failed to toggle OpenSnitch: " + error);
 		}
+	}
+
+	function handleOpenSnitchTooltipEnter() {
+		openSnitchTooltipTimeout = window.setTimeout(() => {
+			showOpenSnitchTooltip = true;
+		}, 1000);
+	}
+
+	function handleOpenSnitchTooltipLeave() {
+		if (openSnitchTooltipTimeout) {
+			clearTimeout(openSnitchTooltipTimeout);
+			openSnitchTooltipTimeout = null;
+		}
+		showOpenSnitchTooltip = false;
 	}
 
 	// Open WebUI functions
@@ -466,6 +514,31 @@
 		}
 	}
 
+	// RAM monitoring
+	async function updateRamUsage() {
+		try {
+			const [used, total, percent] = await invoke<[number, number, number]>("get_ram_usage");
+			ramUsed = used;
+			ramTotal = total;
+			ramPercent = percent;
+		} catch (error) {
+			console.error("Failed to get RAM usage:", error);
+		}
+	}
+
+	async function updateGpuUsage() {
+		try {
+			const [used, total, percent] = await invoke<[number, number, number]>("get_gpu_usage");
+			gpuUsed = used;
+			gpuTotal = total;
+			gpuPercent = percent;
+			gpuAvailable = true;
+		} catch (error) {
+			console.error("Failed to get GPU usage:", error);
+			gpuAvailable = false;
+		}
+	}
+
 	// Keyboard shortcuts handler
 	function handleKeydown(e: KeyboardEvent) {
 		// Ignore modifier keys by themselves
@@ -507,6 +580,14 @@
 		checkOpenWebUIStatus();
 		checkDockerStatus();
 		checkDockerDesktopStatus();
+		
+		// Initial RAM and GPU update
+		updateRamUsage();
+		updateGpuUsage();
+		// Update RAM and GPU every 500ms
+		const ramInterval = setInterval(updateRamUsage, 500);
+		const gpuInterval = setInterval(updateGpuUsage, 500);
+		
 		// Load AIDE last check date from localStorage
 		const savedDate = localStorage.getItem("aideLastCheckDate");
 		if (savedDate) {
@@ -516,6 +597,8 @@
 		document.addEventListener("click", hideContextMenu);
 		return () => {
 			document.removeEventListener("click", hideContextMenu);
+			clearInterval(ramInterval);
+			clearInterval(gpuInterval);
 		};
 	});
 </script>
@@ -524,6 +607,58 @@
 
 <div class="h-screen bg-black overflow-y-auto">
 	<div class="container mx-auto px-4 py-8">
+		<!-- System Monitor -->
+		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
+			<div class="grid grid-cols-2 gap-6">
+				<!-- RAM Monitor -->
+				<div class="flex items-center gap-4">
+					<span class="text-white font-semibold text-lg">RAM:</span>
+					<div class="flex-1">
+						<div class="flex items-center gap-2">
+							<span class="text-white text-sm">
+								{ramUsed.toFixed(2)} GB / {ramTotal.toFixed(2)} GB
+							</span>
+							<span class="text-white/60 text-sm">({ramPercent.toFixed(1)}%)</span>
+						</div>
+						<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+							<div 
+								class="h-2 rounded-full transition-all duration-300"
+								class:bg-green-500={ramPercent < 50}
+								class:bg-yellow-500={ramPercent >= 50 && ramPercent < 80}
+								class:bg-red-500={ramPercent >= 80}
+								style="width: {ramPercent}%"
+							></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- GPU Monitor -->
+				<div class="flex items-center gap-4">
+					<span class="text-white font-semibold text-lg">GPU:</span>
+					<div class="flex-1">
+						{#if gpuAvailable}
+							<div class="flex items-center gap-2">
+								<span class="text-white text-sm">
+									{gpuUsed.toFixed(2)} GB / {gpuTotal.toFixed(2)} GB
+								</span>
+								<span class="text-white/60 text-sm">({gpuPercent.toFixed(1)}%)</span>
+							</div>
+							<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+								<div 
+									class="h-2 rounded-full transition-all duration-300"
+									class:bg-green-500={gpuPercent < 50}
+									class:bg-yellow-500={gpuPercent >= 50 && gpuPercent < 80}
+									class:bg-red-500={gpuPercent >= 80}
+									style="width: {gpuPercent}%"
+								></div>
+							</div>
+						{:else}
+							<span class="text-white/60 text-sm">No NVIDIA GPU detected</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
 		<!-- Header -->
 		<!-- <div class="text-center mb-12">
 			<h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
@@ -853,6 +988,9 @@
 										class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg p-3 w-80 z-50 shadow-xl"
 									>
 										<div class="font-bold mb-2">OSSEC HIDS</div>
+										<p class="text-gray-300 mb-3 italic">
+											Host-based intrusion detection system that monitors system logs, file integrity, and detects rootkits and security threats in real-time.
+										</p>
 										<div class="space-y-1 text-left">
 											<p>
 												<strong>Weekly:</strong> Review
@@ -905,6 +1043,9 @@
 										class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg p-3 w-96 z-50 shadow-xl"
 									>
 										<div class="font-bold mb-2">AIDE</div>
+										<p class="text-gray-300 mb-3 italic">
+											Advanced Intrusion Detection Environment creates a database of file checksums and attributes to detect unauthorized system changes.
+										</p>
 										<div class="space-y-1 text-left">
 											<p class="font-semibold">
 												BEFORE DOING PACMAN SYSTEM UPDATE:
@@ -957,6 +1098,9 @@
 									<div
 										class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-900 text-white text-xs rounded-lg p-3 w-64 z-50 shadow-xl"
 									>
+										<p class="text-gray-300 mb-2 italic text-center">
+											Updates AIDE's baseline database to accept current system state as legitimate.
+										</p>
 										<div class="font-bold text-center">
 											⚠️ WARNING ⚠️
 										</div>
@@ -982,17 +1126,37 @@
 							OpenSni
 						</div>
 						<div class="flex items-center gap-2 justify-center px-2">
-							<!-- Toggle OpenSnitch Button -->
-							<button
-								on:click={toggleOpenSnitch}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {opensnitchRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
-							>
-								{opensnitchRunning ? "On" : "Off"}
+							<!-- Toggle OpenSnitch Button with Tooltip -->
+							<div class="relative group">
+								<button
+									on:click={toggleOpenSnitch}
+									on:mouseenter={handleOpenSnitchTooltipEnter}
+									on:mouseleave={handleOpenSnitchTooltipLeave}
+									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {opensnitchRunning
+										? 'bg-green-500 hover:bg-green-600'
+										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+								>
+									{opensnitchRunning ? "On" : "Off"}
 								</button>
+
+								<!-- Tooltip -->
+								{#if showOpenSnitchTooltip}
+									<div
+										class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg p-3 w-72 z-50 shadow-xl"
+									>
+										<div class="font-bold mb-2">OpenSnitch</div>
+										<p class="text-gray-300 mb-2 italic">
+											Application firewall that monitors and controls outgoing network connections, allowing you to block or allow connections on a per-application basis.
+										</p>
+										<!-- Tooltip arrow -->
+										<div
+											class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-gray-900"
+										></div>
+									</div>
+								{/if}
 							</div>
 						</div>
+					</div>
 					</div>
 				</div>
 			</div>

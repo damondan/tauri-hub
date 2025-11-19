@@ -449,7 +449,7 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
     // Try common terminal emulators in order of preference
     let terminals = vec![
         ("alacritty", vec!["-e"]),
-        ("kitty", vec![]),
+        ("kitty", vec!["--"]),
         ("gnome-terminal", vec!["--"]),
         ("konsole", vec!["-e"]),
         ("xterm", vec!["-e"]),
@@ -462,12 +462,16 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
                 cmd.arg(arg);
             }
             
-            // Use pkexec for restricted files
+            // Use pkexec sh -c to properly elevate for restricted files
             if needs_sudo {
                 cmd.arg("pkexec");
+                cmd.arg("sh");
+                cmd.arg("-c");
+                cmd.arg(format!("nano '{}'", file_path));
+            } else {
+                cmd.arg("nano");
+                cmd.arg(&file_path);
             }
-            cmd.arg("nano");
-            cmd.arg(&file_path);
             
             cmd.spawn()
                 .map_err(|e| format!("Failed to open file: {}", e))?;
@@ -691,7 +695,7 @@ fn start_alert_monitor(app_handle: AppHandle, ossec_state: Arc<OssecRegistry>) {
 #[tauri::command]
 async fn aide_check() -> Result<String, String> {
     let output = Command::new("pkexec")
-        .arg("aide")
+        .arg("/usr/bin/aide")
         .arg("--check")
         .output()
         .map_err(|e| format!("Failed to run AIDE check: {}", e))?;
@@ -699,28 +703,39 @@ async fn aide_check() -> Result<String, String> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);
     
+    // Check if pkexec was cancelled
+    if !output.status.success() && stdout.is_empty() && stderr.is_empty() {
+        return Err("Authentication cancelled or failed".to_string());
+    }
+    
     // AIDE returns non-zero exit code when changes are detected, which is not an error
     Ok(format!("{}{}", stdout, stderr))
 }
 
 #[tauri::command]
 async fn aide_update() -> Result<String, String> {
-    // Run aide --update and move the new database
-    // Note: AIDE writes informational output to stderr even on success
+    // Run aide --update - note: AIDE returns non-zero when differences are found
+    // So we need to check if the new database was created, not the exit code
     let output = Command::new("pkexec")
         .arg("sh")
         .arg("-c")
-        .arg("aide --update 2>&1 && mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz 2>&1")
+        .arg("/usr/bin/aide --update 2>&1; if [ -f /var/lib/aide/aide.db.new.gz ]; then mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz 2>&1; echo 'Database moved successfully'; else echo 'Error: New database not created'; exit 1; fi")
         .output()
         .map_err(|e| format!("Failed to run AIDE update: {}", e))?;
     
-    // AIDE returns exit code 0 on success, even when differences are found
-    // Only check the exit code, not stderr content
-    if output.status.success() {
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    
+    // Check if pkexec was cancelled
+    if !output.status.success() && stdout.is_empty() && stderr.is_empty() {
+        return Err("Authentication cancelled or failed".to_string());
+    }
+    
+    // Check if database was successfully moved
+    if stdout.contains("Database moved successfully") {
         Ok("AIDE database updated successfully".to_string())
     } else {
-        let output_text = String::from_utf8_lossy(&output.stdout);
-        Err(format!("AIDE update failed: {}", output_text))
+        Err(format!("AIDE update failed: {}\n{}", stdout, stderr))
     }
 }
 
@@ -858,6 +873,70 @@ async fn toggle_docker_active(start: bool) -> Result<(), String> {
     }
 }
 
+// System monitoring commands
+
+#[tauri::command]
+fn get_ram_usage() -> Result<(f64, f64, f64), String> {
+    // Returns (used_gb, total_gb, percent)
+    // Read directly from /proc/meminfo - fastest method
+    let meminfo = std::fs::read_to_string("/proc/meminfo")
+        .map_err(|e| format!("Failed to read meminfo: {}", e))?;
+    
+    let mut mem_total = 0u64;
+    let mut mem_available = 0u64;
+    
+    for line in meminfo.lines() {
+        if line.starts_with("MemTotal:") {
+            mem_total = line.split_whitespace().nth(1)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+        } else if line.starts_with("MemAvailable:") {
+            mem_available = line.split_whitespace().nth(1)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+        }
+    }
+    
+    let total_gb = mem_total as f64 / 1024.0 / 1024.0;
+    let available_gb = mem_available as f64 / 1024.0 / 1024.0;
+    let used_gb = total_gb - available_gb;
+    let percent = if total_gb > 0.0 { (used_gb / total_gb) * 100.0 } else { 0.0 };
+    
+    Ok((used_gb, total_gb, percent))
+}
+
+#[tauri::command]
+fn get_gpu_usage() -> Result<(f64, f64, f64), String> {
+    // Returns (used_gb, total_gb, percent)
+    // Use nvidia-smi to get GPU memory usage
+    let output = Command::new("nvidia-smi")
+        .arg("--query-gpu=memory.used,memory.total")
+        .arg("--format=csv,noheader,nounits")
+        .output()
+        .map_err(|e| format!("Failed to get GPU usage: {}", e))?;
+    
+    if !output.status.success() {
+        return Err("nvidia-smi command failed. Is NVIDIA GPU available?".to_string());
+    }
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let line = stdout.lines().next().ok_or("No GPU data found")?;
+    let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+    
+    if parts.len() >= 2 {
+        let used_mb: f64 = parts[0].parse().map_err(|_| "Failed to parse used memory")?;
+        let total_mb: f64 = parts[1].parse().map_err(|_| "Failed to parse total memory")?;
+        
+        let used_gb = used_mb / 1024.0;
+        let total_gb = total_mb / 1024.0;
+        let percent = if total_mb > 0.0 { (used_mb / total_mb) * 100.0 } else { 0.0 };
+        
+        Ok((used_gb, total_gb, percent))
+    } else {
+        Err("Invalid GPU data format".to_string())
+    }
+}
+
 // Docker Desktop commands (user service)
 
 #[tauri::command]
@@ -960,7 +1039,9 @@ pub fn run() {
             check_docker_desktop_enabled,
             check_docker_desktop_active,
             toggle_docker_desktop_enable,
-            toggle_docker_desktop_active
+            toggle_docker_desktop_active,
+            get_ram_usage,
+            get_gpu_usage
         ])
         .setup(|app| {
             // Load registry from disk

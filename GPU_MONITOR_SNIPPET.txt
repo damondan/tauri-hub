@@ -1,0 +1,76 @@
+// Add after updateRamUsage() function (around line 527):
+
+	async function updateGpuUsage() {
+		try {
+			const [used, total, percent] = await invoke<[number, number, number]>("get_gpu_usage");
+			gpuUsed = used;
+			gpuTotal = total;
+			gpuPercent = percent;
+			gpuAvailable = true;
+		} catch (error) {
+			console.error("Failed to get GPU usage:", error);
+			gpuAvailable = false;
+		}
+	}
+
+// In onMount, add after line 574:
+		updateGpuUsage();
+		const gpuInterval = setInterval(updateGpuUsage, 500);
+
+// In return statement, add after line 585:
+		clearInterval(gpuInterval);
+
+// Replace the RAM Monitor div (lines 594-617) with this two-column layout:
+
+		<!-- System Monitor -->
+		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
+			<div class="grid grid-cols-2 gap-6">
+				<!-- RAM Monitor -->
+				<div class="flex items-center gap-4">
+					<span class="text-white font-semibold text-lg">RAM:</span>
+					<div class="flex-1">
+						<div class="flex items-center gap-2">
+							<span class="text-white text-sm">
+								{ramUsed.toFixed(2)} GB / {ramTotal.toFixed(2)} GB
+							</span>
+							<span class="text-white/60 text-sm">({ramPercent.toFixed(1)}%)</span>
+						</div>
+						<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+							<div 
+								class="h-2 rounded-full transition-all duration-300"
+								class:bg-green-500={ramPercent < 50}
+								class:bg-yellow-500={ramPercent >= 50 && ramPercent < 80}
+								class:bg-red-500={ramPercent >= 80}
+								style="width: {ramPercent}%"
+							></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- GPU Monitor -->
+				<div class="flex items-center gap-4">
+					<span class="text-white font-semibold text-lg">GPU:</span>
+					<div class="flex-1">
+						{#if gpuAvailable}
+							<div class="flex items-center gap-2">
+								<span class="text-white text-sm">
+									{gpuUsed.toFixed(2)} GB / {gpuTotal.toFixed(2)} GB
+								</span>
+								<span class="text-white/60 text-sm">({gpuPercent.toFixed(1)}%)</span>
+							</div>
+							<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+								<div 
+									class="h-2 rounded-full transition-all duration-300"
+									class:bg-green-500={gpuPercent < 50}
+									class:bg-yellow-500={gpuPercent >= 50 && gpuPercent < 80}
+									class:bg-red-500={gpuPercent >= 80}
+									style="width: {gpuPercent}%"
+								></div>
+							</div>
+						{:else}
+							<span class="text-white/60 text-sm">No NVIDIA GPU detected</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
