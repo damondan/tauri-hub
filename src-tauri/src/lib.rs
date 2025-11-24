@@ -774,7 +774,6 @@ async fn toggle_opensnitch(start: bool) -> Result<(), String> {
 }
 
 // Open WebUI commands
-
 #[tauri::command]
 async fn check_openwebui_status() -> Result<bool, String> {
     // Check if Open WebUI is running by checking systemd service
@@ -807,8 +806,154 @@ async fn toggle_openwebui(start: bool) -> Result<(), String> {
     }
 }
 
-// Docker commands
+// check_lmstudio_status() -> Result<bool, String>
+// Checks if LM Studio process is running
+#[tauri::command]
+async fn check_lmstudio_status() -> Result<bool, String> {
+    // Check if LM Studio is running by looking for its process
+    let output = Command::new("pgrep")
+        .arg("-f")
+        .arg("LM-Studio")
+        .output()
+        .map_err(|e| format!("Failed to check LM Studio status: {}", e))?;
+    
+    Ok(output.status.success() && !output.stdout.is_empty())
+}
 
+// toggle_lmstudio(start: bool) -> Result<(), String>
+// Launches or stops LM Studio AppImage from ~/Prog directory
+#[tauri::command]
+async fn toggle_lmstudio(start: bool) -> Result<(), String> {
+    if start {
+        // Get home directory
+        let home = std::env::var("HOME")
+            .map_err(|e| format!("Failed to get HOME directory: {}", e))?;
+        
+        let prog_dir = format!("{}/Prog", home);
+        let appimage_path = format!("{}/LM-Studio-0.3.32-2-x64.AppImage", prog_dir);
+        
+        // Check if AppImage exists
+        if !std::path::Path::new(&appimage_path).exists() {
+            return Err(format!("LM Studio AppImage not found at: {}", appimage_path));
+        }
+        
+        // Launch the AppImage
+        Command::new(&appimage_path)
+            .current_dir(&prog_dir)
+            .spawn()
+            .map_err(|e| format!("Failed to launch LM Studio: {}", e))?;
+        
+        Ok(())
+    } else {
+        // To stop LM Studio, we need to find and kill its process
+        // Look for the LM Studio process by name
+        let output = Command::new("pkill")
+            .arg("-f")
+            .arg("LM-Studio")
+            .output()
+            .map_err(|e| format!("Failed to stop LM Studio: {}", e))?;
+        
+        if output.status.success() {
+            Ok(())
+        } else {
+            // pkill returns non-zero if no process was found, which is not really an error
+            Ok(())
+        }
+    }
+}
+
+// check_ollama_status() -> Result<bool, String>
+// Checks if Ollama systemd service is active (running)
+#[tauri::command]
+async fn check_ollama_status() -> Result<bool, String> {
+    // Check if Ollama service is active
+    let output = Command::new("systemctl")
+        .arg("is-active")
+        .arg("ollama")
+        .output()
+        .map_err(|e| format!("Failed to check Ollama status: {}", e))?;
+    
+    Ok(output.status.success())
+}
+
+// toggle_ollama(start: bool) -> Result<(), String>
+// Starts or stops Ollama systemd service using pkexec
+#[tauri::command]
+async fn toggle_ollama(start: bool) -> Result<(), String> {
+    let action = if start { "start" } else { "stop" };
+    
+    let output = Command::new("pkexec")
+        .arg("systemctl")
+        .arg(action)
+        .arg("ollama")
+        .output()
+        .map_err(|e| format!("Failed to {} Ollama: {}", action, e))?;
+    
+    if output.status.success() {
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Failed to {} Ollama: {}", action, stderr))
+    }
+}
+
+// check_warp_status() -> Result<bool, String>
+// Checks if Warp process is running
+#[tauri::command]
+async fn check_warp_status() -> Result<bool, String> {
+    // Check if warp is running by looking for its process
+    let output = Command::new("pgrep")
+        .arg("-f")
+        .arg("Warp")
+        .output()
+        .map_err(|e| format!("Failed to check Warp status: {}", e))?;
+    
+    Ok(output.status.success() && !output.stdout.is_empty())
+}
+
+// toggle_warp(start: bool) -> Result<(), String>
+// Launches or stops Warp AppImage from ~/Prog directory
+#[tauri::command]
+async fn toggle_warp(start: bool) -> Result<(), String> {
+    if start {
+        // Get home directory
+        let home = std::env::var("HOME")
+            .map_err(|e| format!("Failed to get HOME directory: {}", e))?;
+        
+        let prog_dir = format!("{}/Prog", home);
+        let appimage_path = format!("{}/Warp-x86_64.AppImage", prog_dir);
+        
+        // Check if AppImage exists
+        if !std::path::Path::new(&appimage_path).exists() {
+            return Err(format!("Warp AppImage not found at: {}", appimage_path));
+        }
+        
+        // Launch the AppImage
+        Command::new(&appimage_path)
+            .current_dir(&prog_dir)
+            .spawn()
+            .map_err(|e| format!("Failed to launch Warp AI: {}", e))?;
+        
+        Ok(())
+    } else {
+        // To stop Warp, we need to find and kill its process
+        // Look for the Warp process by name
+        let output = Command::new("pkill")
+            .arg("-f")
+            .arg("Warp")
+            .output()
+            .map_err(|e| format!("Failed to stop Warp: {}", e))?;
+        
+        if output.status.success() {
+            Ok(())
+        } else {
+            // pkill returns non-zero if no process was found, which is not really an error
+            Ok(())
+        }
+    }
+}
+
+// Docker commands
 #[tauri::command]
 async fn check_docker_enabled() -> Result<bool, String> {
     // Check if Docker service is enabled
@@ -1032,6 +1177,12 @@ pub fn run() {
             toggle_opensnitch,
             check_openwebui_status,
             toggle_openwebui,
+            check_lmstudio_status,
+            toggle_lmstudio,
+            check_ollama_status,
+            toggle_ollama,
+            check_warp_status,
+            toggle_warp,
             check_docker_enabled,
             check_docker_active,
             toggle_docker_enable,
