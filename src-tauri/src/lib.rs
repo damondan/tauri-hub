@@ -54,7 +54,7 @@ type RecordingRegistry = Mutex<RecordingState>;
 
 #[derive(Debug)]
 pub struct OssecState {
-    pub alerts_log_mtime: Option<SystemTime>,
+    pub alerts_log_mtime_secs: Option<u64>,
     pub notifications_enabled: bool,
     pub last_file_position: u64,
 }
@@ -446,12 +446,23 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
                       file_path.starts_with("/var/log/aide") ||
                       file_path == "/var/ossec/etc/ossec.conf";
     
-    // Try common terminal emulators in order of preference
+    if needs_sudo {
+        // For privileged files, use pkexec to run the nano command
+        // pkexec will prompt for password and then open the file
+        Command::new("pkexec")
+            .arg("nano")
+            .arg(&file_path)
+            .spawn()
+            .map_err(|e| format!("Failed to open file: {}", e))?;
+        return Ok(());
+    }
+    
+    // Try common terminal emulators in order of preference for non-sudo files
     let terminals = vec![
+        ("konsole", vec!["-e"]),
         ("alacritty", vec!["-e"]),
         ("kitty", vec!["--"]),
         ("gnome-terminal", vec!["--"]),
-        ("konsole", vec!["-e"]),
         ("xterm", vec!["-e"]),
     ];
     
@@ -461,17 +472,8 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
             for arg in &args {
                 cmd.arg(arg);
             }
-            
-            // Use pkexec sh -c to properly elevate for restricted files
-            if needs_sudo {
-                cmd.arg("pkexec");
-                cmd.arg("sh");
-                cmd.arg("-c");
-                cmd.arg(format!("nano '{}'", file_path));
-            } else {
-                cmd.arg("nano");
-                cmd.arg(&file_path);
-            }
+            cmd.arg("nano");
+            cmd.arg(&file_path);
             
             cmd.spawn()
                 .map_err(|e| format!("Failed to open file: {}", e))?;
@@ -486,24 +488,43 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
 async fn check_alerts_log_modified(ossec_state: State<'_, OssecRegistry>) -> Result<bool, String> {
     let log_path = "/var/ossec/logs/alerts/alerts.log";
     
-    let metadata = fs::metadata(log_path)
-        .map_err(|e| format!("Failed to read log file metadata: {}", e))?;
-    
-    let current_mtime = metadata.modified()
-        .map_err(|e| format!("Failed to get modification time: {}", e))?;
+    // Try to read without elevation first (may fail if not readable)
+    let current_mtime_secs = if let Ok(metadata) = fs::metadata(log_path) {
+        metadata.modified()
+            .ok()
+            .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+    } else {
+        // If we can't read it, try with elevated privileges
+        let output = Command::new("pkexec")
+            .arg("stat")
+            .arg("-c")
+            .arg("%Y")
+            .arg(log_path)
+            .output()
+            .map_err(|e| format!("Failed to read log file metadata: {}", e))?;
+        
+        if !output.status.success() {
+            return Err(format!("Permission denied accessing log file"));
+        }
+        
+        let mtime_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        mtime_str.parse()
+            .map_err(|_| format!("Failed to parse modification time"))?
+    };
     
     let mut state = ossec_state.lock().map_err(|e| e.to_string())?;
     
-    if let Some(last_mtime) = state.alerts_log_mtime {
-        let modified = current_mtime > last_mtime;
-        if !modified {
-            // Update the stored time even if not modified
-            state.alerts_log_mtime = Some(current_mtime);
+    if let Some(last_mtime_secs) = state.alerts_log_mtime_secs {
+        let modified = current_mtime_secs > last_mtime_secs;
+        if modified {
+            state.alerts_log_mtime_secs = Some(current_mtime_secs);
         }
         Ok(modified)
     } else {
         // First check - initialize the time and return false (not modified)
-        state.alerts_log_mtime = Some(current_mtime);
+        state.alerts_log_mtime_secs = Some(current_mtime_secs);
         Ok(false)
     }
 }
@@ -512,21 +533,19 @@ async fn check_alerts_log_modified(ossec_state: State<'_, OssecRegistry>) -> Res
 async fn reset_alerts_log_baseline(ossec_state: State<'_, OssecRegistry>) -> Result<(), String> {
     let log_path = "/var/ossec/logs/alerts/alerts.log";
     
-    let metadata = fs::metadata(log_path)
-        .map_err(|e| format!("Failed to read log file metadata: {}", e))?;
-    
-    let current_mtime = metadata.modified()
-        .map_err(|e| format!("Failed to get modification time: {}", e))?;
-    
+    // Just update the baseline from the current state
+    // Don't try to read the actual file - just reset the tracking state
     let mut state = ossec_state.lock().map_err(|e| e.to_string())?;
-    state.alerts_log_mtime = Some(current_mtime);
     
-    // Also update file position to current end
-    if let Ok(file) = fs::File::open(log_path) {
-        if let Ok(metadata) = file.metadata() {
-            state.last_file_position = metadata.len();
-        }
-    }
+    // Reset to current time and 0 position
+    // Next check will see this as the new baseline
+    state.alerts_log_mtime_secs = Some(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0)
+    );
+    state.last_file_position = 0;
     
     Ok(())
 }
@@ -1216,14 +1235,21 @@ pub fn run() {
             
             // Initialize OSSEC state
             let ossec_state = Arc::new(OssecRegistry::new(OssecState {
-                alerts_log_mtime: None,
+                alerts_log_mtime_secs: None,
                 notifications_enabled: true, // Enabled by default
                 last_file_position: 0,
             }));
+            // Manage both the Arc and the direct Mutex for Tauri state injection
             app.manage(ossec_state.clone());
+            app.manage(OssecRegistry::new(OssecState {
+                alerts_log_mtime_secs: None,
+                notifications_enabled: true,
+                last_file_position: 0,
+            }));
             
-            // Start OSSEC alert monitor
-            start_alert_monitor(app.handle().clone(), ossec_state.clone());
+            // Note: Alert monitor disabled on startup to avoid password prompt
+            // It will be started manually via a command if needed
+            // start_alert_monitor(app.handle().clone(), ossec_state.clone());
             
             if cfg!(debug_assertions) {
                 app.handle().plugin(

@@ -453,6 +453,7 @@
 		try {
 			openwebuiRunning = await invoke<boolean>("check_openwebui_status");
 		} catch (error) {
+			console.log("IN Error at checkOpenWebUIStatus");
 			console.error("Failed to check Open WebUI status:", error);
 		}
 	}
@@ -485,6 +486,7 @@
 	}
 
 	async function toggleOpenWebUI() {
+		console.log("toggle OpenWebUI")
 		try {
 			await invoke("toggle_openwebui", { start: !openwebuiRunning });
 			await checkOpenWebUIStatus();
@@ -654,7 +656,7 @@
 	onMount(() => {
 		loadApps();
 		checkOssecStatus();
-		checkAlertsLogModified();
+		// checkAlertsLogModified(); // Disabled to prevent password prompt on startup
 		checkOssecNotificationsEnabled();
 		checkOpenSnitchStatus();
 		checkOpenWebUIStatus();
@@ -791,7 +793,7 @@
 			<div class="flex flex-wrap gap-6">
 				{#each apps as app (app.id)}
 					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 w-64 h-64 flex flex-col"
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 w-64 h-44 flex flex-col"
 						on:contextmenu={(e) => showContextMenu(e, app.id)}
 					>
 						<div class="flex items-start justify-between mb-4">
@@ -837,7 +839,7 @@
 			<!-- Controls -->
 			<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mt-8">
 				<!-- Hub Controls Sub-Container -->
-				<div class="bg-stone-300 rounded-xl p-4 mb-4">
+				<div class="inline-block align-top bg-stone-300 rounded-xl p-4 mb-4">
 					<h2 class="text-xl font-semibold text-gray-800 mb-3">
 						Hub Controls
 					</h2>
@@ -858,7 +860,7 @@
 				</div>
 
 				<!-- Base Services Sub-Container -->
-				<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
+				<div class="inline-block align-top bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
 					<h2 class="text-xl font-semibold text-white mb-3">
 						Base Services
 					</h2>
@@ -937,7 +939,7 @@
 
 				<!-- Prog Services Sub-Container -->
 				<div
-					class="rounded-xl p-4 mb-4"
+					class="inline-block align-top rounded-xl p-4 mb-4"
 					style="background-color: #44ff44;"
 				>
 					<h2 class="text-xl font-semibold text-gray-800 mb-3">
@@ -1008,7 +1010,7 @@
 
 				<!-- AI Services Sub-Container -->
 				<div
-					class="rounded-xl p-4 mb-4"
+					class="inline-block align-top rounded-xl p-4 mb-4"
 					style="background-color: #bb44ff;"
 				>
 					<h2 class="text-xl font-semibold text-gray-800 mb-3">
@@ -1111,7 +1113,7 @@
 				</div>
 				<!-- SecOp Services Sub-Container -->
 				<div
-					class="rounded-xl p-4 mb-4"
+					class="inline-block align-top rounded-xl p-4 mb-4"
 					style="background-color: #ff4444;"
 				>
 					<h2 class="text-xl font-semibold text-gray-800 mb-3">
