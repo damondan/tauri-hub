@@ -12,56 +12,65 @@
 		status: "Running" | "Stopped" | "Error";
 	}
 
-	type RecordingStatus = "Idle" | "Recording" | "Paused" | "Processing";
-
-	let apps: TauriApp[] = [];
-	let loading = false;
-	let showAddDialog = false;
-	let recordingStatus: RecordingStatus = "Idle";
-	let transcribedText = "";
-	let ossecRunning = false;
-	let alertsLogModified = false;
-	let ossecNotificationsEnabled = true;
-	let showOssecTooltip = false;
+	let apps = $state<TauriApp[]>([]);
+	let loading = $state(false);
+	let showAddDialog = $state(false);
+	let ossecRunning = $state(false);
+	let alertsLogModified = $state(false);
+	let ossecNotificationsEnabled = $state(true);
+	let showOssecTooltip = $state(false);
 	let ossecTooltipTimeout: number | null = null;
-	let showAideTooltip = false;
+	let showAideTooltip = $state(false);
 	let aideTooltipTimeout: number | null = null;
-	let showAideUpdateTooltip = false;
+	let showAideUpdateTooltip = $state(false);
 	let aideUpdateTooltipTimeout: number | null = null;
-	let aideLastCheckDate: string = "";
+	let aideLastCheckDate = $state("");
 	let aideRunning = false;
-	let opensnitchRunning = false;
-	let showOpenSnitchTooltip = false;
+	let opensnitchRunning = $state(false);
+	let showOpenSnitchTooltip = $state(false);
 	let openSnitchTooltipTimeout: number | null = null;
-	let openwebuiRunning = false;
-	let lmstudioRunning = false;
-	let ollamaRunning = false;
-	let warpRunning = false;
-	let dockerEnabled = false;
-	let dockerActive = false;
-	let dockerDesktopEnabled = false;
-	let dockerDesktopActive = false;
-	let ramUsed = 0;
-	let ramTotal = 0;
-	let ramPercent = 0;
-	let gpuUsed = 0;
-	let gpuTotal = 0;
-	let gpuPercent = 0;
-	let gpuAvailable = true;
-	let contextMenu: { show: boolean; x: number; y: number; appId: string } = {
+	let openwebuiRunning = $state(false);
+	let lmstudioRunning = $state(false);
+	let ollamaRunning = $state(false);
+	let warpRunning = $state(false);
+	let dockerEnabled = $state(false);
+	let dockerActive = $state(false);
+	let dockerDesktopEnabled = $state(false);
+	let dockerDesktopActive = $state(false);
+
+	let contextMenu = $state<{
+		show: boolean;
+		x: number;
+		y: number;
+		appId: string;
+	}>({
 		show: false,
 		x: 0,
 		y: 0,
 		appId: "",
-	};
-	let newApp = {
+	});
+	let newApp = $state<{
+		id: string;
+		name: string;
+		description: string;
+		path: string;
+		executable: string;
+		icon: string;
+	}>({
 		id: "",
 		name: "",
 		description: "",
 		path: "",
 		executable: "",
 		icon: "",
-	};
+	});
+
+	let activeTab = $state("services");
+
+	function setActiveTab(tab: string) {
+		activeTab = tab;
+		console.log("Active Tab is " + activeTab);
+	}
 
 	async function loadApps() {
 		loading = true;
@@ -172,62 +181,6 @@
 				return "🟡";
 			default:
 				return "⚪";
-		}
-	}
-
-	// Speech-to-text functions
-	async function startRecording() {
-		try {
-			await invoke("start_recording");
-			recordingStatus = "Recording";
-			transcribedText = "";
-		} catch (error) {
-			console.error("Failed to start recording:", error);
-			alert("Failed to start recording: " + error);
-		}
-	}
-
-	async function pauseRecording() {
-		try {
-			await invoke("pause_recording");
-			recordingStatus = "Paused";
-		} catch (error) {
-			console.error("Failed to pause recording:", error);
-			alert("Failed to pause recording: " + error);
-		}
-	}
-
-	async function resumeRecording() {
-		try {
-			await invoke("resume_recording");
-			recordingStatus = "Recording";
-		} catch (error) {
-			console.error("Failed to resume recording:", error);
-			alert("Failed to resume recording: " + error);
-		}
-	}
-
-	async function stopRecordingAndTranscribe() {
-		try {
-			recordingStatus = "Processing";
-			const text = await invoke<string>("stop_recording_and_transcribe");
-			transcribedText = text;
-			recordingStatus = "Idle";
-		} catch (error) {
-			console.error("Failed to stop and transcribe:", error);
-			alert("Failed to transcribe: " + error);
-			recordingStatus = "Idle";
-		}
-	}
-
-	function handlePlayPause() {
-		console.log("in handlePlayPause");
-		if (recordingStatus === "Idle") {
-			startRecording();
-		} else if (recordingStatus === "Recording") {
-			pauseRecording();
-		} else if (recordingStatus === "Paused") {
-			resumeRecording();
 		}
 	}
 
@@ -486,7 +439,7 @@
 	}
 
 	async function toggleOpenWebUI() {
-		console.log("toggle OpenWebUI")
+		console.log("toggle OpenWebUI");
 		try {
 			await invoke("toggle_openwebui", { start: !openwebuiRunning });
 			await checkOpenWebUIStatus();
@@ -594,65 +547,6 @@
 		}
 	}
 
-	// RAM monitoring
-	async function updateRamUsage() {
-		try {
-			const [used, total, percent] =
-				await invoke<[number, number, number]>("get_ram_usage");
-			ramUsed = used;
-			ramTotal = total;
-			ramPercent = percent;
-		} catch (error) {
-			console.error("Failed to get RAM usage:", error);
-		}
-	}
-
-	async function updateGpuUsage() {
-		try {
-			const [used, total, percent] =
-				await invoke<[number, number, number]>("get_gpu_usage");
-			gpuUsed = used;
-			gpuTotal = total;
-			gpuPercent = percent;
-			gpuAvailable = true;
-		} catch (error) {
-			console.error("Failed to get GPU usage:", error);
-			gpuAvailable = false;
-		}
-	}
-
-	// Keyboard shortcuts handler
-	function handleKeydown(e: KeyboardEvent) {
-		// Ignore modifier keys by themselves
-		if (
-			e.key === "Control" ||
-			e.key === "Shift" ||
-			e.key === "Alt" ||
-			e.key === "Meta"
-		) {
-			return;
-		}
-
-		console.log("Key:", e.key, "Alt:", e.altKey);
-
-		if (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-			if (e.key === "3") {
-				e.preventDefault();
-				console.log("Alt+3 detected! Starting handlePlayPause");
-				handlePlayPause();
-			} else if (e.key === "4") {
-				e.preventDefault();
-				console.log("Alt+4 detected! Status:", recordingStatus);
-				if (
-					recordingStatus !== "Idle" &&
-					recordingStatus !== "Processing"
-				) {
-					stopRecordingAndTranscribe();
-				}
-			}
-		}
-	}
-
 	onMount(() => {
 		loadApps();
 		checkOssecStatus();
@@ -666,13 +560,6 @@
 		checkDockerStatus();
 		checkDockerDesktopStatus();
 
-		// Initial RAM and GPU update
-		updateRamUsage();
-		updateGpuUsage();
-		// Update RAM and GPU every 500ms
-		const ramInterval = setInterval(updateRamUsage, 500);
-		const gpuInterval = setInterval(updateGpuUsage, 500);
-
 		// Load AIDE last check date from localStorage
 		const savedDate = localStorage.getItem("aideLastCheckDate");
 		if (savedDate) {
@@ -682,87 +569,80 @@
 		document.addEventListener("click", hideContextMenu);
 		return () => {
 			document.removeEventListener("click", hideContextMenu);
-			clearInterval(ramInterval);
-			clearInterval(gpuInterval);
 		};
 	});
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<div class="flex gap-2 mb-6 border-b border-white/20 pb-2">
+	<button
+		class="px-4 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'services'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("services")}
+	>
+		Services
+	</button>
+	<button
+		class="px-6 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'todo'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("todo")}
+	>
+		ToDo
+	</button>
+	<button
+		class="px-6 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'projects'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("projects")}
+	>
+		Projects
+	</button>
+	<button
+		class="px-4 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'calendar'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("calendar")}
+	>
+		Cal
+	</button>
+	<button
+		class="px-6 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'finances'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("finances")}
+	>
+		Fin
+	</button>
+	<button
+		class="px-6 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'notifications'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("notifications")}
+	>
+		Notifs
+	</button>
+	<button
+		class="px-6 py-3 rounded-t-lg font-semibold transition-all
+           {activeTab === 'status'
+			? 'bg-white/20 border-b-2 border-blue-500 text-white'
+			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+		onclick={() => setActiveTab("status")}
+	>
+		Status
+	</button>
+</div>
 
-<div class="h-screen bg-black overflow-y-auto">
-	<div class="container mx-auto px-4 py-8">
-		<!-- System Monitor -->
-		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6">
-			<div class="grid grid-cols-2 gap-6">
-				<!-- RAM Monitor -->
-				<div class="flex items-center gap-4">
-					<span class="text-white font-semibold text-lg">RAM:</span>
-					<div class="flex-1">
-						<div class="flex items-center gap-2">
-							<span class="text-white text-sm">
-								{ramUsed.toFixed(2)} GB / {ramTotal.toFixed(2)} GB
-							</span>
-							<span class="text-white/60 text-sm"
-								>({ramPercent.toFixed(1)}%)</span
-							>
-						</div>
-						<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
-							<div
-								class="h-2 rounded-full transition-all duration-300"
-								class:bg-green-500={ramPercent < 50}
-								class:bg-yellow-500={ramPercent >= 50 &&
-									ramPercent < 80}
-								class:bg-red-500={ramPercent >= 80}
-								style="width: {ramPercent}%"
-							></div>
-						</div>
-					</div>
-				</div>
-
-				<!-- GPU Monitor -->
-				<div class="flex items-center gap-4">
-					<span class="text-white font-semibold text-lg">GPU:</span>
-					<div class="flex-1">
-						{#if gpuAvailable}
-							<div class="flex items-center gap-2">
-								<span class="text-white text-sm">
-									{gpuUsed.toFixed(2)} GB / {gpuTotal.toFixed(
-										2,
-									)} GB
-								</span>
-								<span class="text-white/60 text-sm"
-									>({gpuPercent.toFixed(1)}%)</span
-								>
-							</div>
-							<div
-								class="w-full bg-gray-700 rounded-full h-2 mt-2"
-							>
-								<div
-									class="h-2 rounded-full transition-all duration-300"
-									class:bg-green-500={gpuPercent < 50}
-									class:bg-yellow-500={gpuPercent >= 50 &&
-										gpuPercent < 80}
-									class:bg-red-500={gpuPercent >= 80}
-									style="width: {gpuPercent}%"
-								></div>
-							</div>
-						{:else}
-							<span class="text-white/60 text-sm"
-								>No NVIDIA GPU detected</span
-							>
-						{/if}
-					</div>
-				</div>
-			</div>
-		</div>
-		<!-- Header -->
-		<!-- <div class="text-center mb-12">
-			<h1 class="text-5xl font-bold text-white mb-4 drop-shadow-lg">
-				🚀 Tauri Hu
-			</h1>
-		</div> -->
-
+<!-- Tab Content -->
+<div class="tab-content">
+	{#if activeTab === "services"}
+		<!-- All your current Services content here -->
 		<!-- Apps Grid -->
 		{#if loading}
 			<div class="flex justify-center items-center h-64">
@@ -782,7 +662,7 @@
 						Add your first Tauri application to get started
 					</p>
 					<button
-						on:click={() => (showAddDialog = true)}
+						onclick={() => (showAddDialog = true)}
 						class="bg-white text-purple-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
 					>
 						➕ Add Application
@@ -794,7 +674,7 @@
 				{#each apps as app (app.id)}
 					<div
 						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 w-64 h-44 flex flex-col"
-						on:contextmenu={(e) => showContextMenu(e, app.id)}
+						oncontextmenu={(e) => showContextMenu(e, app.id)}
 					>
 						<div class="flex items-start justify-between mb-4">
 							<h3 class="text-xl font-semibold text-white">
@@ -818,14 +698,14 @@
 						<div class="flex gap-2" style="margin-top: 10px;">
 							{#if app.status === "Running"}
 								<button
-									on:click={() => stopApp(app.id)}
+									onclick={() => stopApp(app.id)}
 									class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
 								>
 									⏹️ Stop
 								</button>
 							{:else}
 								<button
-									on:click={() => launchApp(app.id)}
+									onclick={() => launchApp(app.id)}
 									class="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
 								>
 									▶️ Launch
@@ -839,101 +719,25 @@
 			<!-- Controls -->
 			<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mt-8">
 				<!-- Hub Controls Sub-Container -->
-				<div class="inline-block align-top bg-stone-300 rounded-xl p-4 mb-4">
+				<div
+					class="inline-block align-top bg-stone-300 rounded-xl p-4 mb-4"
+				>
 					<h2 class="text-xl font-semibold text-gray-800 mb-3">
 						Hub Controls
 					</h2>
-					<div class="flex flex-wrap gap-4 items-stretch">
+					<div class="flex flex-wrap gap-4 items-stretch h-[72px]">
 						<button
-							on:click={loadApps}
+							onclick={loadApps}
 							class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-semibold transition-colors flex justify-center gap-2 h-[52px] w-[100px]"
 						>
 							🔄 RefApps
 						</button>
 						<button
-							on:click={() => (showAddDialog = true)}
+							onclick={() => (showAddDialog = true)}
 							class="bg-green-500 hover:bg-green-600 text-white px-6 rounded-lg font-semibold transition-colors flex justify-center gap-2 h-[52px] w-[100px]"
 						>
 							➕ AddApps
 						</button>
-					</div>
-				</div>
-
-				<!-- Base Services Sub-Container -->
-				<div class="inline-block align-top bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4">
-					<h2 class="text-xl font-semibold text-white mb-3">
-						Base Services
-					</h2>
-					<div class="flex flex-wrap gap-4 items-stretch">
-						<!-- Speech to Text Controls -->
-						<div
-							class="bg-white/10 backdrop-blur-sm rounded-2xl p-3 w-64 h-[72px]"
-						>
-							<div class="flex items-center gap-2">
-								<!-- Microphone Icon -->
-								<div class="text-white text-2xl">🎤</div>
-
-								<!-- Play/Pause Button -->
-								<button
-									on:click={handlePlayPause}
-									disabled={recordingStatus === "Processing"}
-									class="w-12 h-12 rounded-lg font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-									class:bg-green-500={recordingStatus ===
-										"Recording"}
-									class:hover:bg-green-600={recordingStatus ===
-										"Recording"}
-									class:bg-yellow-500={recordingStatus ===
-										"Paused"}
-									class:hover:bg-yellow-600={recordingStatus ===
-										"Paused"}
-									class:bg-gray-700={recordingStatus ===
-										"Idle"}
-									class:hover:bg-gray-600={recordingStatus ===
-										"Idle"}
-									class:text-white={true}
-								>
-									{#if recordingStatus === "Recording"}
-										⏸️
-									{:else if recordingStatus === "Processing"}
-										⏳
-									{:else}
-										▶️
-									{/if}
-								</button>
-
-								<!-- Stop Button -->
-								<button
-									on:click={stopRecordingAndTranscribe}
-									disabled={recordingStatus === "Idle" ||
-										recordingStatus === "Processing"}
-									class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
-								>
-									⏹️
-								</button>
-
-								<!-- Status Text -->
-								<div class="ml-2 flex-1">
-									<p class="text-white font-semibold text-sm">
-										{#if recordingStatus === "Recording"}
-											Recording...
-										{:else if recordingStatus === "Paused"}
-											Paused
-										{:else if recordingStatus === "Processing"}
-											Processing...
-										{:else}
-											Ready
-										{/if}
-									</p>
-									{#if transcribedText}
-										<p
-											class="text-green-300 text-xs mt-0.5"
-										>
-											✓ Copied
-										</p>
-									{/if}
-								</div>
-							</div>
-						</div>
 					</div>
 				</div>
 
@@ -960,7 +764,7 @@
 							>
 								<!-- Enable/Disable Button -->
 								<button
-									on:click={toggleDockerEnable}
+									onclick={toggleDockerEnable}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerEnabled
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[4rem] h-10 whitespace-nowrap"
@@ -970,7 +774,7 @@
 
 								<!-- On/Off Button -->
 								<button
-									on:click={toggleDockerActive}
+									onclick={toggleDockerActive}
 									disabled={!dockerEnabled}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerActive &&
 									dockerEnabled
@@ -982,7 +786,7 @@
 
 								<!-- Desktop Enable/Disable Button -->
 								<button
-									on:click={toggleDockerDesktopEnable}
+									onclick={toggleDockerDesktopEnable}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerDesktopEnabled
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[4rem] h-10 whitespace-nowrap"
@@ -994,7 +798,7 @@
 
 								<!-- Desktop On/Off Button -->
 								<button
-									on:click={toggleDockerDesktopActive}
+									onclick={toggleDockerDesktopActive}
 									disabled={!dockerDesktopEnabled}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerDesktopActive &&
 									dockerDesktopEnabled
@@ -1031,7 +835,7 @@
 							>
 								<!-- Toggle Open WebUI Button -->
 								<button
-									on:click={toggleOpenWebUI}
+									onclick={toggleOpenWebUI}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
@@ -1054,7 +858,7 @@
 							>
 								<!-- Toggle Open LM Studio Button -->
 								<button
-									on:click={toggleLMStudio}
+									onclick={toggleLMStudio}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {lmstudioRunning
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
@@ -1077,7 +881,7 @@
 							>
 								<!-- Toggle Ollama Button -->
 								<button
-									on:click={toggleOllama}
+									onclick={toggleOllama}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {ollamaRunning
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
@@ -1100,7 +904,7 @@
 							>
 								<!-- Toggle Warp Button -->
 								<button
-									on:click={toggleWarp}
+									onclick={toggleWarp}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {warpRunning
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
@@ -1132,7 +936,7 @@
 							<div class="flex items-center gap-2 justify-center">
 								<!-- Toggle OSSEC Button (1st) -->
 								<button
-									on:click={toggleOssec}
+									onclick={toggleOssec}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {ossecRunning
 										? 'bg-green-500 hover:bg-green-600'
 										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
@@ -1142,7 +946,7 @@
 
 								<!-- Notification Toggle Button (2nd) -->
 								<button
-									on:click={toggleOssecNotifications}
+									onclick={toggleOssecNotifications}
 									class="px-2 py-1 rounded-lg font-semibold text-xl transition-colors flex items-center justify-center {ossecNotificationsEnabled
 										? 'bg-purple-500 hover:bg-purple-600'
 										: 'bg-gray-600 hover:bg-gray-700'} text-white w-12 h-10"
@@ -1155,7 +959,7 @@
 
 								<!-- View Logs Button (3rd) -->
 								<button
-									on:click={openAlertsLog}
+									onclick={openAlertsLog}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {alertsLogModified
 										? 'bg-blue-500 hover:bg-blue-600'
 										: 'bg-green-500 hover:bg-green-600'} text-white w-16 h-10"
@@ -1168,9 +972,9 @@
 								<!-- View Config Button with Tooltip -->
 								<div class="relative group">
 									<button
-										on:click={openOssecConfig}
-										on:mouseenter={handleOssecTooltipEnter}
-										on:mouseleave={handleOssecTooltipLeave}
+										onclick={openOssecConfig}
+										onmouseenter={handleOssecTooltipEnter}
+										onmouseleave={handleOssecTooltipLeave}
 										class="bg-white hover:bg-gray-100 text-black px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
 									>
 										<span class="text-center leading-tight"
@@ -1238,9 +1042,9 @@
 								<!-- View Log Button with Tooltip -->
 								<div class="relative group">
 									<button
-										on:click={openAideLog}
-										on:mouseenter={handleAideTooltipEnter}
-										on:mouseleave={handleAideTooltipLeave}
+										onclick={openAideLog}
+										onmouseenter={handleAideTooltipEnter}
+										onmouseleave={handleAideTooltipLeave}
 										class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
 									>
 										<span class="text-center leading-tight"
@@ -1299,7 +1103,7 @@
 
 								<!-- Check Button -->
 								<button
-									on:click={runAideCheck}
+									onclick={runAideCheck}
 									class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
 								>
 									<span class="text-center leading-tight"
@@ -1310,9 +1114,9 @@
 								<!-- Update Button -->
 								<div class="relative group">
 									<button
-										on:click={runAideUpdate}
-										on:mouseenter={handleAideUpdateTooltipEnter}
-										on:mouseleave={handleAideUpdateTooltipLeave}
+										onclick={runAideUpdate}
+										onmouseenter={handleAideUpdateTooltipEnter}
+										onmouseleave={handleAideUpdateTooltipLeave}
 										class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
 									>
 										<span class="text-center leading-tight"
@@ -1365,9 +1169,9 @@
 								<!-- Toggle OpenSnitch Button with Tooltip -->
 								<div class="relative group">
 									<button
-										on:click={toggleOpenSnitch}
-										on:mouseenter={handleOpenSnitchTooltipEnter}
-										on:mouseleave={handleOpenSnitchTooltipLeave}
+										onclick={toggleOpenSnitch}
+										onmouseenter={handleOpenSnitchTooltipEnter}
+										onmouseleave={handleOpenSnitchTooltipLeave}
 										class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {opensnitchRunning
 											? 'bg-green-500 hover:bg-green-600'
 											: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
@@ -1406,108 +1210,133 @@
 				</div>
 			</div>
 		{/if}
-	</div>
+		<!-- </div>
+</div> -->
+
+		<!-- Add App Dialog -->
+		{#if showAddDialog}
+			<div
+				class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+			>
+				<div class="bg-white rounded-2xl p-8 w-full max-w-md">
+					<h3 class="text-2xl font-bold mb-6">Add New Application</h3>
+
+					<div class="space-y-4">
+						<div>
+							<label
+								class="block text-sm font-medium text-gray-700 mb-2"
+								>Name *</label
+							>
+							<input
+								bind:value={newApp.name}
+								type="text"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								placeholder="My Tauri App"
+							/>
+						</div>
+
+						<div>
+							<label
+								class="block text-sm font-medium text-gray-700 mb-2"
+								>Description</label
+							>
+							<textarea
+								bind:value={newApp.description}
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								rows="3"
+								placeholder="Description of your application"
+							></textarea>
+						</div>
+
+						<div>
+							<label
+								class="block text-sm font-medium text-gray-700 mb-2"
+								>Path *</label
+							>
+							<input
+								bind:value={newApp.path}
+								type="text"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								placeholder="/path/to/app/directory"
+							/>
+						</div>
+
+						<div>
+							<label
+								class="block text-sm font-medium text-gray-700 mb-2"
+								>Executable *</label
+							>
+							<input
+								bind:value={newApp.executable}
+								type="text"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								placeholder="./target/release/my-app"
+							/>
+						</div>
+
+						<div>
+							<label
+								class="block text-sm font-medium text-gray-700 mb-2"
+								>Icon (emoji)</label
+							>
+							<input
+								bind:value={newApp.icon}
+								type="text"
+								class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+								placeholder="📱"
+							/>
+						</div>
+					</div>
+
+					<div class="flex gap-4 mt-8">
+						<button
+							onclick={() => (showAddDialog = false)}
+							class="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+						>
+							Cancel
+						</button>
+						<button
+							onclick={addApp}
+							class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+						>
+							Add App
+						</button>
+					</div>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Context Menu -->
+		{#if contextMenu.show}
+			<div
+				class="fixed bg-white rounded-lg shadow-xl py-2 z-50 min-w-[150px]"
+				style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
+			>
+				<button
+					onclick={() => removeApp(contextMenu.appId)}
+					class="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 font-medium transition-colors flex items-center gap-2"
+				>
+					🗑️ Remove App
+				</button>
+			</div>
+		{/if}
+	{:else if activeTab === "todo"}
+		<!-- ToDo content -->
+		<h1 class="text-4xl font-bold text-white">To Do</h1>
+	{:else if activeTab === "projects"}
+		<!-- Projects content -->
+		<h1 class="text-4xl font-bold text-white">Projects</h1>
+	{:else if activeTab === "calendar"}
+		<!-- ToDo content -->
+		<h1 class="text-4xl font-bold text-white">Calendar</h1>
+	{:else if activeTab === "finances"}
+		<!-- Projects content -->
+		<h1 class="text-4xl font-bold text-white">Finance</h1>
+	{:else if activeTab === "notifications"}
+		<!-- ToDo content -->
+		<h1 class="text-4xl font-bold text-white">Notifications</h1>
+	{:else if activeTab === "status"}
+		<!-- Projects content -->
+		<h1 class="text-4xl font-bold text-white">Status</h1>
+	{/if}
 </div>
-
-<!-- Add App Dialog -->
-{#if showAddDialog}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-	>
-		<div class="bg-white rounded-2xl p-8 w-full max-w-md">
-			<h3 class="text-2xl font-bold mb-6">Add New Application</h3>
-
-			<div class="space-y-4">
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2"
-						>Name *</label
-					>
-					<input
-						bind:value={newApp.name}
-						type="text"
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-						placeholder="My Tauri App"
-					/>
-				</div>
-
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2"
-						>Description</label
-					>
-					<textarea
-						bind:value={newApp.description}
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-						rows="3"
-						placeholder="Description of your application"
-					></textarea>
-				</div>
-
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2"
-						>Path *</label
-					>
-					<input
-						bind:value={newApp.path}
-						type="text"
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-						placeholder="/path/to/app/directory"
-					/>
-				</div>
-
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2"
-						>Executable *</label
-					>
-					<input
-						bind:value={newApp.executable}
-						type="text"
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-						placeholder="./target/release/my-app"
-					/>
-				</div>
-
-				<div>
-					<label class="block text-sm font-medium text-gray-700 mb-2"
-						>Icon (emoji)</label
-					>
-					<input
-						bind:value={newApp.icon}
-						type="text"
-						class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-						placeholder="📱"
-					/>
-				</div>
-			</div>
-
-			<div class="flex gap-4 mt-8">
-				<button
-					on:click={() => (showAddDialog = false)}
-					class="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-				>
-					Cancel
-				</button>
-				<button
-					on:click={addApp}
-					class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-				>
-					Add App
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- Context Menu -->
-{#if contextMenu.show}
-	<div
-		class="fixed bg-white rounded-lg shadow-xl py-2 z-50 min-w-[150px]"
-		style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
-	>
-		<button
-			on:click={() => removeApp(contextMenu.appId)}
-			class="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 font-medium transition-colors flex items-center gap-2"
-		>
-			🗑️ Remove App
-		</button>
-	</div>
-{/if}

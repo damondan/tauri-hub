@@ -1,12 +1,306 @@
 <script lang="ts">
-	import '../app.css';
-	import favicon from '$lib/assets/favicon.svg';
-	
+	import "../app.css";
+	import favicon from "$lib/assets/favicon.svg";
+	import { onMount } from "svelte";
+	import { invoke } from "@tauri-apps/api/core";
+
+	let ramUsed = $state(0);
+	let ramTotal = $state(0);
+	let ramPercent = $state(0);
+	let gpuUsed = $state(0);
+	let gpuTotal = $state(0);
+	let gpuPercent = $state(0);
+	let gpuAvailable = $state(true);
+	let diskTotal = $state(0);
+	let diskAvailable = $state(0);
+	let diskUsed = $state(0);
+	let recordingStatus: RecordingStatus = $state("Idle");
+	let transcribedText = $state("");
 	let { children } = $props();
+
+	type RecordingStatus = "Idle" | "Recording" | "Paused" | "Processing";
+
+	onMount(() => {
+		updateRamUsage();
+		updateGpuUsage();
+		updateDiskUsage();
+		// Update RAM and GPU every 500ms
+		const ramInterval = setInterval(updateRamUsage, 1000);
+		const gpuInterval = setInterval(updateGpuUsage, 1000);
+		const diskInterval = setInterval(updateDiskUsage, 1000);
+		return () => {
+			clearInterval(ramInterval);
+			clearInterval(gpuInterval);
+			clearInterval(diskInterval);
+		};
+	});
+
+	async function updateRamUsage() {
+		try {
+			const [used, total, percent] =
+				await invoke<[number, number, number]>("get_ram_usage");
+			ramUsed = used;
+			ramTotal = total;
+			ramPercent = percent;
+		} catch (error) {
+			console.error("Failed to get RAM usage:", error);
+		}
+	}
+
+	async function updateGpuUsage() {
+		try {
+			const [used, total, percent] =
+				await invoke<[number, number, number]>("get_gpu_usage");
+			gpuUsed = used;
+			gpuTotal = total;
+			gpuPercent = percent;
+			gpuAvailable = true;
+		} catch (error) {
+			console.error("Failed to get GPU usage:", error);
+			gpuAvailable = false;
+		}
+	}
+
+	async function updateDiskUsage() {
+		try {
+			const [used, avail, total] =
+				await invoke<[number, number, number]>("get_disk_usage");
+				console.log("in updateDiskUsage and diskUsed is " + diskUsed);
+			diskUsed = used;
+			diskAvailable = avail;
+			diskTotal = total;
+		} catch (error) {
+			console.error("Failed to get DISK usage:", error);
+		}
+	}
+
+	function handlePlayPause() {
+		console.log("in handlePlayPause");
+		if (recordingStatus === "Idle") {
+			startRecording();
+		} else if (recordingStatus === "Recording") {
+			pauseRecording();
+		} else if (recordingStatus === "Paused") {
+			resumeRecording();
+		}
+	}
+
+	// Speech-to-text functions
+	async function startRecording() {
+		try {
+			await invoke("start_recording");
+			recordingStatus = "Recording";
+			transcribedText = "";
+		} catch (error) {
+			console.error("Failed to start recording:", error);
+			alert("Failed to start recording: " + error);
+		}
+	}
+
+	async function pauseRecording() {
+		try {
+			await invoke("pause_recording");
+			recordingStatus = "Paused";
+		} catch (error) {
+			console.error("Failed to pause recording:", error);
+			alert("Failed to pause recording: " + error);
+		}
+	}
+
+	async function resumeRecording() {
+		try {
+			await invoke("resume_recording");
+			recordingStatus = "Recording";
+		} catch (error) {
+			console.error("Failed to resume recording:", error);
+			alert("Failed to resume recording: " + error);
+		}
+	}
+
+	async function stopRecordingAndTranscribe() {
+		try {
+			recordingStatus = "Processing";
+			const text = await invoke<string>("stop_recording_and_transcribe");
+			transcribedText = text;
+			recordingStatus = "Idle";
+		} catch (error) {
+			console.error("Failed to stop and transcribe:", error);
+			alert("Failed to transcribe: " + error);
+			recordingStatus = "Idle";
+		}
+	}
+
+	// Keyboard shortcuts handler
+	function handleKeydown(e: KeyboardEvent) {
+		// Ignore modifier keys by themselves
+		if (
+			e.key === "Control" ||
+			e.key === "Shift" ||
+			e.key === "Alt" ||
+			e.key === "Meta"
+		) {
+			return;
+		}
+
+		console.log("Key:", e.key, "Alt:", e.altKey);
+
+		if (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+			if (e.key === "3") {
+				e.preventDefault();
+				console.log("Alt+3 detected! Starting handlePlayPause");
+				handlePlayPause();
+			} else if (e.key === "4") {
+				e.preventDefault();
+				console.log("Alt+4 detected! Status:", recordingStatus);
+				if (
+					recordingStatus !== "Idle" &&
+					recordingStatus !== "Processing"
+				) {
+					stopRecordingAndTranscribe();
+				}
+			}
+		}
+	}
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children?.()}
+<svelte:window on:keydown={handleKeydown} />
+
+<div class="h-screen bg-black overflow-y-auto">
+	<div class="mx-auto px-8 py-4 max-w-[95%]">
+		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-1 mb-2">
+			<div class="grid grid-cols-2 gap-6">
+				<!-- RAM Monitor -->
+				<div class="flex items-center gap-4">
+					<span class="text-white font-semibold text-lg">RAM:</span>
+					<div class="flex-1">
+						<div class="flex items-center gap-2">
+							<span class="text-white text-sm">
+								{ramUsed.toFixed(2)} GB / {ramTotal.toFixed(2)} GB
+							</span>
+							<span class="text-white/60 text-sm"
+								>({ramPercent.toFixed(1)}%)</span
+							>
+						</div>
+						<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+							<div
+								class="h-2 rounded-full transition-all duration-300"
+								class:bg-green-500={ramPercent < 50}
+								class:bg-yellow-500={ramPercent >= 50 &&
+									ramPercent < 80}
+								class:bg-red-500={ramPercent >= 80}
+								style="width: {ramPercent}%"
+							></div>
+						</div>
+					</div>
+				</div>
+
+				<!-- GPU Monitor -->
+				<div class="flex items-center gap-4">
+					<span class="text-white font-semibold text-lg">GPU:</span>
+					<div class="flex-1">
+						{#if gpuAvailable}
+							<div class="flex items-center gap-2">
+								<span class="text-white text-sm">
+									{gpuUsed.toFixed(2)} GB / {gpuTotal.toFixed(
+										2,
+									)} GB
+								</span>
+								<span class="text-white/60 text-sm"
+									>({gpuPercent.toFixed(1)}%)</span
+								>
+							</div>
+							<div
+								class="w-full bg-gray-700 rounded-full h-2 mt-2"
+							>
+								<div
+									class="h-2 rounded-full transition-all duration-300"
+									class:bg-green-500={gpuPercent < 50}
+									class:bg-yellow-500={gpuPercent >= 50 &&
+										gpuPercent < 80}
+									class:bg-red-500={gpuPercent >= 80}
+									style="width: {gpuPercent}%"
+								></div>
+							</div>
+						{:else}
+							<span class="text-white/60 text-sm"
+								>No NVIDIA GPU detected</span
+							>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Speech To Text -->
+			<div class="flex flex-wrap gap-4 mb-4 items-stretch">
+				<!--Disk Usage-->
+		<h1 class="text-white text-2xl">AD {(diskAvailable / 1073741824).toFixed(1)}</h1>
+				<!-- Speech to Text Controls -->
+				<div
+					class="bg-white/10 backdrop-blur-sm rounded-2xl p-1 w-45 h-[52px]"
+				>
+					<div class="flex items-center gap-2">
+						<!-- Play/Pause Button -->
+						<button
+							onclick={handlePlayPause}
+							disabled={recordingStatus === "Processing"}
+							class="w-12 h-12 rounded-lg font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+							class:bg-green-500={recordingStatus === "Recording"}
+							class:hover:bg-green-600={recordingStatus ===
+								"Recording"}
+							class:bg-yellow-500={recordingStatus === "Paused"}
+							class:hover:bg-yellow-600={recordingStatus ===
+								"Paused"}
+							class:bg-gray-700={recordingStatus === "Idle"}
+							class:hover:bg-gray-600={recordingStatus === "Idle"}
+							class:text-white={true}
+						>
+							{#if recordingStatus === "Recording"}
+								⏸️
+							{:else if recordingStatus === "Processing"}
+								⏳
+							{:else}
+								▶️
+							{/if}
+						</button>
+
+						<!-- Stop Button -->
+						<button
+							onclick={stopRecordingAndTranscribe}
+							disabled={recordingStatus === "Idle" ||
+								recordingStatus === "Processing"}
+							class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+						>
+							⏹️
+						</button>
+
+						<!-- Status Text -->
+						<div class="ml-2 flex-1">
+							<p class="text-white font-semibold text-sm">
+								{#if recordingStatus === "Recording"}
+									Recording...
+								{:else if recordingStatus === "Paused"}
+									Paused
+								{:else if recordingStatus === "Processing"}
+									Processing...
+								{:else}
+									Ready
+								{/if}
+							</p>
+							{#if transcribedText}
+								<p class="text-green-300 text-xs mt-0.5">
+									✓ Copied
+								</p>
+							{/if}
+						</div>
+					</div>
+				</div>
+			</div>
+		
+		{@render children?.()}
+	</div>
+</div>
