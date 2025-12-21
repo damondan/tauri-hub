@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::path::Path;
+use sysinfo::Disks;
 use std::process::{Command, Child, Stdio};
 use tauri::{State, Manager, AppHandle};
 use std::sync::{Mutex, Arc};
@@ -1101,6 +1103,23 @@ fn get_gpu_usage() -> Result<(f64, f64, f64), String> {
     }
 }
 
+#[tauri::command]
+fn get_disk_usage() -> Result<(u64, u64, u64), String> {
+    let disks = Disks::new_with_refreshed_list();
+    
+    // Just find the root partition
+    for disk in disks.list() {
+        if disk.mount_point() == Path::new("/") {
+            let total = disk.total_space();
+            let available = disk.available_space();
+            let used = total - available;
+            return Ok((used, available, total));
+        }
+    }
+    
+    Err("Root disk not found".to_string())
+}
+
 // Docker Desktop commands (user service)
 
 #[tauri::command]
@@ -1211,7 +1230,8 @@ pub fn run() {
             toggle_docker_desktop_enable,
             toggle_docker_desktop_active,
             get_ram_usage,
-            get_gpu_usage
+            get_gpu_usage,
+            get_disk_usage
         ])
         .setup(|app| {
             // Load registry from disk
