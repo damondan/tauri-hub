@@ -1321,11 +1321,10 @@
 			</div>
 		{/if}
 	{:else if activeTab === "todo"}
-		<!-- ToDo content -->
-		<h1 class="text-4xl font-bold text-white">To Do</h1>
+		
 	{:else if activeTab === "projects"}
 		<!-- Projects content -->
-		<h1 class="text-4xl font-bold text-white">Projects</h1>
+		
 	{:else if activeTab === "calendar"}
 		<!-- ToDo content -->
 		<h1 class="text-4xl font-bold text-white">Calendar</h1>
