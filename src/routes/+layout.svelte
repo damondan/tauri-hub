@@ -16,6 +16,8 @@
 	let diskUsed = $state(0);
 	let recordingStatus: RecordingStatus = $state("Idle");
 	let transcribedText = $state("");
+	let inputLanguage = $state<"en" | "es">("en");
+	let outputLanguage = $state<"en" | "es">("en");
 	let { children } = $props();
 
 	type RecordingStatus = "Idle" | "Recording" | "Paused" | "Processing";
@@ -120,7 +122,10 @@
 	async function stopRecordingAndTranscribe() {
 		try {
 			recordingStatus = "Processing";
-			const text = await invoke<string>("stop_recording_and_transcribe");
+			const text = await invoke<string>("stop_recording_and_transcribe", {
+				inputLang: inputLanguage,
+				outputLang: outputLanguage
+			});
 			transcribedText = text;
 			recordingStatus = "Idle";
 		} catch (error) {
@@ -128,6 +133,23 @@
 			alert("Failed to transcribe: " + error);
 			recordingStatus = "Idle";
 		}
+	}
+
+	// Language selection handlers
+	function handleInputLanguageChange(lang: "en" | "es") {
+		inputLanguage = lang;
+		// If switching to English input and Spanish output is selected, reset to English output
+		if (lang === "en" && outputLanguage === "es") {
+			outputLanguage = "en";
+		}
+	}
+
+	function handleOutputLanguageChange(lang: "en" | "es") {
+		// Prevent EN input -> SP output (invalid combination)
+		if (inputLanguage === "en" && lang === "es") {
+			return; // Disallow this combination
+		}
+		outputLanguage = lang;
 	}
 
 	// Keyboard shortcuts handler
@@ -237,8 +259,65 @@
 
 		<!-- Speech To Text -->
 			<div class="flex flex-wrap gap-4 mb-4 items-stretch">
-				<!--Disk Usage-->
-		<h1 class="text-white text-2xl">AD {(diskAvailable / 1073741824).toFixed(1)}</h1>
+				<!-- Disk Usage and Language Selection -->
+				<div class="flex flex-col justify-between h-[52px]">
+					<!--Disk Usage-->
+					<h1 class="text-white text-lg leading-tight">AD {(diskAvailable / 1073741824).toFixed(1)}</h1>
+					
+					<!-- Language Selection -->
+					<div class="flex flex-col gap-0.5 text-xs">
+						<!-- English row -->
+						<div class="flex items-center gap-2 text-white">
+							<span class="w-6">en</span>
+							<label class="flex items-center gap-1 cursor-pointer">
+								<input
+									type="checkbox"
+									checked={inputLanguage === "en"}
+									onchange={() => handleInputLanguageChange("en")}
+									class="w-3 h-3 cursor-pointer"
+								/>
+								<span class="text-[10px]">in</span>
+							</label>
+							<label class="flex items-center gap-1 cursor-pointer">
+								<input
+									type="checkbox"
+									checked={outputLanguage === "en"}
+									onchange={() => handleOutputLanguageChange("en")}
+									class="w-3 h-3 cursor-pointer"
+								/>
+								<span class="text-[10px]">out</span>
+							</label>
+						</div>
+						
+						<!-- Spanish row -->
+						<div class="flex items-center gap-2 text-white">
+							<span class="w-6">sp</span>
+							<label class="flex items-center gap-1 cursor-pointer">
+								<input
+									type="checkbox"
+									checked={inputLanguage === "es"}
+									onchange={() => handleInputLanguageChange("es")}
+									class="w-3 h-3 cursor-pointer"
+								/>
+								<span class="text-[10px]">in</span>
+							</label>
+							<label class="flex items-center gap-1 cursor-pointer"
+								class:opacity-50={inputLanguage === "en"}
+								class:cursor-not-allowed={inputLanguage === "en"}>
+								<input
+									type="checkbox"
+									checked={outputLanguage === "es"}
+									onchange={() => handleOutputLanguageChange("es")}
+									disabled={inputLanguage === "en"}
+									class="w-3 h-3"
+									class:cursor-pointer={inputLanguage !== "en"}
+									class:cursor-not-allowed={inputLanguage === "en"}
+								/>
+								<span class="text-[10px]">out</span>
+							</label>
+						</div>
+					</div>
+				</div>
 				<!-- Speech to Text Controls -->
 				<div
 					class="bg-white/10 backdrop-blur-sm rounded-2xl p-1 w-45 h-[52px]"

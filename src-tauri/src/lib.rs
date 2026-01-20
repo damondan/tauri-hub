@@ -290,7 +290,11 @@ async fn resume_recording(recording: State<'_, RecordingRegistry>) -> Result<(),
 }
 
 #[tauri::command]
-async fn stop_recording_and_transcribe(recording: State<'_, RecordingRegistry>) -> Result<String, String> {
+async fn stop_recording_and_transcribe(
+    input_lang: String,
+    output_lang: String,
+    recording: State<'_, RecordingRegistry>
+) -> Result<String, String> {
     let mut state = recording.lock().map_err(|e| e.to_string())?;
     
     if matches!(state.status, RecordingStatus::Idle) {
@@ -313,12 +317,30 @@ async fn stop_recording_and_transcribe(recording: State<'_, RecordingRegistry>) 
     let home = std::env::var("HOME").map_err(|e| format!("Failed to get HOME: {}", e))?;
     let whisper_bin = format!("{}/.pyenv/versions/whisper-py312/bin/whisper", home);
     
-    // Run Whisper transcription directly
-    // Model options: "small" (faster) or "medium" (better quality)
-    let model = "small";  // Change to "medium" for better quality
-    // let model = "medium";  // Uncomment to use medium model
+    // Determine Whisper task and language based on input/output combination
+    // Valid combinations:
+    // 1. en -> en: transcribe with language=en
+    // 3. es -> es: transcribe with language=es
+    // 4. es -> en: translate (transcribe + translate to English)
+    let (task, language) = match (input_lang.as_str(), output_lang.as_str()) {
+        ("en", "en") => ("transcribe", "en"),
+        ("es", "es") => ("transcribe", "es"),
+        ("es", "en") => ("translate", "es"),
+        _ => return Err("Invalid language combination".to_string()),
+    };
+    
+    // Run Whisper transcription/translation
+    let model = "medium";  // Change to "medium" for better quality
     let output = Command::new(&whisper_bin)
-        .args([&audio_file, "--model", model, "--device", "cuda", "--output_format", "txt", "--output_dir", "/tmp"])
+        .args([
+            &audio_file,
+            "--model", model,
+            "--device", "cuda",
+            "--task", task,
+            "--language", language,
+            "--output_format", "txt",
+            "--output_dir", "/tmp"
+        ])
         .output()
         .map_err(|e| format!("Failed to run Whisper: {}", e))?;
     
