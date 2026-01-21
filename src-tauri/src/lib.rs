@@ -1208,11 +1208,41 @@ async fn toggle_docker_desktop_active(start: bool) -> Result<(), String> {
     }
 }
 
+// Save/load user data (todos and commands)
+fn get_user_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("Failed to get app data dir: {}", e))?;
+    fs::create_dir_all(&app_dir)
+        .map_err(|e| format!("Failed to create app data dir: {}", e))?;
+    Ok(app_dir.join("user_data.json"))
+}
+
+#[tauri::command]
+async fn load_user_data(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let data_path = get_user_data_path(&app_handle)?;
+    
+    if !data_path.exists() {
+        return Ok("{}".to_string()); // Return empty object if no file
+    }
+    
+    fs::read_to_string(&data_path)
+        .map_err(|e| format!("Failed to read user data: {}", e))
+}
+
+#[tauri::command]
+async fn save_user_data(data: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let data_path = get_user_data_path(&app_handle)?;
+    
+    fs::write(&data_path, data)
+        .map_err(|e| format!("Failed to write user data: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             get_registered_apps,
             register_app,
@@ -1253,7 +1283,9 @@ pub fn run() {
             toggle_docker_desktop_active,
             get_ram_usage,
             get_gpu_usage,
-            get_disk_usage
+            get_disk_usage,
+            load_user_data,
+            save_user_data
         ])
         .setup(|app| {
             // Load registry from disk

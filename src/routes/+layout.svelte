@@ -4,6 +4,7 @@
 	import { onMount } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import Navigation from "$lib/components/Navigation.svelte";
+	import { loadUserData, initPersistence } from "$lib/persistence";
 
 	let ramUsed = $state(0);
 	let ramTotal = $state(0);
@@ -24,6 +25,12 @@
 	type RecordingStatus = "Idle" | "Recording" | "Paused" | "Processing";
 
 	onMount(() => {
+		// Load saved data first
+		loadUserData().then(() => {
+			// Initialize auto-save after loading
+			initPersistence();
+		});
+		
 		updateRamUsage();
 		updateGpuUsage();
 		updateDiskUsage();
