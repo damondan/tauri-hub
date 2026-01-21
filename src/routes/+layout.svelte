@@ -3,6 +3,7 @@
 	import favicon from "$lib/assets/favicon.svg";
 	import { onMount } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
+	import Navigation from "$lib/components/Navigation.svelte";
 
 	let ramUsed = $state(0);
 	let ramTotal = $state(0);
@@ -380,6 +381,7 @@
 				</div>
 			</div>
 		
+		<Navigation />
 		{@render children?.()}
 	</div>
 </div>

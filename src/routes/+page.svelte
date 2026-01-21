@@ -1,16 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
-
-	interface TauriApp {
-		id: string;
-		name: string;
-		description: string;
-		path: string;
-		executable: string;
-		icon?: string;
-		status: "Running" | "Stopped" | "Error";
-	}
+	import type { TauriApp } from "$lib/types";
 
 	let apps = $state<TauriApp[]>([]);
 	let loading = $state(false);
@@ -64,13 +55,6 @@
 		executable: "",
 		icon: "",
 	});
-
-	let activeTab = $state("services");
-
-	function setActiveTab(tab: string) {
-		activeTab = tab;
-		console.log("Active Tab is " + activeTab);
-	}
 
 	async function loadApps() {
 		loading = true;
@@ -573,77 +557,9 @@
 	});
 </script>
 
-<div class="flex gap-2 mb-6 border-b border-white/20 pb-2">
-	<button
-		class="px-4 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'services'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("services")}
-	>
-		Services
-	</button>
-	<button
-		class="px-6 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'todo'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("todo")}
-	>
-		ToDo
-	</button>
-	<button
-		class="px-6 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'projects'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("projects")}
-	>
-		Projects
-	</button>
-	<button
-		class="px-4 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'calendar'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("calendar")}
-	>
-		Cal
-	</button>
-	<button
-		class="px-6 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'finances'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("finances")}
-	>
-		Fin
-	</button>
-	<button
-		class="px-6 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'notifications'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("notifications")}
-	>
-		Notifs
-	</button>
-	<button
-		class="px-6 py-3 rounded-t-lg font-semibold transition-all
-           {activeTab === 'status'
-			? 'bg-white/20 border-b-2 border-blue-500 text-white'
-			: 'bg-white/5 hover:bg-white/10 text-white/70'}"
-		onclick={() => setActiveTab("status")}
-	>
-		Status
-	</button>
-</div>
-
-<!-- Tab Content -->
+<!-- Services Tab Content -->
 <div class="tab-content">
-	{#if activeTab === "services"}
-		<!-- All your current Services content here -->
-		<!-- Apps Grid -->
+	<!-- Apps Grid -->
 		{#if loading}
 			<div class="flex justify-center items-center h-64">
 				<div
@@ -1209,9 +1125,6 @@
 					</div>
 				</div>
 			</div>
-		{/if}
-		<!-- </div>
-</div> -->
 
 		<!-- Add App Dialog -->
 		{#if showAddDialog}
@@ -1320,22 +1233,5 @@
 				</button>
 			</div>
 		{/if}
-	{:else if activeTab === "todo"}
-		
-	{:else if activeTab === "projects"}
-		<!-- Projects content -->
-		
-	{:else if activeTab === "calendar"}
-		<!-- ToDo content -->
-		<h1 class="text-4xl font-bold text-white">Calendar</h1>
-	{:else if activeTab === "finances"}
-		<!-- Projects content -->
-		<h1 class="text-4xl font-bold text-white">Finance</h1>
-	{:else if activeTab === "notifications"}
-		<!-- ToDo content -->
-		<h1 class="text-4xl font-bold text-white">Notifications</h1>
-	{:else if activeTab === "status"}
-		<!-- Projects content -->
-		<h1 class="text-4xl font-bold text-white">Status</h1>
 	{/if}
 </div>
