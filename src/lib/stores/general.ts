@@ -5,6 +5,10 @@ import { writable } from 'svelte/store';
 // Simple array of status words
 export const statusWords = writable<string[]>(['home', 'alpha', 'bravo', 'charlie']);
 
+// ToDo header fields
+export const todoField1 = writable<string>('');
+export const todoField2 = writable<string>('');
+
 // Commands
 export interface CommandItemTextRow {
 	id: string;
@@ -24,6 +28,8 @@ export interface TodoRow {
 	id: string;
 	text: string;
 	completed: boolean;
+	startTime?: string; // ISO 8601 timestamp
+	finishTime?: string; // ISO 8601 timestamp
 }
 
 export interface TodoItem {
@@ -125,9 +131,10 @@ export function updateTodoTitle(date: string, itemId: string, title: string): vo
 // addTodoRow(date: string, itemId: string): string
 export function addTodoRow(date: string, itemId: string): string {
 	const rowId = makeId();
+	const startTime = new Date().toISOString();
 	todosByDate.update((map) => {
 		const nextList = (map[date] ?? []).map((it) =>
-			it.id === itemId ? { ...it, rows: [...it.rows, { id: rowId, text: '', completed: false }] } : it
+			it.id === itemId ? { ...it, rows: [...it.rows, { id: rowId, text: '', completed: false, startTime }] } : it
 		);
 		return { ...map, [date]: nextList };
 	});
@@ -151,7 +158,15 @@ export function toggleTodoRow(date: string, itemId: string, rowId: string): void
 	todosByDate.update((map) => {
 		const nextList = (map[date] ?? []).map((it) =>
 			it.id === itemId
-				? { ...it, rows: it.rows.map((r) => (r.id === rowId ? { ...r, completed: !r.completed } : r)) }
+				? { ...it, rows: it.rows.map((r) => {
+						if (r.id === rowId) {
+							const newCompleted = !r.completed;
+							// If toggling to completed, set finishTime
+							const finishTime = newCompleted ? new Date().toISOString() : r.finishTime;
+							return { ...r, completed: newCompleted, finishTime };
+						}
+						return r;
+					}) }
 				: it
 		);
 		return { ...map, [date]: nextList };

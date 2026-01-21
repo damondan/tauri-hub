@@ -1,12 +1,14 @@
 // src/lib/persistence.ts
 
 import { invoke } from '@tauri-apps/api/core';
-import { todosByDate, commandItems } from '$lib/stores/general';
+import { todosByDate, commandItems, todoField1, todoField2 } from '$lib/stores/general';
 import { get } from 'svelte/store';
 
 interface UserData {
 	todos: Record<string, any>;
 	commands: Record<string, any>;
+	field1?: string;
+	field2?: string;
 }
 
 let saveTimeout: number | null = null;
@@ -26,7 +28,9 @@ export async function saveUserData(): Promise<void> {
 	try {
 		const data: UserData = {
 			todos: get(todosByDate),
-			commands: get(commandItems)
+			commands: get(commandItems),
+			field1: get(todoField1),
+			field2: get(todoField2)
 		};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -47,6 +51,12 @@ export async function loadUserData(): Promise<void> {
 		if (data.commands) {
 			commandItems.set(data.commands);
 		}
+		if (data.field1 !== undefined) {
+			todoField1.set(data.field1);
+		}
+		if (data.field2 !== undefined) {
+			todoField2.set(data.field2);
+		}
 		console.log('User data loaded');
 	} catch (error) {
 		console.error('Failed to load user data:', error);
@@ -62,6 +72,15 @@ export function initPersistence() {
 
 	// Subscribe to commands changes
 	commandItems.subscribe(() => {
+		scheduleSave();
+	});
+
+	// Subscribe to field changes
+	todoField1.subscribe(() => {
+		scheduleSave();
+	});
+
+	todoField2.subscribe(() => {
 		scheduleSave();
 	});
 }

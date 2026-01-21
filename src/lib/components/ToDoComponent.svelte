@@ -1,12 +1,20 @@
 <!-- src/lib/components/ToDoComponent.svelte -->
 <script lang="ts">
-  import { todosByDate, addTodoItem, addTodoRow, updateTodoTitle, updateTodoRowText, toggleTodoRow, deleteTodoRow, removeTodoItem, todayKey } from '$lib/stores/general';
+  import { onMount } from 'svelte';
+  import { todosByDate, addTodoItem, addTodoRow, updateTodoTitle, updateTodoRowText, toggleTodoRow, deleteTodoRow, removeTodoItem, todayKey, todoField1, todoField2 } from '$lib/stores/general';
+  import { resizeTextarea, resizeAllTextareas, setupTextareaResizeListener } from '$lib/utils/textareaResize';
 
   // Track which items are expanded
-  let expanded: Record<string, boolean> = {};
+  let expanded = $state<Record<string, boolean>>({});
 
   function toggleExpanded(itemId: string) {
     expanded[itemId] = !expanded[itemId];
+    // Recalculate textarea heights after expansion
+    if (expanded[itemId]) {
+      setTimeout(() => {
+        resizeAllTextareas();
+      }, 0);
+    }
   }
 
   // Handlers
@@ -27,13 +35,110 @@
       console.error('Failed to copy', e);
     }
   }
+
+  // Auto-resize input fields
+  let projectNameValue = $state('');
+
+  function autoResizeInput(element: HTMLInputElement) {
+    const minWidth = 40; // minimum width in px
+    const padding = 32; // account for padding
+    element.style.width = '0';
+    element.style.width = Math.max(minWidth, element.scrollWidth + padding) + 'px';
+  }
+
+  // Parse project name and toggle words in fields (add if not present, remove if present)
+  function handleOrangeButton() {
+    const text = projectNameValue.trim();
+    const words = text.split(/\s+/);
+    
+    words.forEach(word => {
+      if (word.startsWith('#')) {
+        // Toggle in field1
+        todoField1.update(val => {
+          const wordList = val.trim().split(/\s+/).filter(w => w.length > 0);
+          const index = wordList.indexOf(word);
+          if (index >= 0) {
+            // Word exists, remove it
+            wordList.splice(index, 1);
+          } else {
+            // Word doesn't exist, add it
+            wordList.push(word);
+          }
+          return wordList.join(' ');
+        });
+      } else if (word.startsWith('@')) {
+        // Toggle in field2
+        todoField2.update(val => {
+          const wordList = val.trim().split(/\s+/).filter(w => w.length > 0);
+          const index = wordList.indexOf(word);
+          if (index >= 0) {
+            // Word exists, remove it
+            wordList.splice(index, 1);
+          } else {
+            // Word doesn't exist, add it
+            wordList.push(word);
+          }
+          return wordList.join(' ');
+        });
+      }
+    });
+    
+    // Clear project name input after parsing
+    projectNameValue = '';
+  }
+
+  // Setup window resize listener for textareas
+  onMount(() => {
+    return setupTextareaResizeListener();
+  });
+
+  // Reactive effect to resize field inputs when their values change
+  $effect(() => {
+    // Track the store values to trigger reactivity
+    const val1 = $todoField1;
+    const val2 = $todoField2;
+    
+    const field1El = document.getElementById('field1-input') as HTMLInputElement;
+    const field2El = document.getElementById('field2-input') as HTMLInputElement;
+    if (field1El) autoResizeInput(field1El);
+    if (field2El) autoResizeInput(field2El);
+  });
 </script>
 
 <!-- Header with Add button -->
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-4xl font-bold text-white">To Do</h1>
-  <button on:click={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 
-  h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
+  <div class="flex items-center gap-2">
+    <input
+      id="field1-input"
+      type="text"
+      bind:value={$todoField1}
+      class="bg-white/5 border border-white rounded px-3 py-2 text-white text-xl placeholder-white/40"
+      style="min-width: 40px; width: 40px;"
+      placeholder="Field 1"
+    />
+    <input
+      id="field2-input"
+      type="text"
+      bind:value={$todoField2}
+      class="bg-white/5 border border-white rounded px-3 py-2 text-white text-xl placeholder-white/40"
+      style="min-width: 40px; width: 40px;"
+      placeholder="Field 2"
+    />
+  </div>
+  <div class="flex items-center gap-2">
+    <button on:click={handleOrangeButton} class="bg-orange-500 hover:bg-orange-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
+    <input
+      type="text"
+      maxlength="20"
+      size="20"
+      bind:value={projectNameValue}
+      class="bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
+      style="width: 20ch;"
+      placeholder="Project name..."
+    />
+    <button on:click={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
+  </div>
 </div>
 
 <!-- Empty state -->
@@ -93,15 +198,14 @@
               <!-- Text input -->
               <textarea
                 rows="1"
-                class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight"
+                class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
                 placeholder="Describe the task..."
                 value={row.text}
                 on:input={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   updateTodoRowText(date, item.id, row.id, target.value);
                   // Auto-resize
-                  target.style.height = 'auto';
-                  target.style.height = target.scrollHeight + 'px';
+                  resizeTextarea(target);
                 }}
               ></textarea>
 
