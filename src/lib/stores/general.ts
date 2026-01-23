@@ -9,6 +9,33 @@ export const statusWords = writable<string[]>(['home', 'alpha', 'bravo', 'charli
 export const todoField1 = writable<string>('');
 export const todoField2 = writable<string>('');
 
+// Expanded state for UI components
+export const todoExpandedState = writable<Record<string, boolean>>({});
+export const projectExpandedProjects = writable<Record<string, boolean>>({});
+export const projectExpandedSubprojects = writable<Record<string, boolean>>({});
+export const projectExpandedTasks = writable<Record<string, boolean>>({});
+
+// Projects
+export interface ProjectTask {
+	id: string;
+	description: string;  // "Create Projects Tab Functionality"
+	startDate: string;    // from TodoItem.date
+	endDate: string;      // timestamp when Send is clicked
+	rows: TodoRow[];      // the actual todo rows with their completion status
+}
+
+export interface ProjectSubproject {
+	name: string;         // "TauriHub"
+	tasks: ProjectTask[];
+}
+
+export interface Project {
+	name: string;         // "Prog"
+	subprojects: Record<string, ProjectSubproject>;  // keyed by subproject name
+}
+
+export const projectsData = writable<Record<string, Project>>({});
+
 // Commands
 export interface CommandItemTextRow {
 	id: string;
@@ -248,4 +275,114 @@ export function deleteCommandTextRow(itemId: string, rowId: string): void {
 		const rows = item.rows.filter((r) => r.id !== rowId);
 		return { ...map, [itemId]: { ...item, rows } };
 	});
+}
+
+// ===== PROJECTS HELPERS =====
+
+// Parse TodoItem title to extract project, subproject, and description
+// parseTodoTitle(title: string): { project: string; subproject: string; description: string } | null
+function parseTodoTitle(title: string): { project: string; subproject: string; description: string } | null {
+	const words = title.trim().split(/\s+/);
+	let project = '';
+	let subproject = '';
+	const descriptionWords: string[] = [];
+
+	for (const word of words) {
+		if (word.startsWith('#')) {
+			project = word.substring(1);
+		} else if (word.startsWith('@')) {
+			subproject = word.substring(1);
+		} else {
+			descriptionWords.push(word);
+		}
+	}
+
+	if (!project || !subproject || descriptionWords.length === 0) {
+		return null;
+	}
+
+	return {
+		project,
+		subproject,
+		description: descriptionWords.join(' ')
+	};
+}
+
+// Delete a project
+// deleteProject(projectName: string): void
+export function deleteProject(projectName: string): void {
+	projectsData.update((projects) => {
+		const next = { ...projects };
+		delete next[projectName];
+		return next;
+	});
+}
+
+// Send TodoItem to Projects and remove from todosByDate
+// sendTodoToProjects(date: string, itemId: string): boolean
+export function sendTodoToProjects(date: string, itemId: string): boolean {
+	let success = false;
+	let todoItem: TodoItem | null = null;
+
+	// Get the TodoItem
+	todosByDate.update((map) => {
+		const items = map[date] ?? [];
+		const item = items.find((it) => it.id === itemId);
+		if (item) {
+			todoItem = item;
+		}
+		return map;
+	});
+
+	if (!todoItem) return false;
+
+	// Parse the title
+	const parsed = parseTodoTitle(todoItem.title);
+	if (!parsed) return false;
+
+	const { project, subproject, description } = parsed;
+	const endDate = new Date().toISOString();
+
+	// Create ProjectTask
+	const task: ProjectTask = {
+		id: todoItem.id,
+		description,
+		startDate: todoItem.date,
+		endDate,
+		rows: todoItem.rows
+	};
+
+	// Add to projectsData
+	projectsData.update((projects) => {
+		const updatedProjects = { ...projects };
+
+		// Ensure project exists
+		if (!updatedProjects[project]) {
+			updatedProjects[project] = {
+				name: project,
+				subprojects: {}
+			};
+		}
+
+		// Ensure subproject exists
+		if (!updatedProjects[project].subprojects[subproject]) {
+			updatedProjects[project].subprojects[subproject] = {
+				name: subproject,
+				tasks: []
+			};
+		}
+
+		// Add task to subproject
+		updatedProjects[project].subprojects[subproject].tasks.push(task);
+
+		success = true;
+		return updatedProjects;
+	});
+
+	// Remove from todosByDate
+	if (success) {
+		removeTodoItem(date, itemId);
+	}
+
+	return success;
 }

@@ -1,16 +1,17 @@
 <!-- src/lib/components/ToDoComponent.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { todosByDate, addTodoItem, addTodoRow, updateTodoTitle, updateTodoRowText, toggleTodoRow, deleteTodoRow, removeTodoItem, todayKey, todoField1, todoField2 } from '$lib/stores/general';
+  import { todosByDate, addTodoItem, addTodoRow, updateTodoTitle, updateTodoRowText, toggleTodoRow, deleteTodoRow, removeTodoItem, todayKey, todoField1, todoField2, sendTodoToProjects, todoExpandedState } from '$lib/stores/general';
   import { resizeTextarea, resizeAllTextareas, setupTextareaResizeListener } from '$lib/utils/textareaResize';
 
-  // Track which items are expanded
-  let expanded = $state<Record<string, boolean>>({});
-
   function toggleExpanded(itemId: string) {
-    expanded[itemId] = !expanded[itemId];
+    todoExpandedState.update(state => {
+      const newState = { ...state };
+      newState[itemId] = !newState[itemId];
+      return newState;
+    });
     // Recalculate textarea heights after expansion
-    if (expanded[itemId]) {
+    if ($todoExpandedState[itemId]) {
       setTimeout(() => {
         resizeAllTextareas();
       }, 0);
@@ -25,7 +26,7 @@
   function handleAddRow(date: string, itemId: string) {
     addTodoRow(date, itemId);
     // Auto-expand when adding a row
-    expanded[itemId] = true;
+    todoExpandedState.update(state => ({ ...state, [itemId]: true }));
   }
 
   async function handleCopy(text: string) {
@@ -34,6 +35,23 @@
     } catch (e) {
       console.error('Failed to copy', e);
     }
+  }
+
+  function handleSend(date: string, itemId: string, item: any) {
+    // Check if all rows are completed
+    if (!allRowsCompleted(item)) {
+      console.log('Cannot send: not all rows are completed');
+      return;
+    }
+    
+    const success = sendTodoToProjects(date, itemId);
+    if (!success) {
+      console.error('Failed to send todo to projects - check title format');
+    }
+  }
+
+  function allRowsCompleted(item: any): boolean {
+    return item.rows.length > 0 && item.rows.every((row: any) => row.completed);
   }
 
   // Auto-resize input fields
@@ -156,7 +174,7 @@
       <div class="bg-white/10 rounded-xl p-3 mb-3">
         <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" on:click={() => toggleExpanded(item.id)}>
           <!-- Expand/collapse indicator -->
-          <span class="text-white text-3xl w-6">{expanded[item.id] ? '▼' : '▶'}</span>
+          <span class="text-white text-3xl w-6">{$todoExpandedState[item.id] ? '▼' : '▶'}</span>
 
           <!-- Date label (redundant inside group, but kept per spec) -->
           <span class="text-white/70 text-3xl">{item.date}</span>
@@ -176,13 +194,18 @@
 
           <!-- Send/Delete buttons (stacked) -->
           <div class="flex flex-col gap-1" on:click|stopPropagation>
-            <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-lg">Send</button>
+            <button 
+              class="px-3 py-1 rounded text-lg text-white {allRowsCompleted(item) ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-blue-600/30 cursor-not-allowed'}"
+              on:click={() => handleSend(date, item.id, item)}
+            >
+              Send
+            </button>
             <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" on:click={() => removeTodoItem(date, item.id)}>Del</button>
           </div>
         </div>
 
         <!-- Rows list (only show when expanded) -->
-        {#if expanded[item.id]}
+        {#if $todoExpandedState[item.id]}
         <div class="mt-3 space-y-2">
           {#each item.rows as row (row.id)}
             <div class="border rounded-lg p-2 flex items-start gap-3 {row.completed ? 'border-green-500' : 'border-red-500'}">
