@@ -2,32 +2,30 @@
 <script lang="ts">
   import {
     financeData,
-    addFinanceCategory,
-    deleteFinanceCategory,
-    updateFinanceCategoryName,
-    addFinanceSubcategory,
-    updateFinanceSubcategoryName,
-    addFinanceTopic,
-    updateFinanceTopicName,
-    updateFinanceWeekData,
-    financeExpandedCategories,
-    financeExpandedSubcategories,
-    financeExpandedTopics
+    addFinanceYear,
+    deleteFinanceYear,
+    addFinanceMonth,
+    addFinanceWeek,
+    updateFinanceDayData,
+    getMonthName,
+    financeExpandedYears,
+    financeExpandedMonths,
+    financeExpandedWeeks
   } from '$lib/stores/general';
 
-  // toggleCategory(categoryId: string): void
-  function toggleCategory(categoryId: string) {
-    financeExpandedCategories.update(state => ({ ...state, [categoryId]: !state[categoryId] }));
+  // toggleYear(yearId: string): void
+  function toggleYear(yearId: string) {
+    financeExpandedYears.update(state => ({ ...state, [yearId]: !state[yearId] }));
   }
 
-  // toggleSubcategory(key: string): void
-  function toggleSubcategory(key: string) {
-    financeExpandedSubcategories.update(state => ({ ...state, [key]: !state[key] }));
+  // toggleMonth(key: string): void
+  function toggleMonth(key: string) {
+    financeExpandedMonths.update(state => ({ ...state, [key]: !state[key] }));
   }
 
-  // toggleTopic(key: string): void
-  function toggleTopic(key: string) {
-    financeExpandedTopics.update(state => ({ ...state, [key]: !state[key] }));
+  // toggleWeek(key: string): void
+  function toggleWeek(key: string) {
+    financeExpandedWeeks.update(state => ({ ...state, [key]: !state[key] }));
   }
 </script>
 
@@ -35,7 +33,7 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-4xl font-bold text-white">Finance</h1>
   <button 
-    on:click={() => addFinanceCategory()}
+    on:click={() => addFinanceYear()}
     class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
   >
     +
@@ -44,102 +42,90 @@
 
 <!-- Empty state -->
 {#if $financeData.length === 0}
-  <div class="text-white/70 italic">No Finance categories yet. Click + to add your first category.</div>
+  <div class="text-white/70 italic">No years yet. Click + to add a year.</div>
 {/if}
 
-<!-- Categories list -->
-{#each $financeData as category (category.id)}
+<!-- Years list -->
+{#each $financeData as year (year.id)}
   <div class="mb-3">
-    <!-- Level 1: Category -->
+    <!-- Level 1: Year -->
     <div class="bg-white/10 rounded-xl p-3">
       <div class="flex items-center gap-3">
         <button 
           class="text-white text-3xl w-6"
-          on:click={() => toggleCategory(category.id)}
+          on:click={() => toggleYear(year.id)}
         >
-          {$financeExpandedCategories[category.id] ? '▼' : '▶'}
+          {$financeExpandedYears[year.id] ? '▼' : '▶'}
         </button>
         
-        <input
-          type="text"
-          class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
-          placeholder="Category name..."
-          value={category.name}
-          on:input={(e) => updateFinanceCategoryName(category.id, (e.target as HTMLInputElement).value)}
-        />
+        <div class="flex-1 text-white text-3xl font-semibold">
+          {year.year}
+        </div>
         
         <button 
           class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
-          on:click={() => addFinanceSubcategory(category.id)}
+          on:click={() => addFinanceMonth(year.id)}
         >
           +
         </button>
         
         <button 
           class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
-          on:click={() => deleteFinanceCategory(category.id)}
+          on:click={() => deleteFinanceYear(year.id)}
         >
           Delete
         </button>
       </div>
     </div>
 
-    <!-- Level 2: Subcategories (only show when category expanded) -->
-    {#if $financeExpandedCategories[category.id]}
+    <!-- Level 2: Months (only show when year expanded) -->
+    {#if $financeExpandedYears[year.id]}
       <div class="ml-12 mt-2 space-y-2">
-        {#each category.subcategories as subcategory (subcategory.id)}
-          {@const subKey = `${category.id}-${subcategory.id}`}
+        {#each year.months as month (month.id)}
+          {@const monthKey = `${year.id}-${month.id}`}
           <div class="bg-white/10 rounded-xl p-3">
             <div class="flex items-center gap-3">
               <button 
                 class="text-white text-3xl w-6"
-                on:click={() => toggleSubcategory(subKey)}
+                on:click={() => toggleMonth(monthKey)}
               >
-                {$financeExpandedSubcategories[subKey] ? '▼' : '▶'}
+                {$financeExpandedMonths[monthKey] ? '▼' : '▶'}
               </button>
               
-              <input
-                type="text"
-                class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
-                placeholder="Subcategory name..."
-                value={subcategory.name}
-                on:input={(e) => updateFinanceSubcategoryName(category.id, subcategory.id, (e.target as HTMLInputElement).value)}
-              />
+              <div class="flex-1 text-white text-3xl font-semibold">
+                {getMonthName(month.monthNumber)}
+              </div>
               
               <button 
                 class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
-                on:click={() => addFinanceTopic(category.id, subcategory.id)}
+                on:click={() => addFinanceWeek(year.id, month.id)}
               >
                 +
               </button>
             </div>
           </div>
 
-          <!-- Level 3: Topics (only show when subcategory expanded) -->
-          {#if $financeExpandedSubcategories[subKey]}
+          <!-- Level 3: Weeks (only show when month expanded) -->
+          {#if $financeExpandedMonths[monthKey]}
             <div class="ml-12 mt-2 space-y-2">
-              {#each subcategory.topics as topic (topic.id)}
-                {@const topicKey = `${category.id}-${subcategory.id}-${topic.id}`}
+              {#each month.weeks as week (week.id)}
+                {@const weekKey = `${year.id}-${month.id}-${week.id}`}
                 <div class="bg-white/10 rounded-xl p-3">
                   <div class="flex items-center gap-3">
                     <button 
                       class="text-white text-3xl w-6"
-                      on:click={() => toggleTopic(topicKey)}
+                      on:click={() => toggleWeek(weekKey)}
                     >
-                      {$financeExpandedTopics[topicKey] ? '▼' : '▶'}
+                      {$financeExpandedWeeks[weekKey] ? '▼' : '▶'}
                     </button>
                     
-                    <input
-                      type="text"
-                      class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
-                      placeholder="Topic name..."
-                      value={topic.name}
-                      on:input={(e) => updateFinanceTopicName(category.id, subcategory.id, topic.id, (e.target as HTMLInputElement).value)}
-                    />
+                    <div class="flex-1 text-white text-3xl font-semibold">
+                      Week {week.weekNumber}
+                    </div>
                   </div>
 
-                  <!-- Weekday Text Areas (only show when topic expanded) -->
-                  {#if $financeExpandedTopics[topicKey]}
+                  <!-- Weekday Text Areas (only show when week expanded) -->
+                  {#if $financeExpandedWeeks[weekKey]}
                     <div class="mt-3 space-y-2">
                       <!-- Monday -->
                       <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
@@ -147,8 +133,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Monday..."
-                          value={topic.weekData.mon}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'mon', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.mon}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'mon', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
 
@@ -158,8 +144,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Tuesday..."
-                          value={topic.weekData.tues}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'tues', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.tues}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'tues', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
 
@@ -169,8 +155,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Wednesday..."
-                          value={topic.weekData.wed}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'wed', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.wed}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'wed', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
 
@@ -180,8 +166,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Thursday..."
-                          value={topic.weekData.thurs}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'thurs', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.thurs}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'thurs', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
 
@@ -191,8 +177,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Friday..."
-                          value={topic.weekData.fri}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'fri', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.fri}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'fri', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
 
@@ -202,8 +188,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Saturday..."
-                          value={topic.weekData.sat}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'sat', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.sat}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'sat', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
 
@@ -213,8 +199,8 @@
                         <textarea
                           class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
                           placeholder="Sunday..."
-                          value={topic.weekData.sun}
-                          on:input={(e) => updateFinanceWeekData(category.id, subcategory.id, topic.id, 'sun', (e.target as HTMLTextAreaElement).value)}
+                          value={week.dayData.sun}
+                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'sun', (e.target as HTMLTextAreaElement).value)}
                         />
                       </div>
                     </div>

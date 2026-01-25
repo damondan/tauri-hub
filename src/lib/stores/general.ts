@@ -17,9 +17,9 @@ export const projectExpandedTasks = writable<Record<string, boolean>>({});
 export const howtoExpandedCategories = writable<Record<string, boolean>>({});
 export const howtoExpandedSubcategories = writable<Record<string, boolean>>({});
 export const howtoExpandedTopics = writable<Record<string, boolean>>({});
-export const financeExpandedCategories = writable<Record<string, boolean>>({});
-export const financeExpandedSubcategories = writable<Record<string, boolean>>({});
-export const financeExpandedTopics = writable<Record<string, boolean>>({});
+export const financeExpandedYears = writable<Record<string, boolean>>({});
+export const financeExpandedMonths = writable<Record<string, boolean>>({});
+export const financeExpandedWeeks = writable<Record<string, boolean>>({});
 
 // Projects
 export interface ProjectTask {
@@ -69,7 +69,7 @@ export interface HowToCategory {
 export const howtoData = writable<HowToCategory[]>([]);
 
 // Finance
-export interface FinanceWeekData {
+export interface FinanceDayData {
 	mon: string;
 	tues: string;
 	wed: string;
@@ -79,25 +79,26 @@ export interface FinanceWeekData {
 	sun: string;
 }
 
-export interface FinanceTopic {
+export interface FinanceWeek {
 	id: string;
-	name: string;
-	weekData: FinanceWeekData;
+	weekNumber: number; // 1-5
+	dayData: FinanceDayData;
 }
 
-export interface FinanceSubcategory {
+export interface FinanceMonth {
 	id: string;
-	name: string;
-	topics: FinanceTopic[];
+	monthNumber: number; // 1-12 (1=January, 2=February, etc.)
+	weeks: FinanceWeek[];
 }
 
-export interface FinanceCategory {
+export interface FinanceYear {
 	id: string;
-	name: string;
-	subcategories: FinanceSubcategory[];
+	year: number; // 2026, 2027, etc.
+	months: FinanceMonth[];
 }
 
-export const financeData = writable<FinanceCategory[]>([]);
+export const financeData = writable<FinanceYear[]>([]);
+export const financeNextYear = writable<number>(2026); // Track next year to add
 
 // Commands
 export interface CommandItemTextRow {
@@ -577,67 +578,73 @@ export function deleteHowToTask(
 
 // ===== FINANCE HELPERS =====
 
-// Add a new Finance category
-// addFinanceCategory(): string
-export function addFinanceCategory(): string {
+const MONTH_NAMES = [
+	'January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+// getMonthName(monthNumber: number): string
+export function getMonthName(monthNumber: number): string {
+	return MONTH_NAMES[monthNumber - 1] || '';
+}
+
+// Add a new Finance year (auto-increments)
+// addFinanceYear(): string
+export function addFinanceYear(): string {
 	const id = makeId();
-	financeData.update((categories) => [
-		...categories,
-		{ id, name: '', subcategories: [] }
+	let yearValue = 2026;
+	
+	financeNextYear.update((nextYear) => {
+		yearValue = nextYear;
+		return nextYear + 1;
+	});
+	
+	financeData.update((years) => [
+		...years,
+		{ id, year: yearValue, months: [] }
 	]);
 	return id;
 }
 
-// Delete a Finance category
-// deleteFinanceCategory(categoryId: string): void
-export function deleteFinanceCategory(categoryId: string): void {
-	financeData.update((categories) => categories.filter((c) => c.id !== categoryId));
+// Delete a Finance year
+// deleteFinanceYear(yearId: string): void
+export function deleteFinanceYear(yearId: string): void {
+	financeData.update((years) => years.filter((y) => y.id !== yearId));
 }
 
-// Update Finance category name
-// updateFinanceCategoryName(categoryId: string, name: string): void
-export function updateFinanceCategoryName(categoryId: string, name: string): void {
-	financeData.update((categories) =>
-		categories.map((c) => (c.id === categoryId ? { ...c, name } : c))
-	);
-}
-
-// Add subcategory to a category
-// addFinanceSubcategory(categoryId: string): string
-export function addFinanceSubcategory(categoryId: string): string {
+// Add month to a year
+// addFinanceMonth(yearId: string): string
+export function addFinanceMonth(yearId: string): string {
 	const id = makeId();
-	financeData.update((categories) =>
-		categories.map((c) =>
-			c.id === categoryId
-				? { ...c, subcategories: [...c.subcategories, { id, name: '', topics: [] }] }
-				: c
-		)
+	financeData.update((years) =>
+		years.map((y) => {
+			if (y.id === yearId) {
+				// Find the next month number (1-12)
+				const existingMonthNumbers = y.months.map(m => m.monthNumber);
+				let nextMonthNumber = 1;
+				for (let i = 1; i <= 12; i++) {
+					if (!existingMonthNumbers.includes(i)) {
+						nextMonthNumber = i;
+						break;
+					}
+				}
+				
+				return {
+					...y,
+					months: [...y.months, { id, monthNumber: nextMonthNumber, weeks: [] }]
+				};
+			}
+			return y;
+		})
 	);
 	return id;
 }
 
-// Update subcategory name
-// updateFinanceSubcategoryName(categoryId: string, subcategoryId: string, name: string): void
-export function updateFinanceSubcategoryName(categoryId: string, subcategoryId: string, name: string): void {
-	financeData.update((categories) =>
-		categories.map((c) =>
-			c.id === categoryId
-				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId ? { ...sub, name } : sub
-						)
-				  }
-				: c
-		)
-	);
-}
-
-// Add topic to a subcategory
-// addFinanceTopic(categoryId: string, subcategoryId: string): string
-export function addFinanceTopic(categoryId: string, subcategoryId: string): string {
+// Add week to a month
+// addFinanceWeek(yearId: string, monthId: string): string
+export function addFinanceWeek(yearId: string, monthId: string): string {
 	const id = makeId();
-	const emptyWeekData: FinanceWeekData = {
+	const emptyDayData: FinanceDayData = {
 		mon: '',
 		tues: '',
 		wed: '',
@@ -646,81 +653,74 @@ export function addFinanceTopic(categoryId: string, subcategoryId: string): stri
 		sat: '',
 		sun: ''
 	};
-	financeData.update((categories) =>
-		categories.map((c) =>
-			c.id === categoryId
-				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? { ...sub, topics: [...sub.topics, { id, name: '', weekData: emptyWeekData }] }
-								: sub
-						)
-				  }
-				: c
-		)
+	
+	financeData.update((years) =>
+		years.map((y) => {
+			if (y.id === yearId) {
+				return {
+					...y,
+					months: y.months.map((m) => {
+						if (m.id === monthId) {
+							// Find the next week number (1-5)
+							const existingWeekNumbers = m.weeks.map(w => w.weekNumber);
+							let nextWeekNumber = 1;
+							for (let i = 1; i <= 5; i++) {
+								if (!existingWeekNumbers.includes(i)) {
+									nextWeekNumber = i;
+									break;
+								}
+							}
+							
+							return {
+								...m,
+								weeks: [...m.weeks, { id, weekNumber: nextWeekNumber, dayData: emptyDayData }]
+							};
+						}
+						return m;
+					})
+				};
+			}
+			return y;
+		})
 	);
 	return id;
 }
 
-// Update topic name
-// updateFinanceTopicName(categoryId: string, subcategoryId: string, topicId: string, name: string): void
-export function updateFinanceTopicName(
-	categoryId: string,
-	subcategoryId: string,
-	topicId: string,
-	name: string
-): void {
-	financeData.update((categories) =>
-		categories.map((c) =>
-			c.id === categoryId
-				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? {
-										...sub,
-										topics: sub.topics.map((topic) =>
-											topic.id === topicId ? { ...topic, name } : topic
-										)
-								  }
-								: sub
-						)
-				  }
-				: c
-		)
-	);
-}
-
-// Update weekday text for a topic
-// updateFinanceWeekData(categoryId: string, subcategoryId: string, topicId: string, day: keyof FinanceWeekData, text: string): void
-export function updateFinanceWeekData(
-	categoryId: string,
-	subcategoryId: string,
-	topicId: string,
-	day: keyof FinanceWeekData,
+// Update day text for a week
+// updateFinanceDayData(yearId: string, monthId: string, weekId: string, day: keyof FinanceDayData, text: string): void
+export function updateFinanceDayData(
+	yearId: string,
+	monthId: string,
+	weekId: string,
+	day: keyof FinanceDayData,
 	text: string
 ): void {
-	financeData.update((categories) =>
-		categories.map((c) =>
-			c.id === categoryId
-				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? {
-										...sub,
-										topics: sub.topics.map((topic) =>
-											topic.id === topicId
-												? { ...topic, weekData: { ...topic.weekData, [day]: text } }
-												: topic
-										)
-								  }
-								: sub
-						)
-				  }
-				: c
-		)
+	financeData.update((years) =>
+		years.map((y) => {
+			if (y.id === yearId) {
+				return {
+					...y,
+					months: y.months.map((m) => {
+						if (m.id === monthId) {
+							return {
+								...m,
+								weeks: m.weeks.map((w) => {
+									if (w.id === weekId) {
+										return {
+											...w,
+											dayData: { ...w.dayData, [day]: text }
+										};
+									}
+									return w;
+								})
+							};
+						}
+						return m;
+					})
+				};
+			}
+			return y;
+		})
 	);
 }
 
