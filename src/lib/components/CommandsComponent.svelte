@@ -1,6 +1,8 @@
 <!-- src/lib/components/CommandsComponent.svelte -->
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { commandItems, addCommandItem, addCommandTextRow, updateCommandTitle, updateCommandTextRow, deleteCommandTextRow, removeCommandItem } from '$lib/stores/general';
+  import { resizeTextarea, setupTextareaResizeListener } from '$lib/utils/textareaResize';
 
   // Track which items are expanded
   let expanded: Record<string, boolean> = {};
@@ -28,6 +30,36 @@
       console.error('Failed to copy', e);
     }
   }
+
+  // Setup window resize listener for textareas
+  onMount(() => {
+    // Initial resize of all textareas
+    setTimeout(() => {
+      const textareas = document.querySelectorAll('textarea');
+      textareas.forEach((textarea) => {
+        if (textarea instanceof HTMLTextAreaElement) {
+          resizeTextarea(textarea);
+        }
+      });
+    }, 100);
+    
+    return setupTextareaResizeListener();
+  });
+
+  // Resize textareas when items are expanded
+  function toggleExpandedWithResize(itemId: string) {
+    toggleExpanded(itemId);
+    if (expanded[itemId]) {
+      setTimeout(() => {
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach((textarea) => {
+          if (textarea instanceof HTMLTextAreaElement) {
+            resizeTextarea(textarea);
+          }
+        });
+      }, 0);
+    }
+  }
 </script>
 
 <!-- Header with Add button -->
@@ -44,7 +76,7 @@
 <!-- Command items list -->
 {#each Object.values($commandItems) as item (item.id)}
   <div class="bg-white/10 rounded-xl p-3 mb-3">
-    <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" on:click={() => toggleExpanded(item.id)}>
+    <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" on:click={() => toggleExpandedWithResize(item.id)}>
       <!-- Expand/collapse indicator -->
       <span class="text-white text-lg w-6">{expanded[item.id] ? '▼' : '▶'}</span>
 
@@ -75,15 +107,14 @@
           <!-- Text input -->
           <textarea
             rows="1"
-            class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight"
+            class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
             placeholder="Enter command text..."
             value={row.text}
             on:input={(e) => {
               const target = e.target as HTMLTextAreaElement;
               updateCommandTextRow(item.id, row.id, target.value);
               // Auto-resize
-              target.style.height = 'auto';
-              target.style.height = target.scrollHeight + 'px';
+              resizeTextarea(target);
             }}
           ></textarea>
 
