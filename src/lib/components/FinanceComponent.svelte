@@ -1,17 +1,48 @@
 <!-- src/lib/components/FinanceComponent.svelte -->
 <script lang="ts">
+  import { onMount } from 'svelte';
   import {
     financeData,
-    addFinanceYear,
-    deleteFinanceYear,
-    addFinanceMonth,
-    addFinanceWeek,
-    updateFinanceDayData,
+    generateFinanceStructureToDate,
+    addFinanceEntry,
+    deleteFinanceEntry,
+    updateFinanceEntry,
+    updateFinanceMonthAmount,
     getMonthName,
+    calculateYearTotal,
+    calculateMonthTotal,
+    calculateWeekTotal,
+    formatCurrency,
     financeExpandedYears,
     financeExpandedMonths,
     financeExpandedWeeks
   } from '$lib/stores/general';
+
+  let currentDay = new Date().getDate();
+  let currentMonth = new Date().getMonth() + 1;
+  let currentYear = new Date().getFullYear();
+
+  // onMount(): void
+  onMount(() => {
+    // Only regenerate if data is empty or has old structure
+    const today = new Date();
+    const currentData = $financeData;
+    
+    // Check if we need to regenerate (empty or old structure without days array)
+    const needsRegeneration = currentData.length === 0 || 
+      (currentData[0]?.months?.[0]?.weeks?.[0] && !currentData[0].months[0].weeks[0].days);
+    
+    if (needsRegeneration) {
+      financeData.set([]);
+    }
+    
+    generateFinanceStructureToDate(today);
+  });
+
+  // isCurrentDay(year: number, month: number, day: number): boolean
+  function isCurrentDay(yearNum: number, monthNum: number, dayNum: number): boolean {
+    return yearNum === currentYear && monthNum === currentMonth && dayNum === currentDay;
+  }
 
   // toggleYear(yearId: string): void
   function toggleYear(yearId: string) {
@@ -29,20 +60,14 @@
   }
 </script>
 
-<!-- Header with Add button -->
+<!-- Header -->
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-4xl font-bold text-white">Finance</h1>
-  <button 
-    on:click={() => addFinanceYear()}
-    class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
-  >
-    +
-  </button>
 </div>
 
 <!-- Empty state -->
 {#if $financeData.length === 0}
-  <div class="text-white/70 italic">No years yet. Click + to add a year.</div>
+  <div class="text-white/70 italic">Loading...</div>
 {/if}
 
 <!-- Years list -->
@@ -62,19 +87,9 @@
           {year.year}
         </div>
         
-        <button 
-          class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
-          on:click={() => addFinanceMonth(year.id)}
-        >
-          +
-        </button>
-        
-        <button 
-          class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
-          on:click={() => deleteFinanceYear(year.id)}
-        >
-          Delete
-        </button>
+        <div class="text-white text-2xl font-semibold">
+          {formatCurrency(calculateYearTotal(year))}
+        </div>
       </div>
     </div>
 
@@ -92,16 +107,67 @@
                 {$financeExpandedMonths[monthKey] ? '▼' : '▶'}
               </button>
               
-              <div class="flex-1 text-white text-3xl font-semibold">
+              <div class="text-white text-3xl font-semibold">
                 {getMonthName(month.monthNumber)}
               </div>
               
-              <button 
-                class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
-                on:click={() => addFinanceWeek(year.id, month.id)}
-              >
-                +
-              </button>
+              <!-- Spacer to push fields to center -->
+              <div class="flex-1"></div>
+              
+              <!-- Disc Amount -->
+              <div class="flex items-center gap-1">
+                <label class="text-white text-xl">Disc $</label>
+                <input
+                  type="text"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
+                  maxlength="5"
+                  value={month.discAmount || ''}
+                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discAmount', (e.target as HTMLInputElement).value)}
+                />
+              </div>
+              
+              <!-- Disc Interest Amount -->
+              <div class="flex items-center gap-1">
+                <label class="text-white text-xl">Int $</label>
+                <input
+                  type="text"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-12"
+                  maxlength="2"
+                  value={month.discIntAmount || ''}
+                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discIntAmount', (e.target as HTMLInputElement).value)}
+                />
+              </div>
+              
+              <!-- AmerX Amount -->
+              <div class="flex items-center gap-1">
+                <label class="text-white text-xl">AmerX $</label>
+                <input
+                  type="text"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
+                  maxlength="5"
+                  value={month.amerXAmount || ''}
+                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXAmount', (e.target as HTMLInputElement).value)}
+                />
+              </div>
+              
+              <!-- AmerX Interest Amount -->
+              <div class="flex items-center gap-1">
+                <label class="text-white text-xl">Int $</label>
+                <input
+                  type="text"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-12"
+                  maxlength="2"
+                  value={month.amerXIntAmount || ''}
+                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXIntAmount', (e.target as HTMLInputElement).value)}
+                />
+              </div>
+              
+              <!-- Spacer to push total amount to the right -->
+              <div class="flex-1"></div>
+              
+              <div class="text-white text-2xl font-semibold">
+                {formatCurrency(calculateMonthTotal(month))}
+              </div>
             </div>
           </div>
 
@@ -120,89 +186,80 @@
                     </button>
                     
                     <div class="flex-1 text-white text-3xl font-semibold">
-                      Week {week.weekNumber}
+                      {week.weekNumber} Week {week.startDay}-{week.endDay}
+                    </div>
+                    
+                    <div class="text-white text-2xl font-semibold">
+                      {formatCurrency(calculateWeekTotal(week))}
                     </div>
                   </div>
 
-                  <!-- Weekday Text Areas (only show when week expanded) -->
-                  {#if $financeExpandedWeeks[weekKey]}
-                    <div class="mt-3 space-y-2">
-                      <!-- Monday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Mon</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Monday..."
-                          value={week.dayData.mon}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'mon', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
-
-                      <!-- Tuesday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Tues</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Tuesday..."
-                          value={week.dayData.tues}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'tues', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
-
-                      <!-- Wednesday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Wed</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Wednesday..."
-                          value={week.dayData.wed}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'wed', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
-
-                      <!-- Thursday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Thurs</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Thursday..."
-                          value={week.dayData.thurs}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'thurs', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
-
-                      <!-- Friday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Fri</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Friday..."
-                          value={week.dayData.fri}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'fri', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
-
-                      <!-- Saturday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Sat</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Saturday..."
-                          value={week.dayData.sat}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'sat', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
-
-                      <!-- Sunday -->
-                      <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
-                        <label class="text-white text-3xl font-semibold w-20">Sun</label>
-                        <textarea
-                          class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40 min-h-[80px]"
-                          placeholder="Sunday..."
-                          value={week.dayData.sun}
-                          on:input={(e) => updateFinanceDayData(year.id, month.id, week.id, 'sun', (e.target as HTMLTextAreaElement).value)}
-                        />
-                      </div>
+                  <!-- Days (only show when week expanded) -->
+                  {#if $financeExpandedWeeks[weekKey] && week.days}
+                    <div class="mt-3 space-y-3">
+                      {#each week.days as day (day.id)}
+                        <div class="bg-white/5 rounded-lg p-3 {isCurrentDay(year.year, month.monthNumber, day.dayNumber) ? 'border-2 border-green-500' : ''}">
+                          <!-- Day entries -->
+                          {#each day.entries as entry, entryIndex (entry.id)}
+                            <div class="flex items-center gap-2 mb-2">
+                              <!-- Day label (only show on first entry) -->
+                              {#if entryIndex === 0}
+                                <div class="text-white text-2xl font-semibold w-32">
+                                  {day.dayNumber} {day.dayOfWeek}
+                                </div>
+                              {:else}
+                                <div class="w-32"></div>
+                              {/if}
+                              
+                              <!-- + amount -->
+                              <label class="text-white text-xl w-4">+</label>
+                              <input
+                                type="text"
+                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-24"
+                                placeholder="0"
+                                value={entry.addAmount}
+                                on:input={(e) => updateFinanceEntry(year.id, month.id, week.id, day.id, entry.id, 'addAmount', (e.target as HTMLInputElement).value)}
+                              />
+                              
+                              <!-- - amount -->
+                              <label class="text-white text-xl w-4 ml-2">-</label>
+                              <input
+                                type="text"
+                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-24"
+                                placeholder="0"
+                                value={entry.subAmount}
+                                on:input={(e) => updateFinanceEntry(year.id, month.id, week.id, day.id, entry.id, 'subAmount', (e.target as HTMLInputElement).value)}
+                              />
+                              
+                              <!-- Description -->
+                              <input
+                                type="text"
+                                class="flex-1 bg-white/10 border border-white/20 rounded px-3 py-1 text-white text-xl"
+                                placeholder="Description..."
+                                value={entry.description}
+                                on:input={(e) => updateFinanceEntry(year.id, month.id, week.id, day.id, entry.id, 'description', (e.target as HTMLInputElement).value)}
+                              />
+                              
+                              <!-- + button (first entry) or Delete button (additional entries) -->
+                              {#if entryIndex === 0}
+                                <button 
+                                  class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-lg"
+                                  on:click={() => addFinanceEntry(year.id, month.id, week.id, day.id)}
+                                >
+                                  +
+                                </button>
+                              {:else}
+                                <button 
+                                  class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm"
+                                  on:click={() => deleteFinanceEntry(year.id, month.id, week.id, day.id, entry.id)}
+                                >
+                                  Del
+                                </button>
+                              {/if}
+                            </div>
+                          {/each}
+                        </div>
+                      {/each}
                     </div>
                   {/if}
                 </div>

@@ -1,7 +1,7 @@
 // src/lib/persistence.ts
 
 import { invoke } from '@tauri-apps/api/core';
-import { todosByDate, commandItems, todoField1, todoField2, projectsData, todoExpandedState, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics, financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks, financeNextYear } from '$lib/stores/general';
+import { todosByDate, commandItems, todoField1, todoField2, projectsData, todoExpandedState, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics, financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/general';
 import { get } from 'svelte/store';
 
 interface UserData {
@@ -22,7 +22,6 @@ interface UserData {
 	financeExpandedYears?: Record<string, boolean>;
 	financeExpandedMonths?: Record<string, boolean>;
 	financeExpandedWeeks?: Record<string, boolean>;
-	financeNextYear?: number;
 }
 
 let saveTimeout: number | null = null;
@@ -57,8 +56,7 @@ export async function saveUserData(): Promise<void> {
 		howtoExpandedTopics: get(howtoExpandedTopics),
 		financeExpandedYears: get(financeExpandedYears),
 		financeExpandedMonths: get(financeExpandedMonths),
-		financeExpandedWeeks: get(financeExpandedWeeks),
-		financeNextYear: get(financeNextYear)
+		financeExpandedWeeks: get(financeExpandedWeeks)
 	};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -123,9 +121,6 @@ export async function loadUserData(): Promise<void> {
 	}
 	if (data.financeExpandedWeeks) {
 		financeExpandedWeeks.set(data.financeExpandedWeeks);
-	}
-	if (data.financeNextYear !== undefined) {
-		financeNextYear.set(data.financeNextYear);
 	}
 	console.log('User data loaded');
 	} catch (error) {
@@ -207,10 +202,6 @@ export function initPersistence() {
 	});
 
 	financeExpandedWeeks.subscribe(() => {
-		scheduleSave();
-	});
-
-	financeNextYear.subscribe(() => {
 		scheduleSave();
 	});
 }
