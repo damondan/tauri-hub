@@ -167,7 +167,7 @@
 <!-- Date groups -->
 {#each Object.entries($todosByDate) as [date, items]}
   <div class="mb-6">
-    <h2 class="text-3xl text-white/90 mb-2">{date}</h2>
+    <!-- <h2 class="text-3xl text-white/90 mb-2">{date}</h2> -->
 
     {#each items as item (item.id)}
       <!-- TodoItem container -->

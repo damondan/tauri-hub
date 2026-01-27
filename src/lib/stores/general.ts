@@ -200,7 +200,7 @@ export function addTodoItem(date: string = todayKey()): { id: string; date: stri
 	const id = makeId();
 	todosByDate.update((map) => {
 		const list = map[date] ? [...map[date]] : [];
-		list.unshift({ id, date, title: '', rows: [] });
+		list.push({ id, date, title: '', rows: [] });
 		return { ...map, [date]: list };
 	});
 	return { id, date };

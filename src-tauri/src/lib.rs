@@ -330,7 +330,7 @@ async fn stop_recording_and_transcribe(
     };
     
     // Run Whisper transcription/translation
-    let model = "medium";  // Change to "medium" for better quality
+    let model = "small";  // Change to "medium" for better quality
     let output = Command::new(&whisper_bin)
         .args([
             &audio_file,
