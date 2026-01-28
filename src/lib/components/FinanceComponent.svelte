@@ -11,6 +11,8 @@
     getMonthName,
     calculateYearTotal,
     calculateMonthTotal,
+    calculateMonthFoodTotal,
+    calculateMonthGasTotal,
     calculateWeekTotal,
     formatCurrency,
     financeExpandedYears,
@@ -160,6 +162,22 @@
                   value={month.amerXIntAmount || ''}
                   on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXIntAmount', (e.target as HTMLInputElement).value)}
                 />
+              </div>
+              
+              <!-- Food Total (calculated, read-only) -->
+              <div class="flex items-center gap-1 ml-8">
+                <label class="text-red-500 text-xl font-semibold">Food $</label>
+                <div class="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xl w-20">
+                  {calculateMonthFoodTotal(month).toFixed(2)}
+                </div>
+              </div>
+              
+              <!-- Gas Total (calculated, read-only) -->
+              <div class="flex items-center gap-1">
+                <label class="text-red-500 text-xl font-semibold">Gas $</label>
+                <div class="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xl w-20">
+                  {calculateMonthGasTotal(month).toFixed(2)}
+                </div>
               </div>
               
               <!-- Spacer to push total amount to the right -->

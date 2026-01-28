@@ -1,7 +1,7 @@
 // src/lib/persistence.ts
 
 import { invoke } from '@tauri-apps/api/core';
-import { todosByDate, commandItems, todoField1, todoField2, projectsData, todoExpandedState, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics, financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/general';
+import { todosByDate, commandItems, todoField1, todoField2, projectsData, todoExpandedState, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics, financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks, healthData, healthExpandedYears, healthExpandedMonths, healthExpandedWeeks } from '$lib/stores/general';
 import { get } from 'svelte/store';
 
 interface UserData {
@@ -10,6 +10,7 @@ interface UserData {
 	projects?: Record<string, any>;
 	howto?: any[];
 	finance?: any[];
+	health?: any[];
 	field1?: string;
 	field2?: string;
 	todoExpandedState?: Record<string, boolean>;
@@ -22,6 +23,9 @@ interface UserData {
 	financeExpandedYears?: Record<string, boolean>;
 	financeExpandedMonths?: Record<string, boolean>;
 	financeExpandedWeeks?: Record<string, boolean>;
+	healthExpandedYears?: Record<string, boolean>;
+	healthExpandedMonths?: Record<string, boolean>;
+	healthExpandedWeeks?: Record<string, boolean>;
 }
 
 let saveTimeout: number | null = null;
@@ -45,6 +49,7 @@ export async function saveUserData(): Promise<void> {
 		projects: get(projectsData),
 		howto: get(howtoData),
 		finance: get(financeData),
+		health: get(healthData),
 		field1: get(todoField1),
 		field2: get(todoField2),
 		todoExpandedState: get(todoExpandedState),
@@ -56,7 +61,10 @@ export async function saveUserData(): Promise<void> {
 		howtoExpandedTopics: get(howtoExpandedTopics),
 		financeExpandedYears: get(financeExpandedYears),
 		financeExpandedMonths: get(financeExpandedMonths),
-		financeExpandedWeeks: get(financeExpandedWeeks)
+		financeExpandedWeeks: get(financeExpandedWeeks),
+		healthExpandedYears: get(healthExpandedYears),
+		healthExpandedMonths: get(healthExpandedMonths),
+		healthExpandedWeeks: get(healthExpandedWeeks)
 	};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -83,9 +91,9 @@ export async function loadUserData(): Promise<void> {
 		if (data.howto) {
 			howtoData.set(data.howto);
 		}
-		if (data.todoExpandedState) {
-			todoField1.set(data.field1);
-		}
+	if (data.field1 !== undefined) {
+		todoField1.set(data.field1);
+	}
 		if (data.field2 !== undefined) {
 			todoField2.set(data.field2);
 		}
@@ -121,6 +129,18 @@ export async function loadUserData(): Promise<void> {
 	}
 	if (data.financeExpandedWeeks) {
 		financeExpandedWeeks.set(data.financeExpandedWeeks);
+	}
+	if (data.health) {
+		healthData.set(data.health);
+	}
+	if (data.healthExpandedYears) {
+		healthExpandedYears.set(data.healthExpandedYears);
+	}
+	if (data.healthExpandedMonths) {
+		healthExpandedMonths.set(data.healthExpandedMonths);
+	}
+	if (data.healthExpandedWeeks) {
+		healthExpandedWeeks.set(data.healthExpandedWeeks);
 	}
 	console.log('User data loaded');
 	} catch (error) {
@@ -202,6 +222,23 @@ export function initPersistence() {
 	});
 
 	financeExpandedWeeks.subscribe(() => {
+		scheduleSave();
+	});
+
+	// Subscribe to health changes
+	healthData.subscribe(() => {
+		scheduleSave();
+	});
+
+	healthExpandedYears.subscribe(() => {
+		scheduleSave();
+	});
+
+	healthExpandedMonths.subscribe(() => {
+		scheduleSave();
+	});
+
+	healthExpandedWeeks.subscribe(() => {
 		scheduleSave();
 	});
 }
