@@ -15,7 +15,7 @@
     howtoExpandedCategories,
     howtoExpandedSubcategories,
     howtoExpandedTopics
-  } from '$lib/stores/general';
+  } from '$lib/stores/howto';
 
   function toggleCategory(categoryId: string) {
     howtoExpandedCategories.update(state => ({ ...state, [categoryId]: !state[categoryId] }));

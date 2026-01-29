@@ -1,7 +1,12 @@
 // src/lib/persistence.ts
 
 import { invoke } from '@tauri-apps/api/core';
-import { todosByDate, commandItems, todoField1, todoField2, projectsData, todoExpandedState, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics, financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks, healthData, healthExpandedYears, healthExpandedMonths, healthExpandedWeeks } from '$lib/stores/general';
+import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/stores/todo';
+import { commandItems } from '$lib/stores/commands';
+import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/projects';
+import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
+import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
+import { healthData, healthExpandedYears, healthExpandedMonths, healthExpandedWeeks } from '$lib/stores/health';
 import { get } from 'svelte/store';
 
 interface UserData {

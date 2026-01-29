@@ -1,7 +1,19 @@
 <!-- src/lib/components/ToDoComponent.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { todosByDate, addTodoItem, addTodoRow, updateTodoTitle, updateTodoRowText, toggleTodoRow, deleteTodoRow, removeTodoItem, todayKey, todoField1, todoField2, sendTodoToProjects, todoExpandedState } from '$lib/stores/general';
+  import { todayKey } from '$lib/stores/general';
+  import { todosByDate, 
+    addTodoItem, 
+    addTodoRow, 
+    updateTodoTitle, 
+    updateTodoRowText, 
+    toggleTodoRow, 
+    deleteTodoRow, 
+    removeTodoItem, 
+    todoField1, 
+    todoField2, 
+    sendTodoToProjects, 
+    todoExpandedState } from '$lib/stores/todo';
   import { resizeTextarea, resizeAllTextareas, setupTextareaResizeListener } from '$lib/utils/textareaResize';
 
   function toggleExpanded(itemId: string) {

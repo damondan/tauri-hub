@@ -1,6 +1,10 @@
 <!-- src/lib/components/ProjectsComponent.svelte -->
 <script lang="ts">
-  import { projectsData, deleteProject, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/general';
+  import { projectsData, 
+            deleteProject,
+            projectExpandedProjects,
+            projectExpandedSubprojects, 
+            projectExpandedTasks } from '$lib/stores/projects';
 
   function toggleProject(projectName: string) {
     projectExpandedProjects.update(state => ({ ...state, [projectName]: !state[projectName] }));

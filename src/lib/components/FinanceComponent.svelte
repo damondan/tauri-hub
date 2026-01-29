@@ -1,6 +1,7 @@
 <!-- src/lib/components/FinanceComponent.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getMonthName } from '$lib/stores/general';
   import {
     financeData,
     generateFinanceStructureToDate,
@@ -8,7 +9,6 @@
     deleteFinanceEntry,
     updateFinanceEntry,
     updateFinanceMonthAmount,
-    getMonthName,
     calculateYearTotal,
     calculateMonthTotal,
     calculateMonthFoodTotal,
@@ -18,7 +18,7 @@
     financeExpandedYears,
     financeExpandedMonths,
     financeExpandedWeeks
-  } from '$lib/stores/general';
+  } from '$lib/stores/finance';
 
   let currentDay = new Date().getDate();
   let currentMonth = new Date().getMonth() + 1;
@@ -59,6 +59,31 @@
   // toggleWeek(key: string): void
   function toggleWeek(key: string) {
     financeExpandedWeeks.update(state => ({ ...state, [key]: !state[key] }));
+  }
+
+  // extractStarredWords(week: FinanceWeek): string[]
+  function extractStarredWords(week: any): string[] {
+    const starredWords: string[] = [];
+    if (week.days) {
+      for (const day of week.days) {
+        for (const entry of day.entries) {
+          if (entry.description) {
+            // Find all words that start with *
+            const words = entry.description.split(/\s+/);
+            for (const word of words) {
+              if (word.startsWith('*') && word.length > 1) {
+                // Remove the * and add to list if not already present
+                const cleanWord = word.substring(1);
+                if (!starredWords.includes(cleanWord)) {
+                  starredWords.push(cleanWord);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return starredWords;
   }
 </script>
 
@@ -194,6 +219,7 @@
             <div class="ml-12 mt-2 space-y-2">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
+                {@const starredWords = extractStarredWords(week)}
                 <div class="bg-white/10 rounded-xl p-3">
                   <div class="flex items-center gap-3">
                     <button 
@@ -203,9 +229,20 @@
                       {$financeExpandedWeeks[weekKey] ? '▼' : '▶'}
                     </button>
                     
-                    <div class="flex-1 text-white text-3xl font-semibold">
+                    <div class="text-white text-3xl font-semibold">
                       {week.weekNumber} Week {week.startDay}-{week.endDay}
                     </div>
+                    
+                    <!-- Starred words from day descriptions -->
+                    {#if starredWords.length > 0}
+                      <div class="flex-1 flex justify-center gap-3">
+                        {#each starredWords as word}
+                          <span class="text-green-500 text-2xl font-semibold">{word}</span>
+                        {/each}
+                      </div>
+                    {:else}
+                      <div class="flex-1"></div>
+                    {/if}
                     
                     <div class="text-white text-2xl font-semibold">
                       {formatCurrency(calculateWeekTotal(week))}

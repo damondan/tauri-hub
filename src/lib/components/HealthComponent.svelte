@@ -1,6 +1,7 @@
 <!-- src/lib/components/HealthComponent.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getMonthName } from '$lib/stores/general'
   import {
     healthData,
     generateHealthStructureToDate,
@@ -21,11 +22,10 @@
     toggleHealthDayFoodCompleted,
     toggleHealthDayTVCompleted,
     toggleHealthDaySleepCompleted,
-    getMonthName,
     healthExpandedYears,
     healthExpandedMonths,
     healthExpandedWeeks
-  } from '$lib/stores/general';
+  } from '$lib/stores/health';
 
   let currentDay = new Date().getDate();
   let currentMonth = new Date().getMonth() + 1;

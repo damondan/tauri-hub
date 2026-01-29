@@ -1,7 +1,7 @@
 <!-- src/lib/components/CommandsComponent.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { commandItems, addCommandItem, addCommandTextRow, updateCommandTitle, updateCommandTextRow, deleteCommandTextRow, removeCommandItem } from '$lib/stores/general';
+  import { commandItems, addCommandItem, addCommandTextRow, updateCommandTitle, updateCommandTextRow, deleteCommandTextRow, removeCommandItem } from '$lib/stores/commands';
   import { resizeTextarea, setupTextareaResizeListener } from '$lib/utils/textareaResize';
 
   // Track which items are expanded
