@@ -75,6 +75,13 @@
   function toggleWeek(key: string) {
     healthExpandedWeeks.update(state => ({ ...state, [key]: !state[key] }));
   }
+
+  // Auto-resize textarea based on content
+  function autoResize(event: Event) {
+    const textarea = event.target as HTMLTextAreaElement;
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+  }
 </script>
 
 <!-- Header -->
@@ -136,31 +143,31 @@
               <!-- Food -->
               <label class="text-red-500 text-xl font-semibold">Food</label>
               <textarea
-                class="flex-1 bg-white/10 border border-red-500 rounded px-3 py-1 text-white text-xl resize-none"
+                class="flex-1 bg-white/10 border border-red-500 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden"
                 placeholder="Food goals..."
                 rows="1"
                 value={month.monthFoodGoals || ''}
-                on:input={(e) => updateHealthMonthFoodGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value)}
+                on:input={(e) => { autoResize(e); updateHealthMonthFoodGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value); }}
               ></textarea>
               
               <!-- TV -->
               <label class="text-blue-500 text-xl font-semibold">TV</label>
               <textarea
-                class="flex-1 bg-white/10 border border-blue-500 rounded px-3 py-1 text-white text-xl resize-none"
+                class="flex-1 bg-white/10 border border-blue-500 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden"
                 placeholder="TV goals..."
                 rows="1"
                 value={month.monthTVGoals || ''}
-                on:input={(e) => updateHealthMonthTVGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value)}
+                on:input={(e) => { autoResize(e); updateHealthMonthTVGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value); }}
               ></textarea>
               
               <!-- Sleep -->
               <label class="text-purple-500 text-xl font-semibold">Sleep</label>
               <textarea
-                class="flex-1 bg-white/10 border border-purple-500 rounded px-3 py-1 text-white text-xl resize-none"
+                class="flex-1 bg-white/10 border border-purple-500 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden"
                 placeholder="Sleep goals..."
                 rows="1"
                 value={month.monthSleepGoals || ''}
-                on:input={(e) => updateHealthMonthSleepGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value)}
+                on:input={(e) => { autoResize(e); updateHealthMonthSleepGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value); }}
               ></textarea>
             </div>
           </div>
@@ -189,31 +196,31 @@
                     <!-- Food -->
                     <label class="text-red-500 text-xl font-semibold">Food</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none {allFoodCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-red-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {allFoodCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-red-500'}"
                       placeholder="Food goals..."
                       rows="1"
                       value={week.weekFoodGoals || ''}
-                      on:input={(e) => updateHealthWeekFoodGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value)}
+                      on:input={(e) => { autoResize(e); updateHealthWeekFoodGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                     
                     <!-- TV -->
                     <label class="text-blue-500 text-xl font-semibold">TV</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none {allTVCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-blue-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {allTVCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-blue-500'}"
                       placeholder="TV goals..."
                       rows="1"
                       value={week.weekTVGoals || ''}
-                      on:input={(e) => updateHealthWeekTVGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value)}
+                      on:input={(e) => { autoResize(e); updateHealthWeekTVGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                     
                     <!-- Sleep -->
                     <label class="text-purple-500 text-xl font-semibold">Sleep</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none {allSleepCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-purple-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {allSleepCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-purple-500'}"
                       placeholder="Sleep goals..."
                       rows="1"
                       value={week.weekSleepGoals || ''}
-                      on:input={(e) => updateHealthWeekSleepGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value)}
+                      on:input={(e) => { autoResize(e); updateHealthWeekSleepGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                   </div>
 
@@ -232,11 +239,11 @@
                             <!-- Food -->
                             <label class="text-red-500 text-xl font-semibold whitespace-nowrap">Food</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none w-84 {day.foodCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-red-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.foodCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border border-red-500'}"
                               placeholder="What did you eat ?"
                               rows="1"
                               value={day.dayFoodGoals || ''}
-                              on:input={(e) => updateHealthDayFoodGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value)}
+                              on:input={(e) => { autoResize(e); updateHealthDayFoodGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value); }}
                             ></textarea>
                             <button 
                               class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.foodCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : 'border-red-500'}" 
@@ -261,11 +268,11 @@
                             <!-- TV -->
                             <label class="text-blue-500 text-xl font-semibold whitespace-nowrap">TV</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none7w-64 {day.tvCompleted ? 'border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]' : 'border border-blue-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.tvCompleted ? 'border-2 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]' : 'border border-blue-500'}"
                               placeholder="How much TV ?"
                               rows="1"
                               value={day.dayTVGoals || ''}
-                              on:input={(e) => updateHealthDayTVGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value)}
+                              on:input={(e) => { autoResize(e); updateHealthDayTVGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value); }}
                             ></textarea>
                             <button 
                               class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.tvCompleted ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]' : 'border-red-500'}" 
@@ -290,11 +297,11 @@
                             <!-- Sleep -->
                             <label class="text-purple-500 text-xl font-semibold whitespace-nowrap">Sleep</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none w-74 {day.sleepCompleted ? 'border-2 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]' : 'border border-purple-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.sleepCompleted ? 'border-2 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]' : 'border border-purple-500'}"
                               placeholder="Approx. Sleep time ?"
                               rows="1"
                               value={day.daySleepGoals || ''}
-                              on:input={(e) => updateHealthDaySleepGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value)}
+                              on:input={(e) => { autoResize(e); updateHealthDaySleepGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value); }}
                             ></textarea>
                             <button 
                               class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.sleepCompleted ? 'border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.8)]' : 'border-red-500'}" 

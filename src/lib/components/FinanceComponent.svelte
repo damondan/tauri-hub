@@ -8,9 +8,12 @@
     addFinanceEntry,
     deleteFinanceEntry,
     updateFinanceEntry,
+    updateFinanceEntryCheckbox,
     updateFinanceMonthAmount,
+    copyFromPreviousMonth,
     calculateYearTotal,
     calculateMonthTotal,
+    calculateMonthHBBalance,
     calculateMonthFoodTotal,
     calculateMonthGasTotal,
     calculateWeekTotal,
@@ -85,11 +88,23 @@
     }
     return starredWords;
   }
+
+  // handleRadioChange(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'isHB' | 'isDisc' | 'isAmerX' | 'isGas' | 'isFood' | 'isOther'): void
+  function handleRadioChange(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'isHB' | 'isDisc' | 'isAmerX' | 'isGas' | 'isFood' | 'isOther') {
+    // Radio buttons are always "checked" when clicked, so pass true
+    updateFinanceEntryCheckbox(yearId, monthId, weekId, dayId, entryId, field, true);
+  }
 </script>
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center mb-6 border border-amber-50">
   <h1 class="text-4xl font-bold text-white">Finance</h1>
+  <h3 class=" text-white pl-10">USAA HB $130</h3>
+  <h3 class=" text-white pl-10">Spectrum Discover $120</h3>
+  <h3 class=" text-white pl-10">Cleco Discover ~$100</h3>
+  <h3 class=" text-white pl-10">Warp Discover $20</h3>
+  <h3 class=" text-white pl-10">Proton AmerX $13</h3>
+  <h3 class=" text-white pl-10">Railway Discover $5</h3>
 </div>
 
 <!-- Empty state -->
@@ -138,6 +153,16 @@
                 {getMonthName(month.monthNumber)}
               </div>
               
+              <!-- Copy from previous month button -->
+              {#if month.monthNumber > 1}
+                <button
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-semibold"
+                  on:click={() => copyFromPreviousMonth(year.id, month.id)}
+                >
+                  Copy Prev
+                </button>
+              {/if}
+              
               <!-- Spacer to push fields to center -->
               <div class="flex-1"></div>
               
@@ -146,8 +171,8 @@
                 <label class="text-white text-xl">Disc $</label>
                 <input
                   type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
-                  maxlength="5"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
+                  maxlength="14"
                   value={month.discAmount || ''}
                   on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discAmount', (e.target as HTMLInputElement).value)}
                 />
@@ -158,8 +183,8 @@
                 <label class="text-white text-xl">Int $</label>
                 <input
                   type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-12"
-                  maxlength="2"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
+                  maxlength="6"
                   value={month.discIntAmount || ''}
                   on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discIntAmount', (e.target as HTMLInputElement).value)}
                 />
@@ -170,8 +195,8 @@
                 <label class="text-white text-xl">AmerX $</label>
                 <input
                   type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
-                  maxlength="5"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
+                  maxlength="14"
                   value={month.amerXAmount || ''}
                   on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXAmount', (e.target as HTMLInputElement).value)}
                 />
@@ -182,8 +207,8 @@
                 <label class="text-white text-xl">Int $</label>
                 <input
                   type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-12"
-                  maxlength="2"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
+                  maxlength="6"
                   value={month.amerXIntAmount || ''}
                   on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXIntAmount', (e.target as HTMLInputElement).value)}
                 />
@@ -208,8 +233,20 @@
               <!-- Spacer to push total amount to the right -->
               <div class="flex-1"></div>
               
-              <div class="text-white text-2xl font-semibold">
-                {formatCurrency(calculateMonthTotal(month))}
+              <!-- Starting Balance (editable for first deposits, then auto-calculated) -->
+              <div class="flex flex-col items-end gap-1">
+                <input
+                  type="text"
+                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-36 text-right"
+                  placeholder="Start $"
+                  title="Starting balance (copied from prev month)"
+                  maxlength="14"
+                  value={month.balanceMonth || ''}
+                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'balanceMonth', (e.target as HTMLInputElement).value)}
+                />
+                <div class="text-white text-2xl font-semibold w-36 text-right">
+                  {formatCurrency(calculateMonthHBBalance(year, month))}
+                </div>
               </div>
             </div>
           </div>
@@ -217,7 +254,7 @@
           <!-- Level 3: Weeks (only show when month expanded) -->
           {#if $financeExpandedMonths[monthKey]}
             <div class="ml-12 mt-2 space-y-2">
-              {#each month.weeks as week (week.id)}
+              {#each month.weeks as week (week.id)} <!--Going through weeks of month-->
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
                 {@const starredWords = extractStarredWords(week)}
                 <div class="bg-white/10 rounded-xl p-3">
@@ -257,6 +294,7 @@
                           <!-- Day entries -->
                           {#each day.entries as entry, entryIndex (entry.id)}
                             <div class="flex items-center gap-2 mb-2">
+                              <!-- Entry fields -->
                               <!-- Day label (only show on first entry) -->
                               {#if entryIndex === 0}
                                 <div class="text-white text-2xl font-semibold w-32">
@@ -286,6 +324,77 @@
                                 on:input={(e) => updateFinanceEntry(year.id, month.id, week.id, day.id, entry.id, 'subAmount', (e.target as HTMLInputElement).value)}
                               />
                               
+                              <!-- Radio buttons (stacked vertically) -->
+                              <div class="flex flex-col gap-1 ml-2">
+                                <!-- Payment method group -->
+                                <div class="flex items-center gap-2">
+                                  <label class="text-white text-sm flex items-center gap-1">
+                                    HB
+                                    <input 
+                                      type="radio" 
+                                      name="card-{entry.id}"
+                                      class="w-3 h-3" 
+                                      checked={entry.isHB || false}
+                                      on:change={() => handleRadioChange(year.id, month.id, week.id, day.id, entry.id, 'isHB')}
+                                    />
+                                  </label>
+                                  <label class="text-white text-sm flex items-center gap-1">
+                                    Disc
+                                    <input 
+                                      type="radio" 
+                                      name="card-{entry.id}"
+                                      class="w-3 h-3" 
+                                      checked={entry.isDisc || false}
+                                      on:change={() => handleRadioChange(year.id, month.id, week.id, day.id, entry.id, 'isDisc')}
+                                    />
+                                  </label>
+                                  <label class="text-white text-sm flex items-center gap-1">
+                                    AmerX
+                                    <input 
+                                      type="radio" 
+                                      name="card-{entry.id}"
+                                      class="w-3 h-3" 
+                                      checked={entry.isAmerX || false}
+                                      on:change={() => handleRadioChange(year.id, month.id, week.id, day.id, entry.id, 'isAmerX')}
+                                    />
+                                  </label>
+                                </div>
+                                
+                                <!-- Category group -->
+                                <div class="flex items-center gap-2">
+                                  <label class="text-white text-sm flex items-center gap-1">
+                                    Gas
+                                    <input 
+                                      type="radio" 
+                                      name="category-{entry.id}"
+                                      class="w-3 h-3" 
+                                      checked={entry.isGas || false}
+                                      on:change={() => handleRadioChange(year.id, month.id, week.id, day.id, entry.id, 'isGas')}
+                                    />
+                                  </label>
+                                  <label class="text-white text-sm flex items-center gap-1">
+                                    Food
+                                    <input 
+                                      type="radio" 
+                                      name="category-{entry.id}"
+                                      class="w-3 h-3" 
+                                      checked={entry.isFood || false}
+                                      on:change={() => handleRadioChange(year.id, month.id, week.id, day.id, entry.id, 'isFood')}
+                                    />
+                                  </label>
+                                  <label class="text-white text-sm flex items-center gap-1">
+                                    Other
+                                    <input 
+                                      type="radio" 
+                                      name="category-{entry.id}"
+                                      class="w-3 h-3" 
+                                      checked={entry.isOther || false}
+                                      on:change={() => handleRadioChange(year.id, month.id, week.id, day.id, entry.id, 'isOther')}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+                              
                               <!-- Description -->
                               <input
                                 type="text"
@@ -295,22 +404,22 @@
                                 on:input={(e) => updateFinanceEntry(year.id, month.id, week.id, day.id, entry.id, 'description', (e.target as HTMLInputElement).value)}
                               />
                               
-                              <!-- + button (first entry) or Delete button (additional entries) -->
-                              {#if entryIndex === 0}
-                                <button 
-                                  class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-lg"
-                                  on:click={() => addFinanceEntry(year.id, month.id, week.id, day.id)}
-                                >
-                                  +
-                                </button>
-                              {:else}
-                                <button 
-                                  class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm"
-                                  on:click={() => deleteFinanceEntry(year.id, month.id, week.id, day.id, entry.id)}
-                                >
-                                  Del
-                                </button>
-                              {/if}
+                                <!-- + button (first entry) or Delete button (additional entries) -->
+                                {#if entryIndex === 0}
+                                  <button 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-lg"
+                                    on:click={() => addFinanceEntry(year.id, month.id, week.id, day.id)}
+                                  >
+                                    +
+                                  </button>
+                                {:else}
+                                  <button 
+                                    class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm"
+                                    on:click={() => deleteFinanceEntry(year.id, month.id, week.id, day.id, entry.id)}
+                                  >
+                                    Del
+                                  </button>
+                                {/if}
                             </div>
                           {/each}
                         </div>

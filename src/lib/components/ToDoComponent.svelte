@@ -51,6 +51,7 @@
 
   function handleSend(date: string, itemId: string, item: any) {
     // Check if all rows are completed
+    console.log("**********In Send");
     if (!allRowsCompleted(item)) {
       console.log('Cannot send: not all rows are completed');
       return;

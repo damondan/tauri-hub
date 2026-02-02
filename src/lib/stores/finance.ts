@@ -11,6 +11,12 @@ export interface FinanceEntry {
 	addAmount: string; // User input for addition
 	subAmount: string; // User input for subtraction
 	description: string;
+	isHB: boolean; // Home Bank (checking account)
+	isDisc: boolean; // Discover card checkbox
+	isAmerX: boolean; // American Express checkbox
+	isGas: boolean; // Gas category checkbox
+	isFood: boolean; // Food category checkbox
+	isOther: boolean; // Other category checkbox
 }
 
 export interface FinanceDay {
@@ -25,6 +31,7 @@ export interface FinanceWeek {
 	weekNumber: number; // 1, 2, 3, 4, 5
 	startDay: number; // First day number in week (e.g., 1, 8, 15)
 	endDay: number; // Last day number in week (e.g., 7, 14, 21)
+    balanceWeek: string;
 	days: FinanceDay[];
 }
 
@@ -35,6 +42,9 @@ export interface FinanceMonth {
 	discIntAmount: string; // Discover interest amount
 	amerXAmount: string; // American Express amount
 	amerXIntAmount: string; // American Express interest amount
+	foodAmount: string; // Food category total
+	gasAmount: string; // Gas category total
+	balanceMonth: string; // Home Bank balance
 	weeks: FinanceWeek[];
 }
 
@@ -71,13 +81,32 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
         for (let monthNum = 1; monthNum <= targetMonth; monthNum++) {
             let monthEntry = yearEntry.months.find(m => m.monthNumber === monthNum);
             if (!monthEntry) {
+                // Get previous month to carry forward values
+                let discAmount = '';
+                let discIntAmount = '';
+                let amerXAmount = '';
+                let amerXIntAmount = '';
+                
+                if (monthNum > 1) {
+                    const prevMonth = yearEntry.months.find(m => m.monthNumber === monthNum - 1);
+                    if (prevMonth) {
+                        discAmount = prevMonth.discAmount || '';
+                        discIntAmount = prevMonth.discIntAmount || '';
+                        amerXAmount = prevMonth.amerXAmount || '';
+                        amerXIntAmount = prevMonth.amerXIntAmount || '';
+                    }
+                }
+                
                 monthEntry = {
                     id: makeId(),
                     monthNumber: monthNum,
-                    discAmount: '',
-                    discIntAmount: '',
-                    amerXAmount: '',
-                    amerXIntAmount: '',
+                    discAmount,
+                    discIntAmount,
+                    amerXAmount,
+                    amerXIntAmount,
+                    foodAmount: '',
+                    gasAmount: '',
+                    balanceMonth: '',
                     weeks: []
                 };
                 yearEntry.months.push(monthEntry);
@@ -93,7 +122,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                 const weekNum = Math.ceil(dayNum / 7);
                 const startDay = (weekNum - 1) * 7 + 1;
                 const endDay = Math.min(weekNum * 7, daysInMonth);
-                
+                const balanceWeek = '';
                 // Find or create week
                 let weekEntry = monthEntry.weeks.find(w => w.weekNumber === weekNum);
                 if (!weekEntry) {
@@ -102,6 +131,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                         weekNumber: weekNum,
                         startDay,
                         endDay,
+                        balanceWeek,
                         days: []
                     };
                     monthEntry.weeks.push(weekEntry);
@@ -120,7 +150,13 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                             id: makeId(),
                             addAmount: '',
                             subAmount: '',
-                            description: ''
+                            description: '',
+                            isHB: true,
+                            isDisc: false,
+                            isAmerX: false,
+                            isGas: false,
+                            isFood: false,
+                            isOther: false
                         }]
                     };
                     weekEntry.days.push(dayEntry);
@@ -159,7 +195,7 @@ export function addFinanceEntry(
                                                 if (d.id === dayId) {
                                                     return {
                                                         ...d,
-                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '' }]
+                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, isOther: false }]
                                                     };
                                                 }
                                                 return d;
@@ -226,6 +262,230 @@ export function deleteFinanceEntry(
     );
 }
 
+// Update entry checkbox field
+// updateFinanceEntryCheckbox(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'isHB' | 'isDisc' | 'isAmerX' | 'isGas' | 'isFood' | 'isOther', value: boolean): void
+export function updateFinanceEntryCheckbox(
+    yearId: string,
+    monthId: string,
+    weekId: string,
+    dayId: string,
+    entryId: string,
+    field: 'isHB' | 'isDisc' | 'isAmerX' | 'isGas' | 'isFood' | 'isOther',
+    value: boolean
+): void {
+    financeData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            // Find the entry to get current values
+                            let currentEntry: FinanceEntry | undefined;
+                            for (const w of m.weeks) {
+                                for (const d of w.days) {
+                                    const found = d.entries.find(e => e.id === entryId);
+                                    if (found) {
+                                        currentEntry = found;
+                                        break;
+                                    }
+                                }
+                                if (currentEntry) break;
+                            }
+                            
+                            let discAmountAdjustment = 0;
+                            let amerXAmountAdjustment = 0;
+                            let foodAmountAdjustment = 0;
+                            let gasAmountAdjustment = 0;
+                            
+                            if (currentEntry) {
+                                const subVal = parseFloat(currentEntry.subAmount) || 0;
+                                const amount = Math.abs(subVal);
+                                
+                                // Handle HB radio button (Home Bank - regular checking)
+                                if (field === 'isHB') {
+                                    if (value) {
+                                        // Selecting HB - remove from credit cards if previously selected
+                                        if (currentEntry.isDisc) {
+                                            discAmountAdjustment = -amount;
+                                            // Also subtract from Food/Gas if they were checked with Disc
+                                            if (currentEntry.isFood) {
+                                                foodAmountAdjustment = -amount;
+                                            }
+                                            if (currentEntry.isGas) {
+                                                gasAmountAdjustment = -amount;
+                                            }
+                                        }
+                                        if (currentEntry.isAmerX) {
+                                            amerXAmountAdjustment = -amount;
+                                            // Also subtract from Food/Gas if they were checked with AmerX
+                                            if (currentEntry.isFood) {
+                                                foodAmountAdjustment = -amount;
+                                            }
+                                            if (currentEntry.isGas) {
+                                                gasAmountAdjustment = -amount;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Handle Disc radio button
+                                if (field === 'isDisc') {
+                                    if (value) {
+                                        // Selecting Disc - add amount to Disc total
+                                        discAmountAdjustment = amount;
+                                        // If AmerX was previously selected, subtract from AmerX
+                                        if (currentEntry.isAmerX) {
+                                            amerXAmountAdjustment = -amount;
+                                            // Also subtract from Food/Gas if they were checked with AmerX
+                                            if (currentEntry.isFood) {
+                                                foodAmountAdjustment = -amount;
+                                            }
+                                            if (currentEntry.isGas) {
+                                                gasAmountAdjustment = -amount;
+                                            }
+                                        }
+                                        // Add to Food/Gas if they are checked
+                                        if (currentEntry.isFood) {
+                                            foodAmountAdjustment += amount;
+                                        }
+                                        if (currentEntry.isGas) {
+                                            gasAmountAdjustment += amount;
+                                        }
+                                    }
+                                }
+                                
+                                // Handle AmerX radio button
+                                if (field === 'isAmerX') {
+                                    if (value) {
+                                        // Selecting AmerX - add amount to AmerX total
+                                        amerXAmountAdjustment = amount;
+                                        // If Disc was previously selected, subtract from Disc
+                                        if (currentEntry.isDisc) {
+                                            discAmountAdjustment = -amount;
+                                            // Also subtract from Food/Gas if they were checked with Disc
+                                            if (currentEntry.isFood) {
+                                                foodAmountAdjustment = -amount;
+                                            }
+                                            if (currentEntry.isGas) {
+                                                gasAmountAdjustment = -amount;
+                                            }
+                                        }
+                                        // Add to Food/Gas if they are checked
+                                        if (currentEntry.isFood) {
+                                            foodAmountAdjustment += amount;
+                                        }
+                                        if (currentEntry.isGas) {
+                                            gasAmountAdjustment += amount;
+                                        }
+                                    }
+                                }
+                                
+                                // Handle Food radio button
+                                if (field === 'isFood') {
+                                    // Only update Food amount if a credit card is checked
+                                    if (currentEntry.isDisc || currentEntry.isAmerX) {
+                                        if (value) {
+                                            // Selecting Food - add amount to Food total
+                                            foodAmountAdjustment = amount;
+                                            // If Gas was previously selected, subtract from Gas
+                                            if (currentEntry.isGas) {
+                                                gasAmountAdjustment = -amount;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Handle Gas radio button
+                                if (field === 'isGas') {
+                                    // Only update Gas amount if a credit card is checked
+                                    if (currentEntry.isDisc || currentEntry.isAmerX) {
+                                        if (value) {
+                                            // Selecting Gas - add amount to Gas total
+                                            gasAmountAdjustment = amount;
+                                            // If Food was previously selected, subtract from Food
+                                            if (currentEntry.isFood) {
+                                                foodAmountAdjustment = -amount;
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Handle Other radio button (no additional amounts to track)
+                                // Other is just a category marker
+                            }
+                            
+                            return {
+                                ...m,
+                                discAmount: ((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
+                                amerXAmount: ((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
+                                foodAmount: ((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
+                                gasAmount: ((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === weekId) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === dayId) {
+                                                    return {
+                                                        ...d,
+                                                        entries: d.entries.map(e => {
+                                                            if (e.id === entryId) {
+                                                                // Update the field and uncheck other radio buttons in same group
+                                                                const updated = { ...e, [field]: value };
+                                                                
+                                                                // Payment method radio group (HB, Disc, AmerX)
+                                                                if (field === 'isHB' && value) {
+                                                                    updated.isDisc = false;
+                                                                    updated.isAmerX = false;
+                                                                }
+                                                                if (field === 'isDisc' && value) {
+                                                                    updated.isHB = false;
+                                                                    updated.isAmerX = false;
+                                                                }
+                                                                if (field === 'isAmerX' && value) {
+                                                                    updated.isHB = false;
+                                                                    updated.isDisc = false;
+                                                                }
+                                                                // If selecting Food, uncheck Gas and Other
+                                                                if (field === 'isFood' && value) {
+                                                                    updated.isGas = false;
+                                                                    updated.isOther = false;
+                                                                }
+                                                                // If selecting Gas, uncheck Food and Other
+                                                                if (field === 'isGas' && value) {
+                                                                    updated.isFood = false;
+                                                                    updated.isOther = false;
+                                                                }
+                                                                // If selecting Other, uncheck Food and Gas
+                                                                if (field === 'isOther' && value) {
+                                                                    updated.isFood = false;
+                                                                    updated.isGas = false;
+                                                                }
+                                                                
+                                                                return updated;
+                                                            }
+                                                            return e;
+                                                        })
+                                                    };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
 // Update entry field
 // updateFinanceEntry(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'addAmount' | 'subAmount' | 'description', value: string): void
 export function updateFinanceEntry(
@@ -244,10 +504,87 @@ export function updateFinanceEntry(
                     ...y,
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
+                            // Get the old entry to update amounts based on amount changes
+                            let oldEntry: FinanceEntry | undefined;
+                            let discAmountAdjustment = 0;
+                            let amerXAmountAdjustment = 0;
+                            let foodAmountAdjustment = 0;
+                            let gasAmountAdjustment = 0;
+                            
+                            // Find old entry
+                            for (const w of m.weeks) {
+                                for (const d of w.days) {
+                                    const found = d.entries.find(e => e.id === entryId);
+                                    if (found) {
+                                        oldEntry = found;
+                                        break;
+                                    }
+                                }
+                                if (oldEntry) break;
+                            }
+                            
+                            // Recalculate amounts if addAmount or subAmount field is being updated
+                            if (oldEntry) {
+                                // Handle subAmount changes (spending on credit card)
+                                if (field === 'subAmount') {
+                                    const oldSubVal = parseFloat(oldEntry.subAmount) || 0;
+                                    const newSubVal = parseFloat(value) || 0;
+                                    const oldAmount = Math.abs(oldSubVal);
+                                    const newAmount = Math.abs(newSubVal);
+                                    const amountDiff = newAmount - oldAmount;
+                                    
+                                    // Update Disc amount if Disc is checked
+                                    if (oldEntry.isDisc) {
+                                        discAmountAdjustment = amountDiff;
+                                        // Also update Food/Gas if those categories are checked
+                                        if (oldEntry.isFood) {
+                                            foodAmountAdjustment = amountDiff;
+                                        }
+                                        if (oldEntry.isGas) {
+                                            gasAmountAdjustment = amountDiff;
+                                        }
+                                    }
+                                    
+                                    // Update AmerX amount if AmerX is checked
+                                    if (oldEntry.isAmerX) {
+                                        amerXAmountAdjustment = amountDiff;
+                                        // Also update Food/Gas if those categories are checked
+                                        if (oldEntry.isFood) {
+                                            foodAmountAdjustment = amountDiff;
+                                        }
+                                        if (oldEntry.isGas) {
+                                            gasAmountAdjustment = amountDiff;
+                                        }
+                                    }
+                                }
+                                
+                                // Handle addAmount changes (paying off credit card)
+                                if (field === 'addAmount') {
+                                    const oldAddVal = parseFloat(oldEntry.addAmount) || 0;
+                                    const newAddVal = parseFloat(value) || 0;
+                                    const amountDiff = newAddVal - oldAddVal;
+                                    
+                                    // Subtract payment from Disc amount if Disc is checked
+                                    if (oldEntry.isDisc) {
+                                        discAmountAdjustment = -amountDiff;
+                                    }
+                                    
+                                    // Subtract payment from AmerX amount if AmerX is checked
+                                    if (oldEntry.isAmerX) {
+                                        amerXAmountAdjustment = -amountDiff;
+                                    }
+                                }
+                            }
+                            
                             return {
                                 ...m,
+                                discAmount: ((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
+                                amerXAmount: ((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
+                                foodAmount: ((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
+                                gasAmount: ((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
                                 weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
+
+                                    if (w.id === weekId) { //The specific week in
                                         return {
                                             ...w,
                                             days: w.days.map((d) => {
@@ -288,31 +625,56 @@ export function calculateDayTotal(day: FinanceDay): number {
     return total;
 }
 
-// Calculate week total
+// Calculate week total (only HB entries - net change for the week)
 // calculateWeekTotal(week: FinanceWeek): number
 export function calculateWeekTotal(week: FinanceWeek): number {
     let total = 0;
     if (week.days) {
         for (const day of week.days) {
-            total += calculateDayTotal(day);
+            if (day.entries) {
+                for (const entry of day.entries) {
+                    // Only count HB (Home Bank) entries
+                    if (entry.isHB) {
+                        const addVal = parseFloat(entry.addAmount) || 0;
+                        const subVal = parseFloat(entry.subAmount) || 0;
+                        total += addVal - subVal;
+                    }
+                }
+            }
         }
     }
     return total;
 }
 
-// Calculate month total
+// Calculate month total (excluding Disc and AmerX entries unless they also have Food/Gas)
 // calculateMonthTotal(month: FinanceMonth): number
 export function calculateMonthTotal(month: FinanceMonth): number {
     let total = 0;
     if (month.weeks) {
         for (const week of month.weeks) {
-            total += calculateWeekTotal(week);
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            // Only exclude from total if Disc/AmerX is checked and does NOT have Food/Gas
+                            if ((entry.isDisc || entry.isAmerX) && !entry.isFood && !entry.isGas) {
+                                // Skip this entry - it's a pure Disc or AmerX entry
+                                continue;
+                            }
+                            
+                            const addVal = parseFloat(entry.addAmount) || 0;
+                            const subVal = parseFloat(entry.subAmount) || 0;
+                            total += addVal - subVal;
+                        }
+                    }
+                }
+            }
         }
     }
     return total;
 }
 
-// Calculate Food total for a month
+// Calculate Food total for a month (including Food entries with Disc/AmerX)
 // calculateMonthFoodTotal(month: FinanceMonth): number
 export function calculateMonthFoodTotal(month: FinanceMonth): number {
     let total = 0;
@@ -322,12 +684,14 @@ export function calculateMonthFoodTotal(month: FinanceMonth): number {
                 for (const day of week.days) {
                     if (day.entries) {
                         for (const entry of day.entries) {
-                            // Check if description contains the word "food" (case-insensitive, whole word only)
-                            const description = entry.description.toLowerCase();
-                            const words = description.split(/\s+/);
-                            if (words.includes('food')) {
+                            if (entry.isFood) {
                                 const subVal = parseFloat(entry.subAmount) || 0;
-                                total += subVal;
+                                // If it's a card purchase (Disc/AmerX), use subAmount as positive; otherwise use subAmount as-is
+                                if (entry.isDisc || entry.isAmerX) {
+                                    total += Math.abs(subVal);
+                                } else {
+                                    total += subVal;
+                                }
                             }
                         }
                     }
@@ -338,7 +702,7 @@ export function calculateMonthFoodTotal(month: FinanceMonth): number {
     return total;
 }
 
-// Calculate Gas total for a month
+// Calculate Gas total for a month (including Gas entries with Disc/AmerX)
 // calculateMonthGasTotal(month: FinanceMonth): number
 export function calculateMonthGasTotal(month: FinanceMonth): number {
     let total = 0;
@@ -348,12 +712,14 @@ export function calculateMonthGasTotal(month: FinanceMonth): number {
                 for (const day of week.days) {
                     if (day.entries) {
                         for (const entry of day.entries) {
-                            // Check if description contains the word "gas" (case-insensitive, whole word only)
-                            const description = entry.description.toLowerCase();
-                            const words = description.split(/\s+/);
-                            if (words.includes('gas')) {
+                            if (entry.isGas) {
                                 const subVal = parseFloat(entry.subAmount) || 0;
-                                total += subVal;
+                                // If it's a card purchase (Disc/AmerX), use subAmount as positive; otherwise use subAmount as-is
+                                if (entry.isDisc || entry.isAmerX) {
+                                    total += Math.abs(subVal);
+                                } else {
+                                    total += subVal;
+                                }
                             }
                         }
                     }
@@ -364,16 +730,31 @@ export function calculateMonthGasTotal(month: FinanceMonth): number {
     return total;
 }
 
-// Calculate year total
-// calculateYearTotal(year: FinanceYear): number
-export function calculateYearTotal(year: FinanceYear): number {
-    let total = 0;
-    if (year.months) {
-        for (const month of year.months) {
-            total += calculateMonthTotal(month);
+// Calculate HB balance for a month (starting balance from balanceMonth + this month's HB transactions)
+// calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number
+export function calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number {
+    // Get starting balance (copied from previous month via "Copy Prev" button)
+    const startingBalance = parseFloat(month.balanceMonth) || 0;
+    
+    // Calculate this month's HB transactions
+    let monthHBTotal = 0;
+    if (month.weeks) {
+        for (const week of month.weeks) {
+            monthHBTotal += calculateWeekTotal(week); // Week total already only counts HB
         }
     }
-    return total;
+    
+    return startingBalance + monthHBTotal;
+}
+
+// Calculate year total (returns the latest month's HB balance)
+// calculateYearTotal(year: FinanceYear): number
+export function calculateYearTotal(year: FinanceYear): number {
+    if (year.months && year.months.length > 0) {
+        const lastMonth = year.months[year.months.length - 1];
+        return calculateMonthHBBalance(year, lastMonth);
+    }
+    return 0;
 }
 
 // Format amount as currency
@@ -384,14 +765,52 @@ export function formatCurrency(amount: number): string {
     return `${sign}$${abs.toFixed(2)}`;
 }
 
-// Update month Disc or AmerX amount
-// updateFinanceMonthAmount(yearId: string, monthId: string, field: 'discAmount' | 'discIntAmount' | 'amerXAmount' | 'amerXIntAmount', value: string): void
+// Copy values from previous month to current month
+// copyFromPreviousMonth(yearId: string, monthId: string): void
+export function copyFromPreviousMonth(
+    yearId: string,
+    monthId: string
+): void {
+    financeData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            // Find previous month
+                            const currentMonthNum = m.monthNumber;
+                            const prevMonth = y.months.find(pm => pm.monthNumber === currentMonthNum - 1);
+                            
+                            if (prevMonth) {
+                                return {
+                                    ...m,
+                                    discAmount: prevMonth.discAmount || '',
+                                    discIntAmount: prevMonth.discIntAmount || '',
+                                    amerXAmount: prevMonth.amerXAmount || '',
+                                    amerXIntAmount: prevMonth.amerXIntAmount || '',
+                                    balanceHB: prevMonth.balanceHB || ''
+                                };
+                            }
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// Update month Disc, AmerX, or balance amount
+// updateFinanceMonthAmount(yearId: string, monthId: string, field: 'discAmount' | 'discIntAmount' | 'amerXAmount' | 'amerXIntAmount' | 'balanceMonth', value: string): void
 export function updateFinanceMonthAmount(
     yearId: string,
     monthId: string,
-    field: 'discAmount' | 'discIntAmount' | 'amerXAmount' | 'amerXIntAmount',
+    field: 'discAmount' | 'discIntAmount' | 'amerXAmount' | 'amerXIntAmount' | 'balanceMonth',
     value: string
 ): void {
+    console.log("***********************");
     financeData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {

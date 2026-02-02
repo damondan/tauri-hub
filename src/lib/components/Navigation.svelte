@@ -8,7 +8,7 @@
 		{ path: "/projects", label: "Projects" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/commands", label: "Commands" },
-		{ path: "/finances", label: "Fin" },
+		{ path: "/finances", label: "Finance" },
 		{ path: "/health", label: "Health" },
 		{ path: "/notifications", label: "Notifs" },
 		{ path: "/status", label: "Status" },

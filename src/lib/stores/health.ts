@@ -622,8 +622,7 @@ export function toggleHealthDayFoodCompleted(
                                                         return { 
                                                             ...d, 
                                                             foodCompleted: true, 
-                                                            foodRejected: false,
-                                                            dayFoodGoals: 'You chose Hope over Despair!' 
+                                                            foodRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
@@ -637,8 +636,7 @@ export function toggleHealthDayFoodCompleted(
                                                         return { 
                                                             ...d, 
                                                             foodCompleted: false, 
-                                                            foodRejected: false,
-                                                            dayFoodGoals: '' 
+                                                            foodRejected: false
                                                         };
                                                     }
                                                 }
@@ -688,8 +686,7 @@ export function toggleHealthDayTVCompleted(
                                                         return { 
                                                             ...d, 
                                                             tvCompleted: true, 
-                                                            tvRejected: false,
-                                                            dayTVGoals: 'You chose Hope over Despair' 
+                                                            tvRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
@@ -703,8 +700,7 @@ export function toggleHealthDayTVCompleted(
                                                         return { 
                                                             ...d, 
                                                             tvCompleted: false, 
-                                                            tvRejected: false,
-                                                            dayTVGoals: '' 
+                                                            tvRejected: false
                                                         };
                                                     }
                                                 }
@@ -754,8 +750,7 @@ export function toggleHealthDaySleepCompleted(
                                                         return { 
                                                             ...d, 
                                                             sleepCompleted: true, 
-                                                            sleepRejected: false,
-                                                            daySleepGoals: 'You chose Hope over Despair' 
+                                                            sleepRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
@@ -769,8 +764,7 @@ export function toggleHealthDaySleepCompleted(
                                                         return { 
                                                             ...d, 
                                                             sleepCompleted: false, 
-                                                            sleepRejected: false,
-                                                            daySleepGoals: '' 
+                                                            sleepRejected: false
                                                         };
                                                     }
                                                 }
