@@ -12,6 +12,7 @@
 		{ path: "/health", label: "Health" },
 		{ path: "/notifications", label: "Notifs" },
 		{ path: "/status", label: "Status" },
+		{ path: "/workspace", label: "Workspace" },
 	];
 </script>
 
