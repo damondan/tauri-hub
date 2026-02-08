@@ -1,6 +1,12 @@
 import { writable } from 'svelte/store';
 import { makeId, getDaysInMonth, getDayOfWeek} from '$lib/stores/general'
 
+// roundCurrency(value: number): number
+// Rounds a number to 2 decimal places to avoid floating-point precision issues
+function roundCurrency(value: number): number {
+    return Math.round(value * 100) / 100;
+}
+
 export const financeExpandedYears = writable<Record<string, boolean>>({});
 export const financeExpandedMonths = writable<Record<string, boolean>>({});
 export const financeExpandedWeeks = writable<Record<string, boolean>>({});
@@ -417,10 +423,10 @@ export function updateFinanceEntryCheckbox(
                             
                             return {
                                 ...m,
-                                discAmount: ((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
-                                amerXAmount: ((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
-                                foodAmount: ((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
-                                gasAmount: ((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
+                                discAmount: roundCurrency((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
+                                amerXAmount: roundCurrency((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
+                                foodAmount: roundCurrency((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
+                                gasAmount: roundCurrency((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
                                 weeks: m.weeks.map((w) => {
                                     if (w.id === weekId) {
                                         return {
@@ -578,10 +584,10 @@ export function updateFinanceEntry(
                             
                             return {
                                 ...m,
-                                discAmount: ((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
-                                amerXAmount: ((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
-                                foodAmount: ((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
-                                gasAmount: ((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
+                                discAmount: roundCurrency((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
+                                amerXAmount: roundCurrency((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
+                                foodAmount: roundCurrency((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
+                                gasAmount: roundCurrency((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
                                 weeks: m.weeks.map((w) => {
 
                                     if (w.id === weekId) { //The specific week in
