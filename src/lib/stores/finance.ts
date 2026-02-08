@@ -789,7 +789,7 @@ export function copyFromPreviousMonth(
                                     discIntAmount: prevMonth.discIntAmount || '',
                                     amerXAmount: prevMonth.amerXAmount || '',
                                     amerXIntAmount: prevMonth.amerXIntAmount || '',
-                                    balanceHB: prevMonth.balanceHB || ''
+                                    balanceHB: prevMonth.balanceMonth || ''
                                 };
                             }
                         }

@@ -88,7 +88,7 @@ This project is licensed under the MIT License.
 ## Roadmap
 
 - [ ] App discovery and auto-registration
-- [ ] Process monitoring and health checks
+- [ ] Process goal checks
 - [ ] Inter-app communication system
 - [ ] Configuration management
 - [ ] Plugin system for extensibility

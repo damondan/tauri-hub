@@ -14,7 +14,7 @@ export function todayKey(): string {
 	return `${d.getFullYear()}-${month}-${day}`;
 }
 
-// ===== FINANCE and HEALTH HELPERS =====
+// ===== FINANCE and GOAL HELPERS =====
 const MONTH_NAMES = [
 	'January', 'February', 'March', 'April', 'May', 'June',
 	'July', 'August', 'September', 'October', 'November', 'December'

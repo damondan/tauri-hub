@@ -6,7 +6,8 @@ import { commandItems } from '$lib/stores/commands';
 import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/projects';
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
-import { healthData, healthExpandedYears, healthExpandedMonths, healthExpandedWeeks } from '$lib/stores/health';
+import { goalData, goalExpandedYears, goalExpandedMonths, goalExpandedWeeks } from '$lib/stores/goal';
+import { workspaceContent } from '$lib/stores/workspace';
 import { get } from 'svelte/store';
 
 interface UserData {
@@ -15,7 +16,8 @@ interface UserData {
 	projects?: Record<string, any>;
 	howto?: any[];
 	finance?: any[];
-	health?: any[];
+	goal?: any[];
+	workspace?: string;
 	field1?: string;
 	field2?: string;
 	todoExpandedState?: Record<string, boolean>;
@@ -28,9 +30,9 @@ interface UserData {
 	financeExpandedYears?: Record<string, boolean>;
 	financeExpandedMonths?: Record<string, boolean>;
 	financeExpandedWeeks?: Record<string, boolean>;
-	healthExpandedYears?: Record<string, boolean>;
-	healthExpandedMonths?: Record<string, boolean>;
-	healthExpandedWeeks?: Record<string, boolean>;
+	goalExpandedYears?: Record<string, boolean>;
+	goalExpandedMonths?: Record<string, boolean>;
+	goalExpandedWeeks?: Record<string, boolean>;
 }
 
 let saveTimeout: number | null = null;
@@ -54,7 +56,8 @@ export async function saveUserData(): Promise<void> {
 		projects: get(projectsData),
 		howto: get(howtoData),
 		finance: get(financeData),
-		health: get(healthData),
+		goal: get(goalData),
+		workspace: get(workspaceContent),
 		field1: get(todoField1),
 		field2: get(todoField2),
 		todoExpandedState: get(todoExpandedState),
@@ -67,9 +70,9 @@ export async function saveUserData(): Promise<void> {
 		financeExpandedYears: get(financeExpandedYears),
 		financeExpandedMonths: get(financeExpandedMonths),
 		financeExpandedWeeks: get(financeExpandedWeeks),
-		healthExpandedYears: get(healthExpandedYears),
-		healthExpandedMonths: get(healthExpandedMonths),
-		healthExpandedWeeks: get(healthExpandedWeeks)
+		goalExpandedYears: get(goalExpandedYears),
+		goalExpandedMonths: get(goalExpandedMonths),
+		goalExpandedWeeks: get(goalExpandedWeeks)
 	};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -135,17 +138,20 @@ export async function loadUserData(): Promise<void> {
 	if (data.financeExpandedWeeks) {
 		financeExpandedWeeks.set(data.financeExpandedWeeks);
 	}
-	if (data.health) {
-		healthData.set(data.health);
+	if (data.goal) {
+		goalData.set(data.goal);
 	}
-	if (data.healthExpandedYears) {
-		healthExpandedYears.set(data.healthExpandedYears);
+	if (data.goalExpandedYears) {
+		goalExpandedYears.set(data.goalExpandedYears);
 	}
-	if (data.healthExpandedMonths) {
-		healthExpandedMonths.set(data.healthExpandedMonths);
+	if (data.goalExpandedMonths) {
+		goalExpandedMonths.set(data.goalExpandedMonths);
 	}
-	if (data.healthExpandedWeeks) {
-		healthExpandedWeeks.set(data.healthExpandedWeeks);
+	if (data.goalExpandedWeeks) {
+		goalExpandedWeeks.set(data.goalExpandedWeeks);
+	}
+	if (data.workspace !== undefined) {
+		workspaceContent.set(data.workspace);
 	}
 	console.log('User data loaded');
 	} catch (error) {
@@ -230,20 +236,25 @@ export function initPersistence() {
 		scheduleSave();
 	});
 
-	// Subscribe to health changes
-	healthData.subscribe(() => {
+	// Subscribe to goal changes
+	goalData.subscribe(() => {
 		scheduleSave();
 	});
 
-	healthExpandedYears.subscribe(() => {
+	goalExpandedYears.subscribe(() => {
 		scheduleSave();
 	});
 
-	healthExpandedMonths.subscribe(() => {
+	goalExpandedMonths.subscribe(() => {
 		scheduleSave();
 	});
 
-	healthExpandedWeeks.subscribe(() => {
+	goalExpandedWeeks.subscribe(() => {
+		scheduleSave();
+	});
+
+	// Subscribe to workspace changes
+	workspaceContent.subscribe(() => {
 		scheduleSave();
 	});
 }

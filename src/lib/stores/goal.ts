@@ -2,67 +2,74 @@ import { writable } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 
-export const healthExpandedYears = writable<Record<string, boolean>>({});
-export const healthExpandedMonths = writable<Record<string, boolean>>({});
-export const healthExpandedWeeks = writable<Record<string, boolean>>({});
+export const goalExpandedYears = writable<Record<string, boolean>>({});
+export const goalExpandedMonths = writable<Record<string, boolean>>({});
+export const goalExpandedWeeks = writable<Record<string, boolean>>({});
 
-export interface HealthEntry {
+export interface GoalEntry {
 	id: string;
 	description: string;
 }
 
-export interface HealthDay {
+export interface GoalDay {
 	id: string;
 	dayNumber: number; // 1-31
 	dayOfWeek: string; // 'Monday', 'Tuesday', etc.
-	dayFoodGoals: string; // Food-related goals
-	dayTVGoals: string; // TV-related goals
-	daySleepGoals: string; // Sleep-related goals
-	foodCompleted: boolean; // Food checkbox state
-	foodRejected: boolean; // Food checkbox rejected state (clicked No)
-	tvCompleted: boolean; // TV checkbox state
-	tvRejected: boolean; // TV checkbox rejected state (clicked No)
-	sleepCompleted: boolean; // Sleep checkbox state
-	sleepRejected: boolean; // Sleep checkbox rejected state (clicked No)
-	entries: HealthEntry[];
+	dayPrivateGoals: string; // TV-related goals
+	dayProfessionalGoals: string; // Sleep-related goals
+	priGoalCompleted: boolean; // TV checkbox state
+	priGoalRejected: boolean; // TV checkbox rejected state (clicked No)
+	proGoalCompleted: boolean; // Sleep checkbox state
+	proGoalRejected: boolean; // Sleep checkbox rejected state (clicked No)
+	entries: GoalEntry[];
 }
 
-export interface HealthWeek {
+export interface GoalWeek {
 	id: string;
 	weekNumber: number; // 1, 2, 3, 4, 5
 	startDay: number; // First day number in week (e.g., 1, 8, 15)
 	endDay: number; // Last day number in week (e.g., 7, 14, 21)
-	weekFoodGoals: string; // Food-related goals
-	weekTVGoals: string; // TV-related goals
-	weekSleepGoals: string; // Sleep-related goals
-	days: HealthDay[];
+	weekPrivateGoals: string; // TV-related goals
+	weekProfessionalGoals: string; // Sleep-related goals
+	priGoalCompleted: boolean; // Week private goal completed
+	priGoalRejected: boolean; // Week private goal rejected
+	proGoalCompleted: boolean; // Week professional goal completed
+	proGoalRejected: boolean; // Week professional goal rejected
+	days: GoalDay[];
 }
 
-export interface HealthMonth {
+export interface GoalMonth {
 	id: string;
 	monthNumber: number; // 1-12 (1=January, 2=February, etc.)
-	monthHealthGoal: string; // Month-Health Goals
-	monthFoodGoals: string; // Food-related goals
-	monthTVGoals: string; // TV-related goals
-	monthSleepGoals: string; // Sleep-related goals
-	weeks: HealthWeek[];
+	monthGoals: string; // Month- Goals
+	monthPrivateGoals: string; // TV-related goals
+	monthProfessionalGoals: string; // Sleep-related goals
+	priGoalCompleted: boolean; // Month private goal completed
+	priGoalRejected: boolean; // Month private goal rejected
+	proGoalCompleted: boolean; // Month professional goal completed
+	proGoalRejected: boolean; // Month professional goal rejected
+	weeks: GoalWeek[];
 }
 
-export interface HealthYear {
+export interface GoalYear {
 	id: string;
 	year: number; // 2026, 2027, etc.
-	yearHealthGoal: string; // Year-level health goals
-	months: HealthMonth[];
+	yearHealthGoal: string; // Year-level goals
+	yearPrivateGoal: string; // Yearly private goal
+	yearProfessionalGoal: string; // Yearly professional goal
+	yearPrivateGoalChangeCount: number; // Count of private goal changes
+	yearProfessionalGoalChangeCount: number; // Count of professional goal changes
+	months: GoalMonth[];
 }
 
-export const healthData = writable<HealthYear[]>([]);
+export const goalData = writable<GoalYear[]>([]);
 
-export function generateHealthStructureToDate(targetDate: Date): void {
+export function generateGoalStructureToDate(targetDate: Date): void {
     const targetYear = targetDate.getFullYear();
     const targetMonth = targetDate.getMonth() + 1; // 1-12
     const targetDay = targetDate.getDate();
 
-    healthData.update((years) => {
+    goalData.update((years) => {
         const updatedYears = [...years];
         
         // Find or create year
@@ -72,6 +79,10 @@ export function generateHealthStructureToDate(targetDate: Date): void {
                 id: makeId(),
                 year: targetYear,
                 yearHealthGoal: '',
+                yearPrivateGoal: '',
+                yearProfessionalGoal: '',
+                yearPrivateGoalChangeCount: 0,
+                yearProfessionalGoalChangeCount: 0,
                 months: []
             };
             updatedYears.push(yearEntry);
@@ -84,10 +95,13 @@ export function generateHealthStructureToDate(targetDate: Date): void {
                 monthEntry = {
                     id: makeId(),
                     monthNumber: monthNum,
-                    monthHealthGoal: '',
-                    monthFoodGoals: '',
-                    monthTVGoals: '',
-                    monthSleepGoals: '',
+                    monthGoals: '',
+                    monthPrivateGoals: '',
+                    monthProfessionalGoals: '',
+                    priGoalCompleted: false,
+                    priGoalRejected: false,
+                    proGoalCompleted: false,
+                    proGoalRejected: false,
                     weeks: []
                 };
                 yearEntry.months.push(monthEntry);
@@ -112,9 +126,12 @@ export function generateHealthStructureToDate(targetDate: Date): void {
                         weekNumber: weekNum,
                         startDay,
                         endDay,
-                        weekFoodGoals: '',
-                        weekTVGoals: '',
-                        weekSleepGoals: '',
+                        weekPrivateGoals: '',
+                        weekProfessionalGoals: '',
+                        priGoalCompleted: false,
+                        priGoalRejected: false,
+                        proGoalCompleted: false,
+                        proGoalRejected: false,
                         days: []
                     };
                     monthEntry.weeks.push(weekEntry);
@@ -125,19 +142,16 @@ export function generateHealthStructureToDate(targetDate: Date): void {
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
                 if (!dayExists) {
                     const dayOfWeek = getDayOfWeek(targetYear, monthNum, dayNum);
-                    const dayEntry: HealthDay = {
+                    const dayEntry: GoalDay = {
                         id: makeId(),
                         dayNumber: dayNum,
                         dayOfWeek,
-                        dayFoodGoals: '',
-                        dayTVGoals: '',
-                        daySleepGoals: '',
-                        foodCompleted: false,
-                        foodRejected: false,
-                        tvCompleted: false,
-                        tvRejected: false,
-                        sleepCompleted: false,
-                        sleepRejected: false,
+                        dayPrivateGoals: '',
+                        dayProfessionalGoals: '',
+                        priGoalCompleted: false,
+                        priGoalRejected: false,
+                        proGoalCompleted: false,
+                        proGoalRejected: false,
                         entries: [{
                             id: makeId(),
                             description: ''
@@ -162,7 +176,7 @@ export function addHealthEntry(
     dayId: string
 ): string {
     const entryId = makeId();
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -209,7 +223,7 @@ export function deleteHealthEntry(
     dayId: string,
     entryId: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -246,13 +260,13 @@ export function deleteHealthEntry(
     );
 }
 
-// Update year health goal
+// Update year goal
 // updateHealthYearGoal(yearId: string, value: string): void
 export function updateHealthYearGoal(
     yearId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return { ...y, yearHealthGoal: value };
@@ -262,21 +276,61 @@ export function updateHealthYearGoal(
     );
 }
 
-// Update month health goal
+// Update year private goal
+// updateYearPrivateGoal(yearId: string, value: string): void
+export function updateYearPrivateGoal(
+    yearId: string,
+    value: string
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return { 
+                    ...y, 
+                    yearPrivateGoal: value,
+                    yearPrivateGoalChangeCount: y.yearPrivateGoalChangeCount + 1
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// Update year professional goal
+// updateYearProfessionalGoal(yearId: string, value: string): void
+export function updateYearProfessionalGoal(
+    yearId: string,
+    value: string
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return { 
+                    ...y, 
+                    yearProfessionalGoal: value,
+                    yearProfessionalGoalChangeCount: y.yearProfessionalGoalChangeCount + 1
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// Update month goal
 // updateHealthMonthGoal(yearId: string, monthId: string, value: string): void
 export function updateHealthMonthGoal(
     yearId: string,
     monthId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
                     ...y,
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
-                            return { ...m, monthHealthGoal: value };
+                            return { ...m, monthGoals: value };
                         }
                         return m;
                     })
@@ -287,21 +341,21 @@ export function updateHealthMonthGoal(
     );
 }
 
-// Update month food goals
-// updateHealthMonthFoodGoals(yearId: string, monthId: string, value: string): void
-export function updateHealthMonthFoodGoals(
+// Update month private goals
+// updateMonthPrivateGoals(yearId: string, monthId: string, value: string): void
+export function updateMonthPrivateGoals(
     yearId: string,
     monthId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
                     ...y,
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
-                            return { ...m, monthFoodGoals: value };
+                            return { ...m, monthPrivateGoals: value };
                         }
                         return m;
                     })
@@ -312,21 +366,21 @@ export function updateHealthMonthFoodGoals(
     );
 }
 
-// Update month TV goals
-// updateHealthMonthTVGoals(yearId: string, monthId: string, value: string): void
-export function updateHealthMonthTVGoals(
+// Update month professional goals
+// updateMonthProfessionalGoals(yearId: string, monthId: string, value: string): void
+export function updateMonthProfessionalGoals(
     yearId: string,
     monthId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
                     ...y,
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
-                            return { ...m, monthTVGoals: value };
+                            return { ...m, monthProfessionalGoals: value };
                         }
                         return m;
                     })
@@ -337,40 +391,15 @@ export function updateHealthMonthTVGoals(
     );
 }
 
-// Update month sleep goals
-// updateHealthMonthSleepGoals(yearId: string, monthId: string, value: string): void
-export function updateHealthMonthSleepGoals(
-    yearId: string,
-    monthId: string,
-    value: string
-): void {
-    healthData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return { ...m, monthSleepGoals: value };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// Update week food goals
-// updateHealthWeekFoodGoals(yearId: string, monthId: string, weekId: string, value: string): void
-export function updateHealthWeekFoodGoals(
+// Update week private goals
+// updateWeekPrivateGoals(yearId: string, monthId: string, weekId: string, value: string): void
+export function updateWeekPrivateGoals(
     yearId: string,
     monthId: string,
     weekId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -381,7 +410,7 @@ export function updateHealthWeekFoodGoals(
                                 ...m,
                                 weeks: m.weeks.map((w) => {
                                     if (w.id === weekId) {
-                                        return { ...w, weekFoodGoals: value };
+                                        return { ...w, weekPrivateGoals: value };
                                     }
                                     return w;
                                 })
@@ -396,15 +425,15 @@ export function updateHealthWeekFoodGoals(
     );
 }
 
-// Update week TV goals
-// updateHealthWeekTVGoals(yearId: string, monthId: string, weekId: string, value: string): void
-export function updateHealthWeekTVGoals(
+// Update week professional goals
+// updateWeekProfessionalGoals(yearId: string, monthId: string, weekId: string, value: string): void
+export function updateWeekProfessionalGoals(
     yearId: string,
     monthId: string,
     weekId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -415,7 +444,7 @@ export function updateHealthWeekTVGoals(
                                 ...m,
                                 weeks: m.weeks.map((w) => {
                                     if (w.id === weekId) {
-                                        return { ...w, weekTVGoals: value };
+                                        return { ...w, weekProfessionalGoals: value };
                                     }
                                     return w;
                                 })
@@ -430,50 +459,16 @@ export function updateHealthWeekTVGoals(
     );
 }
 
-// Update week sleep goals
-// updateHealthWeekSleepGoals(yearId: string, monthId: string, weekId: string, value: string): void
-export function updateHealthWeekSleepGoals(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    value: string
-): void {
-    healthData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return { ...w, weekSleepGoals: value };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// Update day food goals
-// updateHealthDayFoodGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
-export function updateHealthDayFoodGoals(
+// Update day private goals
+// updateDayPrivateGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
+export function updateDayPrivateGoals(
     yearId: string,
     monthId: string,
     weekId: string,
     dayId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -488,7 +483,7 @@ export function updateHealthDayFoodGoals(
                                             ...w,
                                             days: w.days.map((d) => {
                                                 if (d.id === dayId) {
-                                                    return { ...d, dayFoodGoals: value };
+                                                    return { ...d, dayPrivateGoals: value };
                                                 }
                                                 return d;
                                             })
@@ -507,16 +502,16 @@ export function updateHealthDayFoodGoals(
     );
 }
 
-// Update day TV goals
-// updateHealthDayTVGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
-export function updateHealthDayTVGoals(
+// Update day professional goals
+// updateDayProfessionalGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
+export function updateDayProfessionalGoals(
     yearId: string,
     monthId: string,
     weekId: string,
     dayId: string,
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -531,7 +526,7 @@ export function updateHealthDayTVGoals(
                                             ...w,
                                             days: w.days.map((d) => {
                                                 if (d.id === dayId) {
-                                                    return { ...d, dayTVGoals: value };
+                                                    return { ...d, dayProfessionalGoals: value };
                                                 }
                                                 return d;
                                             })
@@ -550,59 +545,16 @@ export function updateHealthDayTVGoals(
     );
 }
 
-// Update day sleep goals
-// updateHealthDaySleepGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
-export function updateHealthDaySleepGoals(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string,
-    value: string
-): void {
-    healthData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    return { ...d, daySleepGoals: value };
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// Toggle day food checkbox
-// toggleHealthDayFoodCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
-export function toggleHealthDayFoodCompleted(
+// Toggle day private checkbox
+// toggleDayPrivateCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
+export function toggleDayPrivateCompleted(
     yearId: string,
     monthId: string,
     weekId: string,
     dayId: string,
     completed?: boolean
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -621,22 +573,22 @@ export function toggleHealthDayFoodCompleted(
                                                         // User clicked Yes
                                                         return { 
                                                             ...d, 
-                                                            foodCompleted: true, 
-                                                            foodRejected: false
+                                                            priGoalCompleted: true, 
+                                                            priGoalRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
                                                         return { 
                                                             ...d, 
-                                                            foodCompleted: false, 
-                                                            foodRejected: true 
+                                                            priGoalCompleted: false, 
+                                                            priGoalRejected: true 
                                                         };
                                                     } else {
                                                         // Toggle (reset)
                                                         return { 
                                                             ...d, 
-                                                            foodCompleted: false, 
-                                                            foodRejected: false
+                                                            priGoalCompleted: false, 
+                                                            priGoalRejected: false
                                                         };
                                                     }
                                                 }
@@ -657,16 +609,16 @@ export function toggleHealthDayFoodCompleted(
     );
 }
 
-// Toggle day TV checkbox
-// toggleHealthDayTVCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
-export function toggleHealthDayTVCompleted(
+// Toggle day professional checkbox
+// toggleDayProfessionalCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
+export function toggleDayProfessionalCompleted(
     yearId: string,
     monthId: string,
     weekId: string,
     dayId: string,
     completed?: boolean
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -685,22 +637,22 @@ export function toggleHealthDayTVCompleted(
                                                         // User clicked Yes
                                                         return { 
                                                             ...d, 
-                                                            tvCompleted: true, 
-                                                            tvRejected: false
+                                                            proGoalCompleted: true, 
+                                                            proGoalRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
                                                         return { 
                                                             ...d, 
-                                                            tvCompleted: false, 
-                                                            tvRejected: true 
+                                                            proGoalCompleted: false, 
+                                                            proGoalRejected: true 
                                                         };
                                                     } else {
                                                         // Toggle (reset)
                                                         return { 
                                                             ...d, 
-                                                            tvCompleted: false, 
-                                                            tvRejected: false
+                                                            proGoalCompleted: false, 
+                                                            proGoalRejected: false
                                                         };
                                                     }
                                                 }
@@ -721,16 +673,15 @@ export function toggleHealthDayTVCompleted(
     );
 }
 
-// Toggle day sleep checkbox
-// toggleHealthDaySleepCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
-export function toggleHealthDaySleepCompleted(
+// Toggle week private checkbox
+// toggleWeekPrivateCompleted(yearId: string, monthId: string, weekId: string, completed?: boolean): void
+export function toggleWeekPrivateCompleted(
     yearId: string,
     monthId: string,
     weekId: string,
-    dayId: string,
     completed?: boolean
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -741,40 +692,167 @@ export function toggleHealthDaySleepCompleted(
                                 ...m,
                                 weeks: m.weeks.map((w) => {
                                     if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    if (completed === true) {
-                                                        // User clicked Yes
-                                                        return { 
-                                                            ...d, 
-                                                            sleepCompleted: true, 
-                                                            sleepRejected: false
-                                                        };
-                                                    } else if (completed === false) {
-                                                        // User clicked No
-                                                        return { 
-                                                            ...d, 
-                                                            sleepCompleted: false, 
-                                                            sleepRejected: true 
-                                                        };
-                                                    } else {
-                                                        // Toggle (reset)
-                                                        return { 
-                                                            ...d, 
-                                                            sleepCompleted: false, 
-                                                            sleepRejected: false
-                                                        };
-                                                    }
-                                                }
-                                                return d;
-                                            })
-                                        };
+                                        if (completed === true) {
+                                            return { 
+                                                ...w, 
+                                                priGoalCompleted: true, 
+                                                priGoalRejected: false
+                                            };
+                                        } else if (completed === false) {
+                                            return { 
+                                                ...w, 
+                                                priGoalCompleted: false, 
+                                                priGoalRejected: true 
+                                            };
+                                        } else {
+                                            return { 
+                                                ...w, 
+                                                priGoalCompleted: false, 
+                                                priGoalRejected: false
+                                            };
+                                        }
                                     }
                                     return w;
                                 })
                             };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// Toggle week professional checkbox
+// toggleWeekProfessionalCompleted(yearId: string, monthId: string, weekId: string, completed?: boolean): void
+export function toggleWeekProfessionalCompleted(
+    yearId: string,
+    monthId: string,
+    weekId: string,
+    completed?: boolean
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === weekId) {
+                                        if (completed === true) {
+                                            return { 
+                                                ...w, 
+                                                proGoalCompleted: true, 
+                                                proGoalRejected: false
+                                            };
+                                        } else if (completed === false) {
+                                            return { 
+                                                ...w, 
+                                                proGoalCompleted: false, 
+                                                proGoalRejected: true 
+                                            };
+                                        } else {
+                                            return { 
+                                                ...w, 
+                                                proGoalCompleted: false, 
+                                                proGoalRejected: false
+                                            };
+                                        }
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// Toggle month private checkbox
+// toggleMonthPrivateCompleted(yearId: string, monthId: string, completed?: boolean): void
+export function toggleMonthPrivateCompleted(
+    yearId: string,
+    monthId: string,
+    completed?: boolean
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            if (completed === true) {
+                                return { 
+                                    ...m, 
+                                    priGoalCompleted: true, 
+                                    priGoalRejected: false
+                                };
+                            } else if (completed === false) {
+                                return { 
+                                    ...m, 
+                                    priGoalCompleted: false, 
+                                    priGoalRejected: true 
+                                };
+                            } else {
+                                return { 
+                                    ...m, 
+                                    priGoalCompleted: false, 
+                                    priGoalRejected: false
+                                };
+                            }
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// Toggle month professional checkbox
+// toggleMonthProfessionalCompleted(yearId: string, monthId: string, completed?: boolean): void
+export function toggleMonthProfessionalCompleted(
+    yearId: string,
+    monthId: string,
+    completed?: boolean
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            if (completed === true) {
+                                return { 
+                                    ...m, 
+                                    proGoalCompleted: true, 
+                                    proGoalRejected: false
+                                };
+                            } else if (completed === false) {
+                                return { 
+                                    ...m, 
+                                    proGoalCompleted: false, 
+                                    proGoalRejected: true 
+                                };
+                            } else {
+                                return { 
+                                    ...m, 
+                                    proGoalCompleted: false, 
+                                    proGoalRejected: false
+                                };
+                            }
                         }
                         return m;
                     })
@@ -796,7 +874,7 @@ export function updateHealthEntry(
     field: 'description',
     value: string
 ): void {
-    healthData.update((years) =>
+    goalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
