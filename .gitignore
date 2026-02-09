@@ -1,5 +1,9 @@
 node_modules
 
+#static
+static/*.mp3
+
+
 # Output
 .output
 .vercel

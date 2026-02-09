@@ -881,7 +881,7 @@
 										: 'bg-green-500 hover:bg-green-600'} text-white w-16 h-10"
 								>
 									<span class="text-center leading-tight"
-										>View Logs</span
+										>View Log</span
 									>
 								</button>
 
@@ -901,7 +901,8 @@
 									<!-- Tooltip -->
 									{#if showOssecTooltip}
 										<div
-											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg p-3 w-80 z-50 shadow-xl"
+											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2
+											 bg-gray-900 text-white text-2xl rounded-lg p-3 w-100 z-50 shadow-xl"
 										>
 											<div class="font-bold mb-2">
 												OSSEC HIDS
@@ -971,7 +972,8 @@
 									<!-- Tooltip -->
 									{#if showAideTooltip}
 										<div
-											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg p-3 w-96 z-50 shadow-xl"
+											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white 
+											text-xl rounded-lg p-3 w-96 z-50 shadow-xl"
 										>
 											<div class="font-bold mb-2">
 												AIDE
@@ -1043,7 +1045,8 @@
 									<!-- Warning Tooltip -->
 									{#if showAideUpdateTooltip}
 										<div
-											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-900 text-white text-xs rounded-lg p-3 w-64 z-50 shadow-xl"
+											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-900 text-white 
+											text-xl rounded-lg p-3 w-64 z-50 shadow-xl"
 										>
 											<p
 												class="text-gray-300 mb-2 italic text-center"
@@ -1098,7 +1101,8 @@
 									<!-- Tooltip -->
 									{#if showOpenSnitchTooltip}
 										<div
-											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg p-3 w-72 z-50 shadow-xl"
+											class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white 
+											text-xl rounded-lg p-3 w-72 z-50 shadow-xl"
 										>
 											<div class="font-bold mb-2">
 												OpenSnitch

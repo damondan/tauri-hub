@@ -126,7 +126,7 @@
         </div>
       
         <!-- Yrly Priv. Goal -->
-        <label class="text-green-500 text-2xl font-semibold whitespace-nowrap">Yrly Priv. Goal</label>
+        <label class="text-purple-500 text-2xl font-semibold whitespace-nowrap">Yrly Priv. Goal</label>
         <textarea
           class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
           placeholder="Private Goal"
@@ -137,7 +137,7 @@
         ></textarea>
         
         <!-- Yrly Prof. Goal -->
-        <label class="text-yellow-500 text-2xl font-semibold whitespace-nowrap">Yrly Prof. Goal</label>
+        <label class="text-blue-500 text-2xl font-semibold whitespace-nowrap">Yrly Prof. Goal</label>
         <textarea
           class="flex-1 bg-transparent border-0 px-20 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
           placeholder="Professional Goal"
@@ -156,8 +156,13 @@
           {@const monthKey = `${year.id}-${month.id}`}
           {@const monthBothCompleted = month.priGoalCompleted && month.proGoalCompleted}
           {@const monthBothRejected = month.priGoalRejected && month.proGoalRejected}
-          {@const monthMixed = (month.priGoalCompleted || month.priGoalRejected) && (month.proGoalCompleted || month.proGoalRejected) && !monthBothCompleted && !monthBothRejected}
-          {@const monthBorderColor = monthBothCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : monthBothRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : monthMixed ? 'border-2 border-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.8)]' : ''}
+          {@const monthMixed = (month.priGoalCompleted || month.priGoalRejected) && 
+          (month.proGoalCompleted || 
+          month.proGoalRejected) && !monthBothCompleted && !monthBothRejected}
+          {@const monthBorderColor = monthBothCompleted ? `border-2 border-yellow-500 
+          shadow-[0_0_15px_rgba(234,179,8,0.8)]` : monthBothRejected ? `border-2 
+          border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]` : monthMixed ? 
+          `border-2 border-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.8)]` : ''}
           <div class="bg-white/10 rounded-xl p-3 {monthBorderColor}">
             <div class="flex items-center gap-3">
               <button 
@@ -172,9 +177,9 @@
               </div>
               
               <!--Monthly Private Goals -->
-              <label class="text-green-500 text-xl font-semibold">Private</label>
+              <label class="text-purple-500 text-xl font-semibold">Private</label>
               <textarea
-                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-green-500'}"
+                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
                 placeholder="Private goals..."
                 rows="1"
                 value={month.monthPrivateGoals || ''}
@@ -201,9 +206,9 @@
               </button>
               
               <!--Professional Monthly -->
-              <label class="text-yellow-500 text-xl font-semibold">Professional</label>
+              <label class="text-blue-500 text-xl font-semibold">Professional</label>
               <textarea
-                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-yellow-500'}"
+                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
                 placeholder="Professional goals..."
                 rows="1"
                 value={month.monthProfessionalGoals || ''}
@@ -254,9 +259,9 @@
                     </div>
                     
                     <!-- Private Wkly -->
-                    <label class="text-green-500 text-xl font-semibold">Private</label>
+                    <label class="text-purple-500 text-xl font-semibold">Private</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-green-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
                       placeholder="Private goals..."
                       rows="1"
                       value={week.weekPrivateGoals || ''}
@@ -283,9 +288,9 @@
                     </button>
                     
                     <!-- Professional -->
-                    <label class="text-yellow-500 text-xl font-semibold">Professional</label>
+                    <label class="text-blue-500 text-xl font-semibold">Professional</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-yellow-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
                       placeholder="Professional goals..."
                       rows="1"
                       value={week.weekProfessionalGoals || ''}
@@ -329,9 +334,9 @@
                             </div>
                             
                             <!-- Private Daily -->
-                            <label class="text-green-500 text-xl font-semibold whitespace-nowrap">Private</label>
+                            <label class="text-purple-500 text-xl font-semibold whitespace-nowrap">Private</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-green-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
                               placeholder="Private goal"
                               rows="1"
                               value={day.dayPrivateGoals || ''}
@@ -358,9 +363,9 @@
                             </button>
                             
                             <!-- Professional -->
-                            <label class="text-yellow-500 text-xl font-semibold whitespace-nowrap">Professional</label>
+                            <label class="text-blue-500 text-xl font-semibold whitespace-nowrap">Professional</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-yellow-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
                               placeholder="Professional goal"
                               rows="1"
                               value={day.dayProfessionalGoals || ''}
