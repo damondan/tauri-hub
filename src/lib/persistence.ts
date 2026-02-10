@@ -2,7 +2,7 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/stores/todo';
-import { commandItems } from '$lib/stores/commands';
+import { commandData, commandExpandedCategories, commandExpandedSubcategories } from '$lib/stores/commands';
 import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/projects';
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
@@ -12,7 +12,8 @@ import { get } from 'svelte/store';
 
 interface UserData {
 	todos: Record<string, any>;
-	commands: Record<string, any>;
+	commands?: any[]; // New array format
+	commandsOld?: Record<string, any>; // Old format (for backwards compat, will be ignored)
 	projects?: Record<string, any>;
 	howto?: any[];
 	finance?: any[];
@@ -33,6 +34,8 @@ interface UserData {
 	goalExpandedYears?: Record<string, boolean>;
 	goalExpandedMonths?: Record<string, boolean>;
 	goalExpandedWeeks?: Record<string, boolean>;
+	commandExpandedCategories?: Record<string, boolean>;
+	commandExpandedSubcategories?: Record<string, boolean>;
 }
 
 let saveTimeout: number | null = null;
@@ -52,7 +55,9 @@ export async function saveUserData(): Promise<void> {
 	try {
 	const data: UserData = {
 		todos: get(todosByDate),
-		commands: get(commandItems),
+		commands: get(commandData),
+		commandExpandedCategories: get(commandExpandedCategories),
+		commandExpandedSubcategories: get(commandExpandedSubcategories),
 		projects: get(projectsData),
 		howto: get(howtoData),
 		finance: get(financeData),
@@ -90,8 +95,14 @@ export async function loadUserData(): Promise<void> {
 		if (data.todos) {
 			todosByDate.set(data.todos);
 		}
-		if (data.commands) {
-			commandItems.set(data.commands);
+		if (data.commands && Array.isArray(data.commands)) {
+			commandData.set(data.commands);
+		}
+		if (data.commandExpandedCategories) {
+			commandExpandedCategories.set(data.commandExpandedCategories);
+		}
+		if (data.commandExpandedSubcategories) {
+			commandExpandedSubcategories.set(data.commandExpandedSubcategories);
 		}
 		if (data.projects) {
 			projectsData.set(data.projects);
@@ -167,7 +178,15 @@ export function initPersistence() {
 	});
 
 	// Subscribe to commands changes
-	commandItems.subscribe(() => {
+	commandData.subscribe(() => {
+		scheduleSave();
+	});
+
+	commandExpandedCategories.subscribe(() => {
+		scheduleSave();
+	});
+
+	commandExpandedSubcategories.subscribe(() => {
 		scheduleSave();
 	});
 

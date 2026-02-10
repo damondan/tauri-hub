@@ -1,80 +1,157 @@
+// src/lib/stores/commands.ts
 import { writable } from 'svelte/store';
-import { makeId } from '$lib/stores/general'
-export const commandItems = writable<Record<string, CommandItem>>({});
+import { makeId } from '$lib/stores/general';
 
-export interface CommandItemTextRow {
+export const commandExpandedCategories = writable<Record<string, boolean>>({});
+export const commandExpandedSubcategories = writable<Record<string, boolean>>({});
+
+export interface CommandTask {
 	id: string;
 	text: string;
 }
 
-export interface CommandItem {
+export interface CommandSubcategory {
 	id: string;
-	title: string;
-	rows: CommandItemTextRow[];
+	name: string;
+	tasks: CommandTask[];
 }
 
-// Update a command text row
-// updateCommandTextRow(itemId: string, rowId: string, text: string): void
-export function updateCommandTextRow(itemId: string, rowId: string, text: string): void {
-    commandItems.update((map) => {
-        const item = map[itemId];
-        if (!item) return map;
-        const rows = item.rows.map((r) => (r.id === rowId ? { ...r, text } : r));
-        return { ...map, [itemId]: { ...item, rows } };
-    });
+export interface CommandCategory {
+	id: string;
+	name: string;
+	subcategories: CommandSubcategory[];
 }
 
-// ===== COMMANDS HELPERS =====
+export const commandData = writable<CommandCategory[]>([]);
 
-// Add a new CommandItem
-// addCommandItem(): string (returns id)
-export function addCommandItem(): string {
+// addCommandCategory(): string
+export function addCommandCategory(): string {
 	const id = makeId();
-	commandItems.update((map) => {
-		return { ...map, [id]: { id, title: '', rows: [] } };
-	});
+	commandData.update((categories) => [
+		...categories,
+		{ id, name: '', subcategories: [] }
+	]);
 	return id;
 }
 
-// Remove a CommandItem
-// removeCommandItem(itemId: string): void
-export function removeCommandItem(itemId: string): void {
-	commandItems.update((map) => {
-		const next = { ...map };
-		delete next[itemId];
-		return next;
-	});
+// deleteCommandCategory(categoryId: string): void
+export function deleteCommandCategory(categoryId: string): void {
+	commandData.update((categories) => categories.filter((c) => c.id !== categoryId));
 }
 
-// Update CommandItem title
-// updateCommandTitle(itemId: string, title: string): void
-export function updateCommandTitle(itemId: string, title: string): void {
-	commandItems.update((map) => {
-		const item = map[itemId];
-		if (!item) return map;
-		return { ...map, [itemId]: { ...item, title } };
-	});
+// updateCommandCategoryName(categoryId: string, name: string): void
+export function updateCommandCategoryName(categoryId: string, name: string): void {
+	commandData.update((categories) =>
+		categories.map((c) => (c.id === categoryId ? { ...c, name } : c))
+	);
 }
 
-// Add a text row to a CommandItem
-// addCommandTextRow(itemId: string): string (returns row id)
-export function addCommandTextRow(itemId: string): string {
-	const rowId = makeId();
-	commandItems.update((map) => {
-		const item = map[itemId];
-		if (!item) return map;
-		return { ...map, [itemId]: { ...item, rows: [...item.rows, { id: rowId, text: '' }] } };
-	});
-	return rowId;
+// addCommandSubcategory(categoryId: string): string
+export function addCommandSubcategory(categoryId: string): string {
+	const id = makeId();
+	commandData.update((categories) =>
+		categories.map((c) =>
+			c.id === categoryId
+				? { ...c, subcategories: [...c.subcategories, { id, name: '', tasks: [] }] }
+				: c
+		)
+	);
+	return id;
 }
 
-// Delete a command text row
-// deleteCommandTextRow(itemId: string, rowId: string): void
-export function deleteCommandTextRow(itemId: string, rowId: string): void {
-	commandItems.update((map) => {
-		const item = map[itemId];
-		if (!item) return map;
-		const rows = item.rows.filter((r) => r.id !== rowId);
-		return { ...map, [itemId]: { ...item, rows } };
-	});
+// updateCommandSubcategoryName(categoryId: string, subcategoryId: string, name: string): void
+export function updateCommandSubcategoryName(categoryId: string, subcategoryId: string, name: string): void {
+	commandData.update((categories) =>
+		categories.map((c) =>
+			c.id === categoryId
+				? {
+						...c,
+						subcategories: c.subcategories.map((sub) =>
+							sub.id === subcategoryId ? { ...sub, name } : sub
+						)
+				  }
+				: c
+		)
+	);
+}
+
+// deleteCommandSubcategory(categoryId: string, subcategoryId: string): void
+export function deleteCommandSubcategory(categoryId: string, subcategoryId: string): void {
+	commandData.update((categories) =>
+		categories.map((c) =>
+			c.id === categoryId
+				? { ...c, subcategories: c.subcategories.filter((sub) => sub.id !== subcategoryId) }
+				: c
+		)
+	);
+}
+
+// addCommandTask(categoryId: string, subcategoryId: string): string
+export function addCommandTask(categoryId: string, subcategoryId: string): string {
+	const id = makeId();
+	commandData.update((categories) =>
+		categories.map((c) =>
+			c.id === categoryId
+				? {
+						...c,
+						subcategories: c.subcategories.map((sub) =>
+							sub.id === subcategoryId
+								? { ...sub, tasks: [...sub.tasks, { id, text: '' }] }
+								: sub
+						)
+				  }
+				: c
+		)
+	);
+	return id;
+}
+
+// updateCommandTaskText(categoryId: string, subcategoryId: string, taskId: string, text: string): void
+export function updateCommandTaskText(
+	categoryId: string,
+	subcategoryId: string,
+	taskId: string,
+	text: string
+): void {
+	commandData.update((categories) =>
+		categories.map((c) =>
+			c.id === categoryId
+				? {
+						...c,
+						subcategories: c.subcategories.map((sub) =>
+							sub.id === subcategoryId
+								? {
+										...sub,
+										tasks: sub.tasks.map((task) =>
+											task.id === taskId ? { ...task, text } : task
+										)
+								  }
+								: sub
+						)
+				  }
+				: c
+		)
+	);
+}
+
+// deleteCommandTask(categoryId: string, subcategoryId: string, taskId: string): void
+export function deleteCommandTask(
+	categoryId: string,
+	subcategoryId: string,
+	taskId: string
+): void {
+	commandData.update((categories) =>
+		categories.map((c) =>
+			c.id === categoryId
+				? {
+						...c,
+						subcategories: c.subcategories.map((sub) =>
+							sub.id === subcategoryId
+								? { ...sub, tasks: sub.tasks.filter((task) => task.id !== taskId) }
+								: sub
+						)
+				  }
+				: c
+		)
+	);
 }

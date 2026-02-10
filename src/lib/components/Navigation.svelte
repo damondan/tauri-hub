@@ -5,13 +5,13 @@
 	const tabs = [
 		{ path: "/", label: "Services" },
 		{ path: "/todo", label: "ToDo" },
-		{ path: "/projects", label: "Projects" },
-		{ path: "/finances", label: "Finance" },
+		{ path: "/projects", label: "Status" },
 		{ path: "/goals", label: "Goals" },
-		{ path: "/howto", label: "HowTo" },
+		{ path: "/finances", label: "Finance" },
 		{ path: "/commands", label: "Commands" },
+		{ path: "/howto", label: "HowTo" },
 		{ path: "/notifications", label: "Notifs" },
-		{ path: "/status", label: "Status" },
+		// { path: "/status", label: "Status" },
 		{ path: "/workspace", label: "Workspace" },
 	];
 </script>

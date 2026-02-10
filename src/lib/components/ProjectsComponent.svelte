@@ -39,7 +39,7 @@
 
 <!-- Header -->
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-4xl font-bold text-white">Projects</h1>
+  <h1 class="text-4xl font-bold text-white">Status</h1>
 </div>
 
 <!-- Empty state -->

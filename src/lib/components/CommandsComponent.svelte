@@ -1,28 +1,33 @@
 <!-- src/lib/components/CommandsComponent.svelte -->
+<!-- CommandsComponent.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { commandItems, addCommandItem, addCommandTextRow, updateCommandTitle, updateCommandTextRow, deleteCommandTextRow, removeCommandItem } from '$lib/stores/commands';
-  import { resizeTextarea, setupTextareaResizeListener } from '$lib/utils/textareaResize';
+  import { autoResize } from '$lib/utils/textareaResize';
+  import {
+    commandData,
+    addCommandCategory,
+    deleteCommandCategory,
+    updateCommandCategoryName,
+    addCommandSubcategory,
+    updateCommandSubcategoryName,
+    deleteCommandSubcategory,
+    addCommandTask,
+    updateCommandTaskText,
+    deleteCommandTask,
+    commandExpandedCategories,
+    commandExpandedSubcategories
+  } from '$lib/stores/commands';
 
-  // Track which items are expanded
-  let expanded: Record<string, boolean> = {};
-
-  function toggleExpanded(itemId: string) {
-    expanded[itemId] = !expanded[itemId];
+  // toggleCategory(categoryId: string): void
+  function toggleCategory(categoryId: string) {
+    commandExpandedCategories.update(state => ({ ...state, [categoryId]: !state[categoryId] }));
   }
 
-  // Handlers
-  function handleAddTopLevel() {
-    const id = addCommandItem();
-    expanded[id] = true; // Auto-expand new items
+  // toggleSubcategory(key: string): void
+  function toggleSubcategory(key: string) {
+    commandExpandedSubcategories.update(state => ({ ...state, [key]: !state[key] }));
   }
 
-  function handleAddRow(itemId: string) {
-    addCommandTextRow(itemId);
-    // Auto-expand when adding a row
-    expanded[itemId] = true;
-  }
-
+  // handleCopy(text: string): Promise<void>
   async function handleCopy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -30,102 +35,138 @@
       console.error('Failed to copy', e);
     }
   }
-
-  // Setup window resize listener for textareas
-  onMount(() => {
-    // Initial resize of all textareas
-    setTimeout(() => {
-      const textareas = document.querySelectorAll('textarea');
-      textareas.forEach((textarea) => {
-        if (textarea instanceof HTMLTextAreaElement) {
-          resizeTextarea(textarea);
-        }
-      });
-    }, 100);
-    
-    return setupTextareaResizeListener();
-  });
-
-  // Resize textareas when items are expanded
-  function toggleExpandedWithResize(itemId: string) {
-    toggleExpanded(itemId);
-    if (expanded[itemId]) {
-      setTimeout(() => {
-        const textareas = document.querySelectorAll('textarea');
-        textareas.forEach((textarea) => {
-          if (textarea instanceof HTMLTextAreaElement) {
-            resizeTextarea(textarea);
-          }
-        });
-      }, 0);
-    }
-  }
 </script>
 
 <!-- Header with Add button -->
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-4xl font-bold text-white">Commands</h1>
-  <button on:click={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
+  <button 
+    on:click={() => addCommandCategory()}
+    class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
+  >
+    +
+  </button>
 </div>
 
 <!-- Empty state -->
-{#if Object.keys($commandItems).length === 0}
-  <div class="text-white/70 italic">No commands yet. Click + to add your first Command.</div>
+{#if $commandData.length === 0}
+  <div class="text-white/70 italic">No commands yet. Click + to add your first category.</div>
 {/if}
 
-<!-- Command items list -->
-{#each Object.values($commandItems) as item (item.id)}
-  <div class="bg-white/10 rounded-xl p-3 mb-3">
-    <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" on:click={() => toggleExpandedWithResize(item.id)}>
-      <!-- Expand/collapse indicator -->
-      <span class="text-white text-lg w-6">{expanded[item.id] ? '▼' : '▶'}</span>
-
-      <!-- Title input -->
-      <input
-        class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
-        placeholder="Command Title"
-        value={item.title}
-        on:input={(e) => updateCommandTitle(item.id, (e.target as HTMLInputElement).value)}
-        on:click|stopPropagation
-      />
-
-      <!-- Add row button -->
-      <button class="bg-green-600 hover:bg-green-700 text-white text-2xl px-2 py-1 rounded" on:click|stopPropagation={() => handleAddRow(item.id)}>+
-      </button>
-
-      <!-- Delete button -->
-      <div class="flex flex-col gap-1" on:click|stopPropagation>
-        <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xl" on:click={() => removeCommandItem(item.id)}>Del</button>
+<!-- Categories list -->
+{#each $commandData as category (category.id)}
+  <div class="mb-3">
+    <!-- Level 1: Category -->
+    <div class="bg-white/10 rounded-xl p-3">
+      <div class="flex items-center gap-3">
+        <button 
+          class="text-white text-3xl w-6"
+          on:click={() => toggleCategory(category.id)}
+        >
+          {$commandExpandedCategories[category.id] ? '▼' : '▶'}
+        </button>
+        
+        <input
+          type="text"
+          class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
+          placeholder="Category name..."
+          value={category.name}
+          on:input={(e) => updateCommandCategoryName(category.id, (e.target as HTMLInputElement).value)}
+        />
+        
+        <button 
+          class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+          on:click={() => addCommandSubcategory(category.id)}
+        >
+          +
+        </button>
+        
+        <button 
+          class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+          on:click={() => deleteCommandCategory(category.id)}
+        >
+          Delete
+        </button>
       </div>
     </div>
 
-    <!-- Text rows (only show when expanded) -->
-    {#if expanded[item.id]}
-    <div class="mt-3 space-y-2">
-      {#each item.rows as row (row.id)}
-        <div class="border border-white/30 rounded-lg p-2 flex items-start gap-3">
-          <!-- Text input -->
-          <textarea
-            rows="1"
-            class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
-            placeholder="Enter command text..."
-            value={row.text}
-            on:input={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              updateCommandTextRow(item.id, row.id, target.value);
-              // Auto-resize
-              resizeTextarea(target);
-            }}
-          ></textarea>
+    <!-- Level 2: Subcategories (only show when category expanded) -->
+    {#if $commandExpandedCategories[category.id]}
+      <div class="ml-12 mt-2 space-y-2">
+        {#each category.subcategories as subcategory (subcategory.id)}
+          {@const subKey = `${category.id}-${subcategory.id}`}
+          <div class="bg-white/10 rounded-xl p-3">
+            <div class="flex items-center gap-3">
+              <button 
+                class="text-white text-3xl w-6"
+                on:click={() => toggleSubcategory(subKey)}
+              >
+                {$commandExpandedSubcategories[subKey] ? '▼' : '▶'}
+              </button>
+              
+              <input
+                type="text"
+                class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
+                placeholder="Subcategory name..."
+                value={subcategory.name}
+                on:input={(e) => updateCommandSubcategoryName(category.id, subcategory.id, (e.target as HTMLInputElement).value)}
+              />
+              
+              <button 
+                class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+                on:click={() => addCommandTask(category.id, subcategory.id)}
+              >
+                +
+              </button>
+              
+              <button 
+                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+                on:click={() => deleteCommandSubcategory(category.id, subcategory.id)}
+              >
+                Del
+              </button>
+            </div>
 
-          <!-- Copy / Delete (side by side) -->
-          <div class="flex gap-1">
-            <button class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-sm" on:click={() => handleCopy(row.text)}>Copy</button>
-            <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm" on:click={() => deleteCommandTextRow(item.id, row.id)}>Del</button>
+            <!-- Command Tasks (only show when subcategory expanded) -->
+            {#if $commandExpandedSubcategories[subKey]}
+              <div class="mt-3 space-y-2">
+                {#each subcategory.tasks as task (task.id)}
+                  <div class="flex items-start gap-3 bg-white/5 rounded-lg p-2">
+                    <textarea
+                      rows="1"
+                      class="flex-1 bg-transparent border border-white/20 rounded px-3 py-2 text-white 
+                      text-3xl placeholder-white/40 resize-none overflow-hidden leading-tight"
+                      placeholder="Command..."
+                      value={task.text}
+                      use:autoResize
+                      on:input={(e) => {
+                        const target = e.target as HTMLTextAreaElement;
+                        target.style.height = 'auto';
+                        target.style.height = target.scrollHeight + 'px';
+                        updateCommandTaskText(category.id, subcategory.id, task.id, target.value);
+                      }}
+                    ></textarea>
+                    
+                    <button 
+                      class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-lg"
+                      on:click={() => handleCopy(task.text)}
+                    >
+                      Copy
+                    </button>
+                    
+                    <button 
+                      class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+                      on:click={() => deleteCommandTask(category.id, subcategory.id, task.id)}
+                    >
+                      Del
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           </div>
-        </div>
-      {/each}
-    </div>
+        {/each}
+      </div>
     {/if}
   </div>
 {/each}

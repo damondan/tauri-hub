@@ -238,14 +238,14 @@
 
           <!-- Level 3: Weeks (only show when month expanded) -->
           {#if $goalExpandedMonths[monthKey]}
-            <div class="ml-12 mt-2 space-y-2">
+            <div class="ml-12 mt-2 space-y-2 bg-white/10">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
                 {@const weekBothCompleted = week.priGoalCompleted && week.proGoalCompleted}
                 {@const weekBothRejected = week.priGoalRejected && week.proGoalRejected}
                 {@const weekMixed = (week.priGoalCompleted || week.priGoalRejected) && (week.proGoalCompleted || week.proGoalRejected) && !weekBothCompleted && !weekBothRejected}
                 {@const weekBorderColor = weekBothCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : weekBothRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : weekMixed ? 'border-2 border-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.8)]' : ''}
-                <div class="bg-white/10 rounded-xl p-3 {weekBorderColor}">
+                <div class="rounded-xl p-3 {weekBorderColor}">
                   <div class="flex items-center gap-3">
                     <button 
                       class="text-white text-3xl w-6"
@@ -325,7 +325,7 @@
                         {@const bothRejected = day.priGoalRejected && day.proGoalRejected}
                         {@const mixed = (day.priGoalCompleted || day.priGoalRejected) && (day.proGoalCompleted || day.proGoalRejected) && !bothCompleted && !bothRejected}
                         {@const dayBorderColor = bothCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : bothRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : mixed ? 'border-2 border-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.8)]' : isCurrentDay(year.year, month.monthNumber, day.dayNumber) ? 'border-2 border-green-500' : ''}
-                        <div class="bg-white/5 rounded-lg p-3 {dayBorderColor}">
+                        <div class="rounded-lg p-3 {dayBorderColor}">
                           <!-- Day entry -->
                           <div class="flex items-center gap-3">
                             <!-- Day label -->
@@ -336,7 +336,7 @@
                             <!-- Private Daily -->
                             <label class="text-purple-500 text-xl font-semibold whitespace-nowrap">Private</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : 'border border-purple-500'}"
                               placeholder="Private goal"
                               rows="1"
                               value={day.dayPrivateGoals || ''}
@@ -365,7 +365,7 @@
                             <!-- Professional -->
                             <label class="text-blue-500 text-xl font-semibold whitespace-nowrap">Professional</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : 'border border-blue-500'}"
                               placeholder="Professional goal"
                               rows="1"
                               value={day.dayProfessionalGoals || ''}

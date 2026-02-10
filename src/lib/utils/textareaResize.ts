@@ -1,11 +1,31 @@
 // src/lib/utils/textareaResize.ts
 
 /**
+ * resizeTextarea(textarea: HTMLTextAreaElement): void
  * Auto-resize a single textarea to fit its content
  */
 export function resizeTextarea(textarea: HTMLTextAreaElement): void {
 	textarea.style.height = 'auto';
 	textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+/**
+ * autoResize(textarea: HTMLTextAreaElement): { update: () => void; destroy: () => void }
+ * Svelte action that auto-resizes textarea on mount and input
+ */
+export function autoResize(textarea: HTMLTextAreaElement) {
+	// Resize immediately on mount
+	resizeTextarea(textarea);
+
+	return {
+		update() {
+			// Re-resize when the value binding changes
+			resizeTextarea(textarea);
+		},
+		destroy() {
+			// Cleanup if needed
+		}
+	};
 }
 
 /**

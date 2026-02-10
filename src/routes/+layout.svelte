@@ -1,7 +1,7 @@
 <script lang="ts">
 	import "../app.css";
 	import favicon from "$lib/assets/favicon.svg";
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import Navigation from "$lib/components/Navigation.svelte";
 	import { loadUserData, initPersistence } from "$lib/persistence";
@@ -21,6 +21,7 @@
 	let inputLanguage = $state<"en" | "es">("en");
 	let outputLanguage = $state<"en" | "es">("en");
 	let { children } = $props();
+	let audio: HTMLAudioElement | null = null;
 
 	type RecordingStatus = "Idle" | "Recording" | "Paused" | "Processing";
 
@@ -38,11 +39,30 @@
 		const ramInterval = setInterval(updateRamUsage, 1000);
 		const gpuInterval = setInterval(updateGpuUsage, 1000);
 		const diskInterval = setInterval(updateDiskUsage, 1000);
+
+		// Play background audio
+		audio = new Audio('/jorelToSuperman.mp3');
+		audio.play().catch(err => console.log('Audio autoplay blocked:', err));
+
 		return () => {
 			clearInterval(ramInterval);
 			clearInterval(gpuInterval);
 			clearInterval(diskInterval);
+			if (audio) {
+				audio.pause();
+				audio.src = '';
+			}
 		};
+	});
+
+		// Clean up when component unmounts
+	// onDestroy(): void
+	onDestroy(() => {
+		if (audio) {
+		audio.pause();
+		audio.src = '';
+		audio = null;
+		}
 	});
 
 	async function updateRamUsage() {

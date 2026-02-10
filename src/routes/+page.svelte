@@ -549,6 +549,7 @@
 		if (savedDate) {
 			aideLastCheckDate = savedDate;
 		}
+
 		// Hide context menu on click anywhere
 		document.addEventListener("click", hideContextMenu);
 		return () => {
