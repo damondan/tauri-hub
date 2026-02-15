@@ -179,14 +179,14 @@
               <!--Monthly Private Goals -->
               <label class="text-purple-500 text-xl font-semibold">Private</label>
               <textarea
-                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
+                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
                 placeholder="Private goals..."
                 rows="1"
                 value={month.monthPrivateGoals || ''}
                 on:input={(e) => { autoResize(e); updateMonthPrivateGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value); }}
               ></textarea>
               <button 
-                class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-pink-500'}"
                 on:click={() => {
                   if (!month.priGoalCompleted && !month.priGoalRejected) {
                     pendingPrivateMonthAction = {yearId: year.id, monthId: month.id};
@@ -208,7 +208,7 @@
               <!--Professional Monthly -->
               <label class="text-blue-500 text-xl font-semibold">Professional</label>
               <textarea
-                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
+                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
                 placeholder="Professional goals..."
                 rows="1"
                 value={month.monthProfessionalGoals || ''}
@@ -261,14 +261,14 @@
                     <!-- Private Wkly -->
                     <label class="text-purple-500 text-xl font-semibold">Private</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-purple-500'}"
                       placeholder="Private goals..."
                       rows="1"
                       value={week.weekPrivateGoals || ''}
                       on:input={(e) => { autoResize(e); updateWeekPrivateGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                     <button 
-                      class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                      class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-pink-500'}"
                       on:click={() => {
                         if (!week.priGoalCompleted && !week.priGoalRejected) {
                           pendingPrivateWeekAction = {yearId: year.id, monthId: month.id, weekId: week.id};
@@ -281,23 +281,23 @@
                       {#if week.priGoalCompleted}
                         👑
                       {:else if week.priGoalRejected}
-                        <span class="text-red-500 text-xl font-bold">✗</span>
+                        <span class="text-pink-500 text-xl font-bold">✗</span>
                       {:else}
-                        <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
+                        <span class="w-4 h-4 rounded-full bg-pink-500 inline-block"></span>
                       {/if}
                     </button>
                     
                     <!-- Professional -->
                     <label class="text-blue-500 text-xl font-semibold">Professional</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
                       placeholder="Professional goals..."
                       rows="1"
                       value={week.weekProfessionalGoals || ''}
                       on:input={(e) => { autoResize(e); updateWeekProfessionalGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                     <button 
-                      class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.proGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                      class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.proGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
                       on:click={() => {
                         if (!week.proGoalCompleted && !week.proGoalRejected) {
                           pendingProfessionalWeekAction = {yearId: year.id, monthId: month.id, weekId: week.id};
@@ -329,14 +329,14 @@
                           <!-- Day entry -->
                           <div class="flex items-center gap-3">
                             <!-- Day label -->
-                            <div class="text-white text-2xl font-semibold whitespace-nowrap w-68">
+                            <div class="text-white text-2xl font-semibold whitespace-nowrap w-58">
                               {day.dayNumber} {day.dayOfWeek}
                             </div>
                             
                             <!-- Private Daily -->
                             <label class="text-purple-500 text-xl font-semibold whitespace-nowrap">Private</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : 'border border-purple-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-104 {day.priGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : 'border border-purple-500'}"
                               placeholder="Private goal"
                               rows="1"
                               value={day.dayPrivateGoals || ''}
@@ -365,7 +365,7 @@
                             <!-- Professional -->
                             <label class="text-blue-500 text-xl font-semibold whitespace-nowrap">Professional</label>
                             <textarea
-                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-84 {day.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : 'border border-blue-500'}"
+                              class="bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden w-104 {day.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : 'border border-blue-500'}"
                               placeholder="Professional goal"
                               rows="1"
                               value={day.dayProfessionalGoals || ''}

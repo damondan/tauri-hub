@@ -2,6 +2,7 @@
 <script lang="ts">
   import { projectsData, 
             deleteProject,
+            deleteTask,
             projectExpandedProjects,
             projectExpandedSubprojects, 
             projectExpandedTasks } from '$lib/stores/projects';
@@ -61,10 +62,10 @@
           <span class="text-white text-3xl font-semibold">{project.name}</span>
         </div>
         <button 
-          class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+          class="bg-purple-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
           on:click|stopPropagation={() => deleteProject(project.name)}
         >
-          Delete
+          D
         </button>
       </div>
     </div>
@@ -96,6 +97,12 @@
                   >
                     <span class="text-white text-3xl w-6">{$projectExpandedTasks[taskKey] ? '▼' : '▶'}</span>
                     <span class="text-white text-3xl">{task.description} {formatDate(task.startDate)} - {formatDate(task.endDate)}</span>
+                    <button 
+                      class="bg-purple-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg ml-auto"
+                      on:click|stopPropagation={() => deleteTask(project.name,subproject.name,task.id)}
+                    >
+                      D
+                    </button>
                   </div>
 
                   <!-- Todo Rows (only show when task expanded) -->

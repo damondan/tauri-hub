@@ -67,55 +67,11 @@
     return item.rows.length > 0 && item.rows.every((row: any) => row.completed);
   }
 
-  // Auto-resize input fields
-  let projectNameValue = $state('');
-
   function autoResizeInput(element: HTMLInputElement) {
     const minWidth = 40; // minimum width in px
     const padding = 32; // account for padding
     element.style.width = '0';
     element.style.width = Math.max(minWidth, element.scrollWidth + padding) + 'px';
-  }
-
-  // Parse project name and toggle words in fields (add if not present, remove if present)
-  function handleOrangeButton() {
-    const text = projectNameValue.trim();
-    const words = text.split(/\s+/);
-    
-    words.forEach(word => {
-      if (word.startsWith('#')) {
-        // Toggle in field1
-        todoField1.update(val => {
-          const wordList = val.trim().split(/\s+/).filter(w => w.length > 0);
-          const index = wordList.indexOf(word);
-          if (index >= 0) {
-            // Word exists, remove it
-            wordList.splice(index, 1);
-          } else {
-            // Word doesn't exist, add it
-            wordList.push(word);
-          }
-          return wordList.join(' ');
-        });
-      } else if (word.startsWith('@')) {
-        // Toggle in field2
-        todoField2.update(val => {
-          const wordList = val.trim().split(/\s+/).filter(w => w.length > 0);
-          const index = wordList.indexOf(word);
-          if (index >= 0) {
-            // Word exists, remove it
-            wordList.splice(index, 1);
-          } else {
-            // Word doesn't exist, add it
-            wordList.push(word);
-          }
-          return wordList.join(' ');
-        });
-      }
-    });
-    
-    // Clear project name input after parsing
-    projectNameValue = '';
   }
 
   // Setup window resize listener for textareas
@@ -158,16 +114,6 @@
     />
   </div>
   <div class="flex items-center gap-2">
-    <button on:click={handleOrangeButton} class="bg-orange-500 hover:bg-orange-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
-    <input
-      type="text"
-      maxlength="20"
-      size="20"
-      bind:value={projectNameValue}
-      class="bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
-      style="width: 20ch;"
-      placeholder="Project name..."
-    />
     <button on:click={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
   </div>
 </div>

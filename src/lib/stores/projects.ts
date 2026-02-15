@@ -33,3 +33,28 @@ export function deleteProject(projectName: string): void {
 		return next;
 	});
 }
+
+// deleteTask(projectName: string, subprojectName: string, taskId: string): void
+export function deleteTask(projectName: string, subprojectName: string, taskId: string): void {
+	projectsData.update((projects) => {
+		const project = projects[projectName];
+		if (!project) return projects;
+		
+		const subproject = project.subprojects[subprojectName];
+		if (!subproject) return projects;
+		
+		return {
+			...projects,
+			[projectName]: {
+				...project,
+				subprojects: {
+					...project.subprojects,
+					[subprojectName]: {
+						...subproject,
+						tasks: subproject.tasks.filter(t => t.id !== taskId)
+					}
+				}
+			}
+		};
+	});
+}
