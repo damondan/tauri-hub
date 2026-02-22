@@ -9,7 +9,6 @@ use std::sync::{Mutex, Arc};
 use std::fs;
 use std::io::Write;
 use regex::Regex;
-use std::time::SystemTime;
 use notify::{Watcher, RecursiveMode};
 use std::sync::mpsc::channel;
 use std::thread;

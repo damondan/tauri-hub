@@ -96,25 +96,27 @@
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-4xl font-bold text-white">To Do</h1>
   <div class="flex items-center gap-2">
-    <input
+     <textarea
       id="field1-input"
-      type="text"
       bind:value={$todoField1}
-      class="bg-white/5 border border-white rounded px-3 py-2 text-white text-xl placeholder-white/40"
-      style="min-width: 40px; width: 40px;"
+     class="bg-white/5 border border-white rounded px-3 py-1  
+         text-white text-xl leading-tight 
+         placeholder-white/40 resize-none overflow-hidden text-wrap"
+      style="min-width: 40rem; width: 40rem;"
       placeholder="Field 1"
-    />
-    <input
+    ></textarea>
+    <textarea
       id="field2-input"
-      type="text"
       bind:value={$todoField2}
-      class="bg-white/5 border border-white rounded px-3 py-2 text-white text-xl placeholder-white/40"
-      style="min-width: 40px; width: 40px;"
+     class="bg-white/5 border border-white rounded px-3 py-1  
+         text-white text-xl leading-tight 
+         placeholder-white/40 resize-none overflow-hidden text-wrap"
+      style="min-width: 40rem; width: 40rem;"
       placeholder="Field 2"
-    />
+    ></textarea>
   </div>
   <div class="flex items-center gap-2">
-    <button on:click={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
+    <button onclick={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
   </div>
 </div>
 
@@ -131,7 +133,8 @@
     {#each items as item (item.id)}
       <!-- TodoItem container -->
       <div class="bg-white/10 rounded-xl p-3 mb-3">
-        <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" on:click={() => toggleExpanded(item.id)}>
+        <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" 
+        onclick={() => toggleExpanded(item.id)}>
           <!-- Expand/collapse indicator -->
           <span class="text-white text-3xl w-6">{$todoExpandedState[item.id] ? '▼' : '▶'}</span>
 
@@ -139,7 +142,7 @@
           <span class="text-white/70 text-3xl">{item.date}</span>
 
           <!-- Add row under this container -->
-          <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded" on:click|stopPropagation={() => handleAddRow(date, item.id)}>+
+          <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded" onclick={(e) => {e.stopPropagation(); handleAddRow(date, item.id);}}>+
           </button>
 
           <!-- Title input -->
@@ -147,19 +150,19 @@
             class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
             placeholder="Title"
             value={item.title}
-            on:input={(e) => updateTodoTitle(date, item.id, (e.target as HTMLInputElement).value)}
-            on:click|stopPropagation
+            oninput={(e) => {e.stopPropagation(); updateTodoTitle(date, item.id, (e.target as HTMLInputElement).value)}}
+            onclick={(e)=> e.stopPropagation}
           />
 
           <!-- Send/Delete buttons (stacked) -->
-          <div class="flex flex-col gap-1" on:click|stopPropagation>
+          <div class="flex flex-col gap-1" onclick={(e)=> e.stopPropagation}>
             <button 
               class="px-3 py-1 rounded text-lg text-white {allRowsCompleted(item) ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-blue-600/30 cursor-not-allowed'}"
-              on:click={() => handleSend(date, item.id, item)}
+              onclick={(e) => {e.stopPropagation(); handleSend(date, item.id, item);}}
             >
               Send
             </button>
-            <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" on:click={() => removeTodoItem(date, item.id)}>Del</button>
+            <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" onclick={(e) => {e.stopPropagation(); removeTodoItem(date, item.id);}}>Del</button>
           </div>
         </div>
 
@@ -169,7 +172,7 @@
           {#each item.rows as row (row.id)}
             <div class="border rounded-lg p-2 flex items-start gap-3 {row.completed ? 'border-green-500' : 'border-red-500'}">
               <!-- red circle / green check button -->
-              <button class="w-7 h-7 rounded-full border-2 flex items-center justify-center {row.completed ? 'border-green-500' : 'border-red-500'}" on:click={() => toggleTodoRow(date, item.id, row.id)}>
+              <button class="w-7 h-7 rounded-full border-2 flex items-center justify-center {row.completed ? 'border-green-500' : 'border-red-500'}" onclick={(e) => {e.stopPropagation(); toggleTodoRow(date, item.id, row.id);}}>
                 {#if row.completed}
                   ✅
                 {:else}
@@ -183,7 +186,7 @@
                 class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
                 placeholder="Describe the task..."
                 value={row.text}
-                on:input={(e) => {
+                oninput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   updateTodoRowText(date, item.id, row.id, target.value);
                   // Auto-resize
@@ -193,8 +196,8 @@
 
               <!-- Copy / Delete (side by side) -->
               <div class="flex gap-1">
-                <button class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-lg" on:click={() => handleCopy(row.text)}>Copy</button>
-                <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" on:click={() => deleteTodoRow(date, item.id, row.id)}>Del</button>
+                <button class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-lg" onclick={(e) => {e.stopPropagation(); handleCopy(row.text);}}>Copy</button>
+                <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" onclick={(e) => {e.stopPropagation(); deleteTodoRow(date, item.id, row.id);}}>Del</button>
               </div>
             </div>
           {/each}

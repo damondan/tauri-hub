@@ -11,8 +11,8 @@
 		{ path: "/commands", label: "Commands" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/notifications", label: "Notifs" },
-		// { path: "/status", label: "Status" },
-		{ path: "/workspace", label: "Workspace" },
+		{ path: "/workspace_a", label: "WorkspaceA" },
+		{ path: "/workspace_b", label: "WorkspaceB" },
 	];
 </script>
 

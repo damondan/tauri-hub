@@ -1,3 +1,4 @@
 import { writable } from 'svelte/store';
 
-export const workspaceContent = writable<string>('');
+export const workspaceContentA = writable<string>('');
+export const workspaceContentB = writable<string>('');

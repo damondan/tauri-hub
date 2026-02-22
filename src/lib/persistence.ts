@@ -7,7 +7,8 @@ import { projectsData, projectExpandedProjects, projectExpandedSubprojects, proj
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { goalData, goalExpandedYears, goalExpandedMonths, goalExpandedWeeks } from '$lib/stores/goal';
-import { workspaceContent } from '$lib/stores/workspace';
+import { workspaceContentA } from '$lib/stores/workspace';
+import { workspaceContentB } from '$lib/stores/workspace';
 import { get } from 'svelte/store';
 
 interface UserData {
@@ -18,7 +19,8 @@ interface UserData {
 	howto?: any[];
 	finance?: any[];
 	goal?: any[];
-	workspace?: string;
+	workspaceA?: string;
+	workspaceB?: string;
 	field1?: string;
 	field2?: string;
 	todoExpandedState?: Record<string, boolean>;
@@ -62,7 +64,8 @@ export async function saveUserData(): Promise<void> {
 		howto: get(howtoData),
 		finance: get(financeData),
 		goal: get(goalData),
-		workspace: get(workspaceContent),
+		workspaceA: get(workspaceContentA),
+		workspaceB: get(workspaceContentB),
 		field1: get(todoField1),
 		field2: get(todoField2),
 		todoExpandedState: get(todoExpandedState),
@@ -161,8 +164,11 @@ export async function loadUserData(): Promise<void> {
 	if (data.goalExpandedWeeks) {
 		goalExpandedWeeks.set(data.goalExpandedWeeks);
 	}
-	if (data.workspace !== undefined) {
-		workspaceContent.set(data.workspace);
+	if (data.workspaceA !== undefined) {
+		workspaceContentA.set(data.workspaceA);
+	}
+	if (data.workspaceB !== undefined) {
+		workspaceContentA.set(data.workspaceB);
 	}
 	console.log('User data loaded');
 	} catch (error) {
@@ -273,7 +279,10 @@ export function initPersistence() {
 	});
 
 	// Subscribe to workspace changes
-	workspaceContent.subscribe(() => {
+	workspaceContentA.subscribe(() => {
+		scheduleSave();
+	});
+	workspaceContentB.subscribe(() => {
 		scheduleSave();
 	});
 }

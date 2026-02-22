@@ -100,7 +100,7 @@
 
 <!-- Header -->
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-4xl font-bold text-white">Goals</h1>
+  <h1 class="text-3xl font-bold text-white">Goals</h1>
 </div>
 
 <!-- Empty state -->
@@ -186,7 +186,7 @@
                 on:input={(e) => { autoResize(e); updateMonthPrivateGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value); }}
               ></textarea>
               <button 
-                class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? 'border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-pink-500'}"
+                class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.priGoalRejected ? '' : 'border-pink-500'}"
                 on:click={() => {
                   if (!month.priGoalCompleted && !month.priGoalRejected) {
                     pendingPrivateMonthAction = {yearId: year.id, monthId: month.id};
@@ -197,9 +197,9 @@
                 }}
               >
                 {#if month.priGoalCompleted}
-                  👑
+                  <span class="text-yellow-500 text-3xl font-bold">👑</span>
                 {:else if month.priGoalRejected}
-                  <span class="text-red-500 text-xl font-bold">✗</span>
+                  <span class="text-red-500 text-3xl font-bold">💩</span>
                 {:else}
                   <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                 {/if}
@@ -208,14 +208,14 @@
               <!--Professional Monthly -->
               <label class="text-blue-500 text-xl font-semibold">Professional</label>
               <textarea
-                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
+                class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? '' : 'border border-blue-500'}"
                 placeholder="Professional goals..."
                 rows="1"
                 value={month.monthProfessionalGoals || ''}
                 on:input={(e) => { autoResize(e); updateMonthProfessionalGoals(year.id, month.id, (e.target as HTMLTextAreaElement).value); }}
               ></textarea>
               <button 
-                class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.proGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.proGoalCompleted ? 'shadow-[0_0_15px_rgba(234,179,8,0.8)]' : month.proGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
                 on:click={() => {
                   if (!month.proGoalCompleted && !month.proGoalRejected) {
                     pendingProfessionalMonthAction = {yearId: year.id, monthId: month.id};
@@ -226,9 +226,9 @@
                 }}
               >
                 {#if month.proGoalCompleted}
-                  👑
+                  <span class="text-yellow-500 text-3xl font-bold">👑</span>
                 {:else if month.proGoalRejected}
-                  <span class="text-red-500 text-xl font-bold">✗</span>
+                  <span class="text-red-500 text-3xl font-bold">💩</span>
                 {:else}
                   <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                 {/if}
@@ -244,7 +244,7 @@
                 {@const weekBothCompleted = week.priGoalCompleted && week.proGoalCompleted}
                 {@const weekBothRejected = week.priGoalRejected && week.proGoalRejected}
                 {@const weekMixed = (week.priGoalCompleted || week.priGoalRejected) && (week.proGoalCompleted || week.proGoalRejected) && !weekBothCompleted && !weekBothRejected}
-                {@const weekBorderColor = weekBothCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : weekBothRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]' : weekMixed ? 'border-2 border-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.8)]' : ''}
+                {@const weekBorderColor = weekBothCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : weekBothRejected ? '' : weekMixed ? 'border-2 border-gray-500 shadow-[0_0_15px_rgba(107,114,128,0.8)]' : ''}
                 <div class="rounded-xl p-3 {weekBorderColor}">
                   <div class="flex items-center gap-3">
                     <button 
@@ -268,7 +268,7 @@
                       on:input={(e) => { autoResize(e); updateWeekPrivateGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                     <button 
-                      class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? 'border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-pink-500'}"
+                      class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.priGoalRejected ? '' : 'border-pink-500'}"
                       on:click={() => {
                         if (!week.priGoalCompleted && !week.priGoalRejected) {
                           pendingPrivateWeekAction = {yearId: year.id, monthId: month.id, weekId: week.id};
@@ -279,9 +279,9 @@
                       }}
                     >
                       {#if week.priGoalCompleted}
-                        👑
+                        <span class="text-yellow-500 text-3xl font-bold">👑</span>
                       {:else if week.priGoalRejected}
-                        <span class="text-pink-500 text-xl font-bold">✗</span>
+                        <span class="text-pink-500 text-3xl font-bold">💩</span>
                       {:else}
                         <span class="w-4 h-4 rounded-full bg-pink-500 inline-block"></span>
                       {/if}
@@ -290,14 +290,14 @@
                     <!-- Professional -->
                     <label class="text-blue-500 text-xl font-semibold">Professional</label>
                     <textarea
-                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-2 border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border border-blue-500'}"
+                      class="flex-1 bg-white/10 rounded px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? '' : 'border border-blue-500'}"
                       placeholder="Professional goals..."
                       rows="1"
                       value={week.weekProfessionalGoals || ''}
                       on:input={(e) => { autoResize(e); updateWeekProfessionalGoals(year.id, month.id, week.id, (e.target as HTMLTextAreaElement).value); }}
                     ></textarea>
                     <button 
-                      class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.proGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? 'border-pink-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                      class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.proGoalCompleted ? 'shadow-[0_0_15px_rgba(234,179,8,0.8)]' : week.proGoalRejected ? '' : 'border-red-500'}"
                       on:click={() => {
                         if (!week.proGoalCompleted && !week.proGoalRejected) {
                           pendingProfessionalWeekAction = {yearId: year.id, monthId: month.id, weekId: week.id};
@@ -308,9 +308,9 @@
                       }}
                     >
                       {#if week.proGoalCompleted}
-                        👑
+                        <span class="text-yellow-500 text-3xl font-bold">👑</span>
                       {:else if week.proGoalRejected}
-                        <span class="text-red-500 text-xl font-bold">✗</span>
+                        <span class="text-red-500 text-3xl font-bold">💩</span>
                       {:else}
                         <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                       {/if}
@@ -343,7 +343,7 @@
                               on:input={(e) => { autoResize(e); updateDayPrivateGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value); }}
                             ></textarea>
                             <button 
-                              class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.priGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                              class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.priGoalCompleted ? 'shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.priGoalRejected ? '' : 'border-red-500'}"
                               on:click={() => {
                                 if (!day.priGoalCompleted && !day.priGoalRejected) {
                                   pendingPrivateDayAction = {yearId: year.id, monthId: month.id, weekId: week.id, dayId: day.id};
@@ -354,9 +354,9 @@
                               }}
                             >
                               {#if day.priGoalCompleted}
-                                👑
+                                <span class="text-yellow-500 text-3xl font-bold">👑</span>
                               {:else if day.priGoalRejected}
-                                <span class="text-red-500 text-xl font-bold">✗</span>
+                                <span class="text-red-500 text-3xl font-bold">💩</span>
                               {:else}
                                 <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                               {/if}
@@ -372,7 +372,7 @@
                               on:input={(e) => { autoResize(e); updateDayProfessionalGoals(year.id, month.id, week.id, day.id, (e.target as HTMLTextAreaElement).value); }}
                             ></textarea>
                             <button 
-                              class="w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.proGoalCompleted ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
+                              class="w-12 h-12 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.proGoalCompleted ? 'border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.8)]' : day.proGoalRejected ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]' : 'border-red-500'}"
                               on:click={() => {
                                 if (!day.proGoalCompleted && !day.proGoalRejected) {
                                   pendingProfessionalDayAction = {yearId: year.id, monthId: month.id, weekId: week.id, dayId: day.id};
@@ -383,9 +383,9 @@
                               }}
                             >
                               {#if day.proGoalCompleted}
-                                👑
+                                <span class="text-yellow-500 text-3xl font-bold">👑</span>
                               {:else if day.proGoalRejected}
-                                <span class="text-red-500 text-xl font-bold">✗</span>
+                                <span class="text-red-500 text-3xl font-bold">💩</span>
                               {:else}
                                 <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                               {/if}
