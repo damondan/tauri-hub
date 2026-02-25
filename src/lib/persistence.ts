@@ -7,8 +7,7 @@ import { projectsData, projectExpandedProjects, projectExpandedSubprojects, proj
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { goalData, goalExpandedYears, goalExpandedMonths, goalExpandedWeeks } from '$lib/stores/goal';
-import { workspaceContentA } from '$lib/stores/workspace';
-import { workspaceContentB } from '$lib/stores/workspace';
+import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { get } from 'svelte/store';
 
 interface UserData {
