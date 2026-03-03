@@ -167,7 +167,7 @@ export async function loadUserData(): Promise<void> {
 		workspaceContentA.set(data.workspaceA);
 	}
 	if (data.workspaceB !== undefined) {
-		workspaceContentA.set(data.workspaceB);
+		workspaceContentB.set(data.workspaceB);
 	}
 	console.log('User data loaded');
 	} catch (error) {

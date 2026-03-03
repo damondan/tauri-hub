@@ -1236,6 +1236,23 @@ async fn save_user_data(data: String, app_handle: tauri::AppHandle) -> Result<()
         .map_err(|e| format!("Failed to write user data: {}", e))
 }
 
+// backup_user_data(app_handle: tauri::AppHandle) -> Result<(), String>
+// Copies user_data.json to user_data_backup.json, overwriting the previous backup
+#[tauri::command]
+async fn backup_user_data(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let data_path = get_user_data_path(&app_handle)?;
+    
+    if !data_path.exists() {
+        return Err("No user data to backup".to_string());
+    }
+    
+    let backup_path = data_path.with_file_name("user_data_backup.json");
+    fs::copy(&data_path, &backup_path)
+        .map_err(|e| format!("Failed to backup user data: {}", e))?;
+    
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1284,7 +1301,8 @@ pub fn run() {
             get_gpu_usage,
             get_disk_usage,
             load_user_data,
-            save_user_data
+            save_user_data,
+            backup_user_data
         ])
         .setup(|app| {
             // Load registry from disk
@@ -1332,6 +1350,18 @@ pub fn run() {
                 )?;
             }
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                // Auto-backup on app close
+                let app_handle = window.app_handle();
+                if let Ok(data_path) = get_user_data_path(app_handle) {
+                    if data_path.exists() {
+                        let backup_path = data_path.with_file_name("user_data_backup.json");
+                        let _ = fs::copy(&data_path, &backup_path);
+                    }
+                }
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

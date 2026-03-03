@@ -6,6 +6,22 @@
 	import Navigation from "$lib/components/Navigation.svelte";
 	import { loadUserData, initPersistence } from "$lib/persistence";
 
+	let backupStatus = $state<'idle' | 'saving' | 'done'>('idle');
+
+	// backupData(): Promise<void>
+	// Invokes backup_user_data Rust command and shows brief status feedback
+	async function backupData() {
+		try {
+			backupStatus = 'saving';
+			await invoke('backup_user_data');
+			backupStatus = 'done';
+			setTimeout(() => { backupStatus = 'idle'; }, 2000);
+		} catch (error) {
+			console.error('Failed to backup:', error);
+			backupStatus = 'idle';
+		}
+	}
+
 	let ramUsed = $state(0);
 	let ramTotal = $state(0);
 	let ramPercent = $state(0);
@@ -287,6 +303,23 @@
 
 		<!-- Speech To Text -->
 			<div class="flex flex-wrap gap-4 mb-4 items-stretch">
+				<!-- Backup Button -->
+				<button
+					onclick={backupData}
+					disabled={backupStatus === 'saving'}
+					class="px-3 h-[52px] rounded-lg font-semibold text-sm transition-all
+						{backupStatus === 'done' ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}
+						text-white disabled:opacity-50"
+				>
+					{#if backupStatus === 'saving'}
+						💾...
+					{:else if backupStatus === 'done'}
+						✅
+					{:else}
+						💾
+					{/if}
+				</button>
+
 				<!-- Disk Usage and Language Selection -->
 				<div class="flex flex-col justify-between h-[52px]">
 					<!--Disk Usage-->
