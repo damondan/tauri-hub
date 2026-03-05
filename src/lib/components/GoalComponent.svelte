@@ -281,7 +281,7 @@
                       {#if week.priGoalCompleted}
                         <span class="text-yellow-500 text-3xl font-bold">👑</span>
                       {:else if week.priGoalRejected}
-                        <span class="text-pink-500 text-3xl font-bold">🤨</span>
+                        <span class="text-pink-500 text-4xl font-bold">🤨</span>
                       {:else}
                         <span class="w-4 h-4 rounded-full bg-pink-500 inline-block"></span>
                       {/if}
@@ -310,7 +310,7 @@
                       {#if week.proGoalCompleted}
                         <span class="text-yellow-500 text-3xl font-bold">👑</span>
                       {:else if week.proGoalRejected}
-                        <span class="text-red-500 text-3xl font-bold">🤨</span>
+                        <span class="text-red-500 text-4xl font-bold">🤨</span>
                       {:else}
                         <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                       {/if}
@@ -356,7 +356,7 @@
                               {#if day.priGoalCompleted}
                                 <span class="text-yellow-500 text-3xl font-bold">👑</span>
                               {:else if day.priGoalRejected}
-                                <span class="text-red-500 text-3xl font-bold">🤨</span>
+                                <span class="text-red-500 text-4xl font-bold">🤨</span>
                               {:else}
                                 <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                               {/if}
@@ -385,7 +385,7 @@
                               {#if day.proGoalCompleted}
                                 <span class="text-yellow-500 text-3xl font-bold">👑</span>
                               {:else if day.proGoalRejected}
-                                <span class="text-red-500 text-3xl font-bold">🤨</span>
+                                <span class="text-red-500 text-4xl font-bold">🤨</span>
                               {:else}
                                 <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
                               {/if}

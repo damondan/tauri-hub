@@ -131,18 +131,34 @@ async fn launch_app(
             }
         }
 
-        // Build command, supporting dev commands with pnpm/cargo
-        let mut cmd = Command::new(&app.executable);
-        match app.executable.as_str() {
-            // Support running package.json scripts like: pnpm run tauri:dev
-            "pnpm" => {
-                cmd.arg("run").arg("tauri:dev");
+        // Parse executable into command and arguments
+        // Supports both single-word (e.g. "cargo") and full commands (e.g. "cargo tauri dev")
+        let parts: Vec<&str> = app.executable.split_whitespace().collect();
+        if parts.is_empty() {
+            return Err("Executable is empty".to_string());
+        }
+        let (program, extra_args) = (parts[0], &parts[1..]);
+
+        let mut cmd = Command::new(program);
+
+        if extra_args.is_empty() {
+            // Only apply special-case defaults when no explicit args provided
+            match program {
+                // Support running package.json scripts like: pnpm run tauri:dev
+                "pnpm" => {
+                    cmd.arg("run").arg("tauri:dev");
+                }
+                // Support cargo tauri dev
+                "cargo" => {
+                    cmd.arg("tauri").arg("dev");
+                }
+                _ => {}
             }
-            // Support cargo tauri dev
-            "cargo" => {
-                cmd.arg("tauri").arg("dev");
+        } else {
+            // User provided explicit arguments in the executable string
+            for arg in extra_args {
+                cmd.arg(arg);
             }
-            _ => {}
         }
         let result = cmd.current_dir(&workdir).spawn();
             
