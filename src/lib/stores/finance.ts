@@ -570,14 +570,14 @@ export function updateFinanceEntry(
                                     const newAddVal = parseFloat(value) || 0;
                                     const amountDiff = newAddVal - oldAddVal;
                                     
-                                    // Subtract payment from Disc amount if Disc is checked
+                                    // Add to Disc amount if Disc is checked
                                     if (oldEntry.isDisc) {
-                                        discAmountAdjustment = -amountDiff;
+                                        discAmountAdjustment = amountDiff;
                                     }
                                     
-                                    // Subtract payment from AmerX amount if AmerX is checked
+                                    // Add to AmerX amount if AmerX is checked
                                     if (oldEntry.isAmerX) {
-                                        amerXAmountAdjustment = -amountDiff;
+                                        amerXAmountAdjustment = amountDiff;
                                     }
                                 }
                             }
