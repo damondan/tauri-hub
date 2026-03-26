@@ -1,6 +1,7 @@
 <!-- src/lib/components/HowToComponent.svelte -->
 <script lang="ts">
   import { onMount, tick } from "svelte";
+  import { autoResize } from "$lib/utils/textareaResize";
   import {
     howtoData,
     addHowToCategory,
@@ -199,8 +200,11 @@
                           text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
                             placeholder="How To Descriptor..."
                             value={task.text}
+                            use:autoResize
                             oninput={(el) => {
                               const targetTask = el.target as HTMLTextAreaElement;
+                              targetTask.style.height = 'auto';
+                              targetTask.style.height = targetTask.scrollHeight + 'px';
                               updateHowToTaskText(
                                 category.id,
                                 subcategory.id,
@@ -208,8 +212,6 @@
                                 task.id,
                                 targetTask.value,
                               );
-                              // Auto-resize
-                              resizeTextarea(targetTask);
                             }}
                           ></textarea>
                           <button
