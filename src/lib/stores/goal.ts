@@ -21,6 +21,13 @@ export interface GoalDay {
 	priGoalRejected: boolean; // TV checkbox rejected state (clicked No)
 	proGoalCompleted: boolean; // Sleep checkbox state
 	proGoalRejected: boolean; // Sleep checkbox rejected state (clicked No)
+    sleepTime: string;
+    sleepWake: string;
+    sleepTimeBack: string;
+    sleepWakeAgain: string;
+    sleepTotal: string;
+    screenGoal: string;
+    screenFollowed: boolean;
 	entries: GoalEntry[];
 }
 
@@ -152,6 +159,13 @@ export function generateGoalStructureToDate(targetDate: Date): void {
                         priGoalRejected: false,
                         proGoalCompleted: false,
                         proGoalRejected: false,
+                        sleepTime: '',
+                        sleepWake: '',
+                        sleepTimeBack: '',
+                        sleepWakeAgain: '',
+                        sleepTotal: '',
+                        screenGoal: '',
+                        screenFollowed: false,
                         entries: [{
                             id: makeId(),
                             description: ''
@@ -527,6 +541,97 @@ export function updateDayProfessionalGoals(
                                             days: w.days.map((d) => {
                                                 if (d.id === dayId) {
                                                     return { ...d, dayProfessionalGoals: value };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// updateDaySleepScreen(yearId: string, monthId: string, weekId: string, dayId: string, field: 'sleepTime' | 'sleepWake' | 'sleepTimeBack' | 'sleepWakeAgain' | 'sleepTotal' | 'screenGoal', value: string): void
+export function updateDaySleepScreen(
+    yearId: string,
+    monthId: string,
+    weekId: string,
+    dayId: string,
+    field: 'sleepTime' | 'sleepWake' | 'sleepTimeBack' | 'sleepWakeAgain' | 'sleepTotal' | 'screenGoal',
+    value: string
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === weekId) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === dayId) {
+                                                    return { ...d, [field]: value };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+// toggleDayScreenFollowed(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
+export function toggleDayScreenFollowed(
+    yearId: string,
+    monthId: string,
+    weekId: string,
+    dayId: string,
+    completed?: boolean
+): void {
+    goalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === weekId) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === dayId) {
+                                                    if (completed === true) {
+                                                        return { ...d, screenFollowed: true };
+                                                    } else if (completed === false) {
+                                                        return { ...d, screenFollowed: false };
+                                                    } else {
+                                                        return { ...d, screenFollowed: !d.screenFollowed };
+                                                    }
                                                 }
                                                 return d;
                                             })

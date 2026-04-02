@@ -11,6 +11,22 @@ export const financeExpandedYears = writable<Record<string, boolean>>({});
 export const financeExpandedMonths = writable<Record<string, boolean>>({});
 export const financeExpandedWeeks = writable<Record<string, boolean>>({});
 
+export interface miscExpenses {
+    id:string;
+    name: string;
+    cost: string;
+}
+
+export interface Expenses {
+    id: string;
+    name: string;
+    cost: string;
+    increase: string;
+    decrease: string;
+    datePaid: string;
+    paid: boolean;
+}
+
 // Finance
 export interface FinanceEntry {
 	id: string;
@@ -23,6 +39,8 @@ export interface FinanceEntry {
 	isGas: boolean; // Gas category checkbox
 	isFood: boolean; // Food category checkbox
 	isOther: boolean; // Other category checkbox
+    expenses: Expenses[];
+    miscExp: miscExpenses[];
 }
 
 export interface FinanceDay {
@@ -51,6 +69,7 @@ export interface FinanceMonth {
 	foodAmount: string; // Food category total
 	gasAmount: string; // Gas category total
 	balanceMonth: string; // Home Bank balance
+	expenses: Expenses[]; // Monthly expenses with paid tracking
 	weeks: FinanceWeek[];
 }
 
@@ -61,6 +80,124 @@ export interface FinanceYear {
 }
 
 export const financeData = writable<FinanceYear[]>([]);
+export const expensesData = writable<Expenses[]>([]);
+
+// addOrUpdateExpense(name: string, cost: string): void
+// If expense with same name exists (case-insensitive): updates cost in expensesData and current+future months.
+// If not found: adds new expense to expensesData and the current month.
+export function addOrUpdateExpense(name: string, cost: string): void {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    // Check if expense already exists in top-level store
+    let found = false;
+    expensesData.update((list) => {
+        const idx = list.findIndex((e) => e.name.toLowerCase() === name.toLowerCase());
+        if (idx !== -1) {
+            found = true;
+            return list.map((e) =>
+                e.name.toLowerCase() === name.toLowerCase() ? { ...e, cost } : e
+            );
+        } else {
+            return [...list, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', paid: false }];
+        }
+    });
+
+    // Update financeData: add or update expense in current and future months
+    financeData.update((years) =>
+        years.map((y) => {
+            if (y.year < currentYear) return y;
+            return {
+                ...y,
+                months: y.months.map((m) => {
+                    // Only affect current month and future months
+                    if (y.year === currentYear && m.monthNumber < currentMonth) return m;
+                    const monthExpenses = m.expenses || [];
+                    const expIdx = monthExpenses.findIndex((e) => e.name.toLowerCase() === name.toLowerCase());
+                    if (expIdx !== -1) {
+                        // Update cost
+                        return {
+                            ...m,
+                            expenses: monthExpenses.map((e) =>
+                                e.name.toLowerCase() === name.toLowerCase() ? { ...e, cost } : e
+                            )
+                        };
+                    } else {
+                        // Add new expense
+                        return {
+                            ...m,
+                            expenses: [...monthExpenses, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', paid: false }]
+                        };
+                    }
+                })
+            };
+        })
+    );
+}
+
+// removeExpenseByName(name: string): void
+// Case-insensitive search. Removes from expensesData and from current+future months.
+// Past months keep the expense in history.
+export function removeExpenseByName(name: string): void {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    expensesData.update((list) =>
+        list.filter((e) => e.name.toLowerCase() !== name.toLowerCase())
+    );
+
+    financeData.update((years) =>
+        years.map((y) => {
+            if (y.year < currentYear) return y;
+            return {
+                ...y,
+                months: y.months.map((m) => {
+                    if (y.year === currentYear && m.monthNumber < currentMonth) return m;
+                    return {
+                        ...m,
+                        expenses: (m.expenses || []).filter((e) => e.name.toLowerCase() !== name.toLowerCase())
+                    };
+                })
+            };
+        })
+    );
+}
+
+// toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void
+// Toggles paid status on a month's expense. Sets datePaid to current datetime when paid, clears when unpaid.
+export function toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void {
+    financeData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearId) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthId) {
+                            return {
+                                ...m,
+                                expenses: (m.expenses || []).map((e) => {
+                                    if (e.id === expenseId) {
+                                        const nowPaid = !e.paid;
+                                        return {
+                                            ...e,
+                                            paid: nowPaid,
+                                            datePaid: nowPaid ? new Date().toLocaleDateString() : ''
+                                        };
+                                    }
+                                    return e;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
 
 // Generate Finance structure up to a specific date
 // generateFinanceStructureToDate(targetDate: Date): void
@@ -103,6 +240,20 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                     }
                 }
                 
+                // Carry forward expenses from previous month (reset paid status)
+                let carriedExpenses: Expenses[] = [];
+                if (monthNum > 1) {
+                    const prevMonthForExpenses = yearEntry.months.find(m => m.monthNumber === monthNum - 1);
+                    if (prevMonthForExpenses && prevMonthForExpenses.expenses) {
+                        carriedExpenses = prevMonthForExpenses.expenses.map(e => ({
+                            ...e,
+                            id: makeId(),
+                            paid: false,
+                            datePaid: ''
+                        }));
+                    }
+                }
+
                 monthEntry = {
                     id: makeId(),
                     monthNumber: monthNum,
@@ -113,6 +264,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                     foodAmount: '',
                     gasAmount: '',
                     balanceMonth: '',
+                    expenses: carriedExpenses,
                     weeks: []
                 };
                 yearEntry.months.push(monthEntry);
@@ -162,7 +314,9 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                             isAmerX: false,
                             isGas: false,
                             isFood: false,
-                            isOther: false
+                            isOther: false,
+                            expenses: [],
+                            miscExp: [],
                         }]
                     };
                     weekEntry.days.push(dayEntry);
@@ -201,7 +355,7 @@ export function addFinanceEntry(
                                                 if (d.id === dayId) {
                                                     return {
                                                         ...d,
-                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, isOther: false }]
+                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, isOther: false, expenses:[], miscExp: [] }]
                                                     };
                                                 }
                                                 return d;
@@ -769,43 +923,6 @@ export function formatCurrency(amount: number): string {
     const sign = amount >= 0 ? '' : '-';
     const abs = Math.abs(amount);
     return `${sign}$${abs.toFixed(2)}`;
-}
-
-// Copy values from previous month to current month
-// copyFromPreviousMonth(yearId: string, monthId: string): void
-export function copyFromPreviousMonth(
-    yearId: string,
-    monthId: string
-): void {
-    financeData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            // Find previous month
-                            const currentMonthNum = m.monthNumber;
-                            const prevMonth = y.months.find(pm => pm.monthNumber === currentMonthNum - 1);
-                            
-                            if (prevMonth) {
-                                return {
-                                    ...m,
-                                    discAmount: prevMonth.discAmount || '',
-                                    discIntAmount: prevMonth.discIntAmount || '',
-                                    amerXAmount: prevMonth.amerXAmount || '',
-                                    amerXIntAmount: prevMonth.amerXIntAmount || '',
-                                    balanceHB: prevMonth.balanceMonth || ''
-                                };
-                            }
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
 }
 
 // Update month Disc, AmerX, or balance amount

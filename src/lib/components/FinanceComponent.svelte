@@ -10,7 +10,10 @@
     updateFinanceEntry,
     updateFinanceEntryCheckbox,
     updateFinanceMonthAmount,
-    copyFromPreviousMonth,
+    addOrUpdateExpense,
+    removeExpenseByName,
+    toggleExpensePaid,
+    expensesData,
     calculateYearTotal,
     calculateMonthTotal,
     calculateMonthHBBalance,
@@ -26,6 +29,26 @@
   let currentDay = new Date().getDate();
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
+
+  // Expense input fields
+  let expenseName = '';
+  let expenseCost = '';
+
+  // handleAddExpense(): void
+  function handleAddExpense() {
+    if (!expenseName.trim()) return;
+    addOrUpdateExpense(expenseName.trim(), expenseCost.trim());
+    expenseName = '';
+    expenseCost = '';
+  }
+
+  // handleRemoveExpense(): void
+  function handleRemoveExpense() {
+    if (!expenseName.trim()) return;
+    removeExpenseByName(expenseName.trim());
+    expenseName = '';
+    expenseCost = '';
+  }
 
   // onMount(): void
   onMount(() => {
@@ -64,47 +87,48 @@
     financeExpandedWeeks.update(state => ({ ...state, [key]: !state[key] }));
   }
 
-  // extractStarredWords(week: FinanceWeek): string[]
-  function extractStarredWords(week: any): string[] {
-    const starredWords: string[] = [];
-    if (week.days) {
-      for (const day of week.days) {
-        for (const entry of day.entries) {
-          if (entry.description) {
-            // Find all words that start with *
-            const words = entry.description.split(/\s+/);
-            for (const word of words) {
-              if (word.startsWith('*') && word.length > 1) {
-                // Remove the * and add to list if not already present
-                const cleanWord = word.substring(1);
-                if (!starredWords.includes(cleanWord)) {
-                  starredWords.push(cleanWord);
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return starredWords;
-  }
-
-  // handleRadioChange(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'isHB' | 'isDisc' | 'isAmerX' | 'isGas' | 'isFood' | 'isOther'): void
+  // handleRadioChange
   function handleRadioChange(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'isHB' | 'isDisc' | 'isAmerX' | 'isGas' | 'isFood' | 'isOther') {
     // Radio buttons are always "checked" when clicked, so pass true
     updateFinanceEntryCheckbox(yearId, monthId, weekId, dayId, entryId, field, true);
   }
 </script>
 
-<!-- Header -->
-<div class="flex items-center mb-6 border border-amber-50">
-  <h1 class="text-4xl font-bold text-white">Finance</h1>
-  <h3 class=" text-white pl-10">USAA HB $130</h3>
-  <h3 class=" text-white pl-10">Spectrum Discover $120</h3>
-  <h3 class=" text-white pl-10">Cleco Discover ~$100</h3>
-  <h3 class=" text-white pl-10">Warp Discover $20</h3>
-  <h3 class=" text-white pl-10">Proton AmerX $13</h3>
-  <h3 class=" text-white pl-10">Railway Discover $5</h3>
+<!-- Top-level Expenses section -->
+<div class="mb-4 bg-white/10 rounded-xl p-3">
+  <div class="flex items-center gap-3">
+    <label class="text-white text-2xl font-semibold">Expenses</label>
+    <input
+      type="text"
+      class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-48"
+      placeholder="Name..."
+      bind:value={expenseName}
+    />
+    <input
+      type="text"
+      class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-28"
+      placeholder="Cost..."
+      bind:value={expenseCost}
+    />
+    <button
+      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-lg font-semibold"
+      on:click={handleAddExpense}
+    >
+      +
+    </button>
+    <button
+      class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg font-semibold"
+      on:click={handleRemoveExpense}
+    >
+      -
+    </button>
+    <!-- Display current top-level expenses -->
+    <div class="flex items-center gap-4 ml-4">
+      {#each $expensesData as exp (exp.id)}
+        <span class="text-white/70 text-lg">{exp.name} ${exp.cost}</span>
+      {/each}
+    </div>
+  </div>
 </div>
 
 <!-- Empty state -->
@@ -116,7 +140,7 @@
 {#each $financeData as year (year.id)}
   <div class="mb-3">
     <!-- Level 1: Year -->
-    <div class="bg-white/10 rounded-xl p-3">
+    <div class="bg-white/10 rounded-xl p-1">
       <div class="flex items-center gap-3">
         <button 
           class="text-white text-3xl w-6"
@@ -140,115 +164,105 @@
       <div class="ml-12 mt-2 space-y-2">
         {#each year.months as month (month.id)}
           {@const monthKey = `${year.id}-${month.id}`}
-          <div class="bg-white/10 rounded-xl p-3">
-            <div class="flex items-center gap-3">
-              <button 
-                class="text-white text-3xl w-6"
-                on:click={() => toggleMonth(monthKey)}
-              >
-                {$financeExpandedMonths[monthKey] ? '▼' : '▶'}
-              </button>
-              
-              <div class="text-white text-3xl font-semibold">
-                {getMonthName(month.monthNumber)}
-              </div>
-              
-              <!-- Copy from previous month button -->
-              {#if month.monthNumber > 1}
-                <button
-                  class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-semibold"
-                  on:click={() => copyFromPreviousMonth(year.id, month.id)}
+          <div class="bg-white/10 rounded-xl p-1">
+            <div class="relative flex items-center justify-center gap-4">
+              <!-- Arrow + Month name pinned to the left -->
+              <div class="absolute left-0 flex items-center gap-3">
+                <button 
+                  class="text-white text-3xl w-6"
+                  on:click={() => toggleMonth(monthKey)}
                 >
-                  Copy Prev
+                  {$financeExpandedMonths[monthKey] ? '▼' : '▶'}
                 </button>
-              {/if}
-              
-              <!-- Spacer to push fields to center -->
-              <div class="flex-1"></div>
-              
-              <!-- Disc Amount -->
-              <div class="flex items-center gap-1">
-                <label class="text-white text-xl">Disc $</label>
-                <input
-                  type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
-                  maxlength="14"
-                  value={month.discAmount || ''}
-                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discAmount', (e.target as HTMLInputElement).value)}
-                />
-              </div>
-              
-              <!-- Disc Interest Amount -->
-              <div class="flex items-center gap-1">
-                <label class="text-white text-xl">Int $</label>
-                <input
-                  type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
-                  maxlength="6"
-                  value={month.discIntAmount || ''}
-                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discIntAmount', (e.target as HTMLInputElement).value)}
-                />
-              </div>
-              
-              <!-- AmerX Amount -->
-              <div class="flex items-center gap-1">
-                <label class="text-white text-xl">AmerX $</label>
-                <input
-                  type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
-                  maxlength="14"
-                  value={month.amerXAmount || ''}
-                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXAmount', (e.target as HTMLInputElement).value)}
-                />
-              </div>
-              
-              <!-- AmerX Interest Amount -->
-              <div class="flex items-center gap-1">
-                <label class="text-white text-xl">Int $</label>
-                <input
-                  type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
-                  maxlength="6"
-                  value={month.amerXIntAmount || ''}
-                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXIntAmount', (e.target as HTMLInputElement).value)}
-                />
-              </div>
-              
-              <!-- Food Total (calculated, read-only) -->
-              <div class="flex items-center gap-1 ml-8">
-                <label class="text-red-500 text-xl font-semibold">Food $</label>
-                <div class="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xl w-20">
-                  {calculateMonthFoodTotal(month).toFixed(2)}
+                <div class="text-white text-3xl">
+                  {getMonthName(month.monthNumber)}
                 </div>
               </div>
-              
-              <!-- Gas Total (calculated, read-only) -->
-              <div class="flex items-center gap-1">
-                <label class="text-red-500 text-xl font-semibold">Gas $</label>
-                <div class="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xl w-20">
-                  {calculateMonthGasTotal(month).toFixed(2)}
+
+              <!-- Centered fields group -->
+              <div class="flex items-center gap-4">
+                <!-- Disc Amount -->
+                <div class="flex items-center gap-1">
+                  <label class="text-white text-xl">Disc $</label>
+                  <input
+                    type="text"
+                    class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
+                    maxlength="14"
+                    value={month.discAmount || ''}
+                    on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discAmount', (e.target as HTMLInputElement).value)}
+                  />
                 </div>
+                
+                <!-- Disc Interest Amount -->
+                <div class="flex items-center gap-1">
+                  <label class="text-white text-xl">Int $</label>
+                  <input
+                    type="text"
+                    class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
+                    maxlength="6"
+                    value={month.discIntAmount || ''}
+                    on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'discIntAmount', (e.target as HTMLInputElement).value)}
+                  />
+                </div>
+                
+                <!-- AmerX Amount -->
+                <div class="flex items-center gap-1">
+                  <label class="text-white text-xl">AmerX $</label>
+                  <input
+                    type="text"
+                    class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
+                    maxlength="14"
+                    value={month.amerXAmount || ''}
+                    on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXAmount', (e.target as HTMLInputElement).value)}
+                  />
+                </div>
+                
+                <!-- AmerX Interest Amount -->
+                <div class="flex items-center gap-1">
+                  <label class="text-white text-xl">Int $</label>
+                  <input
+                    type="text"
+                    class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
+                    maxlength="6"
+                    value={month.amerXIntAmount || ''}
+                    on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'amerXIntAmount', (e.target as HTMLInputElement).value)}
+                  />
+                </div>
+
+                <!-- Food Total (calculated, read-only) -->
+                <div class="flex items-center gap-1 ml-8">
+                  <label class="text-red-500 text-xl font-semibold">Food $</label>
+                  <div class="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xl w-20">
+                    {calculateMonthFoodTotal(month).toFixed(2)}
+                  </div>
+                </div>
+                
+                <!-- Gas Total (calculated, read-only) -->
+                <div class="flex items-center gap-1">
+                  <label class="text-red-500 text-xl font-semibold">Gas $</label>
+                  <div class="bg-white/5 border border-white/20 rounded px-2 py-1 text-white text-xl w-20">
+                    {calculateMonthGasTotal(month).toFixed(2)}
+                  </div>
+                </div>
+
               </div>
-              
-              <!-- Spacer to push total amount to the right -->
-              <div class="flex-1"></div>
-              
-              <!-- Starting Balance (editable for first deposits, then auto-calculated) -->
-              <div class="flex flex-col items-end gap-1">
-                <input
-                  type="text"
-                  class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-36 text-right"
-                  placeholder="Start $"
-                  title="Starting balance (copied from prev month)"
-                  maxlength="14"
-                  value={month.balanceMonth || ''}
-                  on:input={(e) => updateFinanceMonthAmount(year.id, month.id, 'balanceMonth', (e.target as HTMLInputElement).value)}
-                />
-                <div class="text-white text-2xl font-semibold w-36 text-right">
-                  {formatCurrency(calculateMonthHBBalance(year, month))}
-                </div>
+
+              <!-- HB Balance pinned to far right -->
+              <div class="absolute right-0 text-white text-2xl font-semibold pr-2">
+                {formatCurrency(calculateMonthHBBalance(year, month))}
               </div>
             </div>
+
+            <!-- Month-level expenses display -->
+            {#if month.expenses && month.expenses.length > 0}
+              <div class="flex items-center gap-4 mt-1 px-3 pb-1 flex-wrap">
+                {#each month.expenses as exp (exp.id)}
+                  <span class="text-xl font-semibold {exp.paid ? 'text-green-500' : 'text-white/40'}">
+                    {exp.name} ${exp.cost}{#if exp.paid && exp.datePaid} — {exp.datePaid}{/if}
+                  </span>
+                {/each}
+              </div>
+            {/if}
           </div>
 
           <!-- Level 3: Weeks (only show when month expanded) -->
@@ -256,7 +270,6 @@
             <div class="ml-12 mt-2 space-y-2">
               {#each month.weeks as week (week.id)} <!--Going through weeks of month-->
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
-                {@const starredWords = extractStarredWords(week)}
                 <div class="bg-white/10 rounded-xl p-3">
                   <div class="flex items-center gap-3">
                     <button 
@@ -270,11 +283,19 @@
                       {week.weekNumber} Week {week.startDay}-{week.endDay}
                     </div>
                     
-                    <!-- Starred words from day descriptions -->
-                    {#if starredWords.length > 0}
-                      <div class="flex-1 flex justify-center gap-3">
-                        {#each starredWords as word}
-                          <span class="text-green-500 text-2xl font-semibold">{word}</span>
+                    <!-- Week-level expenses with checkboxes -->
+                    {#if month.expenses && month.expenses.length > 0}
+                      <div class="flex-1 flex justify-center gap-10">
+                        {#each month.expenses as exp (exp.id)}
+                          <label class="flex items-center gap-1 text-lg font-semibold {exp.paid ? 'text-green-500' : 'text-white/40'}">
+                            {exp.name} ${exp.cost}
+                            <input
+                              type="checkbox"
+                              class="w-4 h-4 ml-1"
+                              checked={exp.paid || false}
+                              on:change={() => toggleExpensePaid(year.id, month.id, exp.id)}
+                            />
+                          </label>
                         {/each}
                       </div>
                     {:else}
@@ -297,11 +318,11 @@
                               <!-- Entry fields -->
                               <!-- Day label (only show on first entry) -->
                               {#if entryIndex === 0}
-                                <div class="text-white text-2xl font-semibold w-32">
+                                <div class="text-white text-2xl font-semibold w-40 shrink-0 whitespace-nowrap">
                                   {day.dayNumber} {day.dayOfWeek}
                                 </div>
                               {:else}
-                                <div class="w-32"></div>
+                                <div class="w-40 shrink-0"></div>
                               {/if}
                               
                               <!-- + amount -->
