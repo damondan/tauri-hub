@@ -5,7 +5,7 @@
 	const tabs = [
 		{ path: "/", label: "Services" },
 		{ path: "/todo", label: "ToDo" },
-		{ path: "/projects", label: "Status" },
+		{ path: "/projects", label: "Logs" },
 		{ path: "/goals", label: "Goals" },
 		{ path: "/finances", label: "Finance" },
 		{ path: "/commands", label: "Commands" },

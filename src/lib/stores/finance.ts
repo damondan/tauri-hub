@@ -24,6 +24,7 @@ export interface Expenses {
     increase: string;
     decrease: string;
     datePaid: string;
+    dateDue: string;
     paid: boolean;
 }
 
@@ -77,6 +78,26 @@ export interface FinanceYear {
 	id: string;
 	year: number; // 2026, 2027, etc.
 	months: FinanceMonth[];
+}
+
+export interface CalendarDay {
+    id: string;
+    date: string;
+    isPaycheck: boolean;
+    isExpense: boolean;
+    expenses: Expenses[];
+    amount: string;
+    name: string;
+}
+
+export interface CalendarMonth {
+    id: string;
+    calDays: CalendarDay[];
+}
+
+export interface CalendarYears {
+    id:string;
+    calMonth: CalendarMonth[];
 }
 
 export const financeData = writable<FinanceYear[]>([]);
@@ -197,6 +218,15 @@ export function toggleExpensePaid(yearId: string, monthId: string, expenseId: st
             return y;
         })
     );
+}
+
+// sumExpenses(expenses: Expenses[]): number
+export function sumExpenses(expenses: Expenses[]): number {
+    let total = 0;
+    for (const exp of expenses) {
+        total += parseFloat(exp.cost) || 0;
+    }
+    return total;
 }
 
 // Generate Finance structure up to a specific date
@@ -951,3 +981,5 @@ export function updateFinanceMonthAmount(
         })
     );
 }
+
+

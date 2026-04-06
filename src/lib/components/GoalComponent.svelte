@@ -821,7 +821,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">Private Goal Check</h3>
       <p class="text-white/90 text-xl mb-6">
@@ -883,7 +883,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">
         Professional Goal Check
@@ -947,7 +947,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">Private Goal Check</h3>
       <p class="text-white/90 text-xl mb-6">
@@ -1007,7 +1007,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">
         Professional Goal Check
@@ -1069,7 +1069,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">Private Goal Check</h3>
       <p class="text-white/90 text-xl mb-6">
@@ -1127,7 +1127,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">
         Professional Goal Check
@@ -1187,7 +1187,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">Screen Goal Check</h3>
       <p class="text-white/90 text-xl mb-6">
@@ -1249,7 +1249,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-2xl"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">
         Change Private Goal
@@ -1310,7 +1310,7 @@
   >
     <div
       class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-2xl"
-      onclick={(e) => e.stopPropagation}
+      onclick={(e) => e.stopPropagation()}
     >
       <h3 class="text-white text-2xl font-semibold mb-4">
         Change Professional Goal
