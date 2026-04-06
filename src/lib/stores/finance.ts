@@ -121,7 +121,7 @@ export function addOrUpdateExpense(name: string, cost: string): void {
                 e.name.toLowerCase() === name.toLowerCase() ? { ...e, cost } : e
             );
         } else {
-            return [...list, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', paid: false }];
+            return [...list, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', dateDue: '', paid: false }];
         }
     });
 
@@ -148,7 +148,7 @@ export function addOrUpdateExpense(name: string, cost: string): void {
                         // Add new expense
                         return {
                             ...m,
-                            expenses: [...monthExpenses, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', paid: false }]
+                            expenses: [...monthExpenses, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', dateDue: '', paid: false }]
                         };
                     }
                 })
