@@ -1,6 +1,7 @@
 <!-- src/lib/components/FinanceCalendar.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fade,fly } from 'svelte/transition';
   import { getDaysInMonth, getMonthName } from "$lib/stores/general";
   import {
     calendarData,
@@ -157,7 +158,7 @@
           <div></div>
         {:else}
           <div
-            class="flex flex-col text-center text-xl py-1 {isToday(
+            class="flex flex-col border-2 border-gray-300/20 text-center text-xl py-1 {isToday(
               day.dayNumber,
             )
               ? 'h-40 cursor-pointer bg-green-500 text-white font-bold shadow-[0_0_12px_rgba(34,197,94,0.7)]'
@@ -175,9 +176,10 @@
             {day.dayNumber}
             {#if day.calEntries.length > 0}
               {#each day.calEntries as cal (cal.id)}
-                {#if cal.isPaycheck == true && !["Checking"].includes(cal.name) }
+                {#if cal.isPaycheck && ["Checking"].includes(cal.name)}
+                  <!-- Checking paycheck -->
                   <button
-                    class="w-full h-auto text-black bg-orange-400 hover:bg-orange-500 cursor-crosshair"
+                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-white hover:bg-yellow-100 cursor-crosshair"
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
@@ -187,7 +189,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "expense" : "paycheck";
+                      payType = cal.isPaycheck ? "paycheck":"expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -196,10 +198,11 @@
                     {cal.name}
                     {cal.amount}
                   </button>
-                {:else if cal.isPaycheck == false && !["Gas","Food"].includes(cal.name)}
+                {:else if !cal.isPaycheck && ["Gas", "Food"].includes(cal.name)}
+                  <!-- Gas / Food -->
                   <button
-                    class="w-full h-auto text-black bg-blue-400 hover:bg-blue-500 cursor-crosshair"
-                    onclick={(e) => {
+                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-red-500 hover:bg-red-600 cursor-crosshair"
+                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
                         day: day.dayNumber,
@@ -208,7 +211,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "expense" : "paycheck";
+                      payType = cal.isPaycheck ? "paycheck":"expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -217,10 +220,11 @@
                     {cal.name}
                     {cal.amount}
                   </button>
-                {:else if ["Gas", "Food"].includes(cal.name) && cal.isPaycheck == false}
+                {:else if cal.isPaycheck && !["Checking"].includes(cal.name)}
+                  <!-- Other paycheck -->
                   <button
-                    class="w-full h-auto text-black bg-red-500 hover:bg-red-600 cursor-crosshair"
-                    onclick={(e) => {
+                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-orange-400 hover:bg-orange-500 cursor-crosshair"
+                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
                         day: day.dayNumber,
@@ -229,7 +233,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "expense" : "paycheck";
+                      payType = cal.isPaycheck ? "paycheck":"expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -238,10 +242,11 @@
                     {cal.name}
                     {cal.amount}
                   </button>
-                  {:else if ["Checking"].includes(cal.name) && cal.isPaycheck == true}
+                {:else if !cal.isPaycheck && !["Gas", "Food"].includes(cal.name)}
+                  <!-- Other expense -->
                   <button
-                    class="w-full h-auto text-black bg-white hover:bg-yellow-100 cursor-crosshair"
-                    onclick={(e) => {
+                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-blue-400 hover:bg-blue-500 cursor-crosshair"
+                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
                         day: day.dayNumber,
@@ -250,7 +255,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "expense" : "paycheck";
+                      payType = cal.isPaycheck ? "paycheck":"expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -267,8 +272,13 @@
       {/each}
     </div>
   </div>
+   <!-- // in:fade={{ duration: 500 }}
+    // out:fade={{ duration: 500 }} -->
   {#if showDayCalendarDialog == true}
-    <div class="flex flex-col w-80 h-auto border-2 border-red-600">
+    <div 
+    in:fly={{ x: 50, duration: 800 }}
+    out:fly={{ x: 50, duration: 800 }}
+    class="flex flex-col w-80 h-auto border-2 border-red-600">
       <div class="flex flex-row justify-center">
         <label class="text-2xl text-white mr-3">Paycheck</label>
         <input
@@ -305,9 +315,9 @@
           bind:value={payAmount}
         ></textarea>
       </div>
-      <div class="flex mt-3 justify-center">
+      <div class="flex flex-wrap gap-3 m-3 justify-center">
         <button
-          class="w-20 h-5 text-white hover:bg-green-900"
+          class="w-20 h-10 rounded-2xl text-white bg-green-400 hover:bg-green-900"
           onclick={() => {
             addOrUpdateFinancial(
               payType,
@@ -325,7 +335,7 @@
           }}>Add</button
         >
         <button
-          class="w-20 h-5 text-white hover:bg-blue-700"
+          class="w-20 h-10 rounded-2xl bg-blue-400 text-white hover:bg-blue-700"
           onclick={() => {
             if (!selectedDayMonthYear) return;
             const entry = selectedDayMonthYear.calEntries[0];
@@ -340,11 +350,11 @@
             payType = "expense";
             payName = "";
             payAmount = "";
-          }}>Remove</button
+          }}>Del</button
         >
         {#if selectedEntry != null}
           <button
-            class="w-20 h-5 text-white hover:bg-purple-700"
+            class="w-20 h-10 rounded-2xl text-white bg-purple-500 hover:bg-purple-700"
             onclick={() => {
               addOrUpdateFinancial(
                 payType,
@@ -363,7 +373,7 @@
           >
         {/if}
         <button
-          class="w-20 h-5 text-white hover:bg-red-700"
+          class="w-20 h-10 rounded-2xl text-white bg-red-600 hover:bg-red-700"
           onclick={() => {
             payType = "expense";
             payName = "";
