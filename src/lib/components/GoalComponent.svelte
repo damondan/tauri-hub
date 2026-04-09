@@ -302,9 +302,9 @@
                 }}
               >
                 {#if month.priGoalCompleted}
-                  <span class="text-yellow-500 text-3xl font-bold">⭐</span>
+                  <span class="text-yellow-500 text-3xl font-bold">🤴</span>
                 {:else if month.priGoalRejected}
-                  <span class="text-red-500 text-2xl font-bold">❌</span>
+                  <span class="text-red-500 text-2xl font-bold">🤡</span>
                 {:else}
                   <span class="w-4 h-4 rounded-full bg-red-500 inline-block"
                   ></span>
@@ -355,9 +355,9 @@
                 }}
               >
                 {#if month.proGoalCompleted}
-                  <span class="text-yellow-500 text-3xl font-bold">⭐</span>
+                  <span class="text-yellow-500 text-3xl font-bold">🤴</span>
                 {:else if month.proGoalRejected}
-                  <span class="text-red-500 text-2xl font-bold">❌</span>
+                  <span class="text-red-500 text-2xl font-bold">🤡</span>
                 {:else}
                   <span class="w-4 h-4 rounded-full bg-red-500 inline-block"
                   ></span>
@@ -410,7 +410,7 @@
                         : week.priGoalRejected
                           ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]'
                           : 'border border-purple-500'}"
-                      placeholder="Personal goals..."
+                      placeholder=""
                       rows="1"
                       value={week.weekPrivateGoals || ""}
                       use:autoResize
@@ -451,10 +451,10 @@
                     >
                       {#if week.priGoalCompleted}
                         <span class="text-yellow-500 text-3xl font-bold"
-                          >⭐</span
+                          >🤴</span
                         >
                       {:else if week.priGoalRejected}
-                        <span class="text-red-500 text-2xl font-bold">❌</span>
+                        <span class="text-red-500 text-2xl font-bold">🤡</span>
                       {:else}
                         <span
                           class="w-4 h-4 rounded-full bg-red-500 inline-block"
@@ -472,7 +472,7 @@
                         : week.proGoalRejected
                           ? ''
                           : 'border border-blue-500'}"
-                      placeholder="Professional goals..."
+                      placeholder=""
                       rows="1"
                       value={week.weekProfessionalGoals || ""}
                       use:autoResize
@@ -513,10 +513,10 @@
                     >
                       {#if week.proGoalCompleted}
                         <span class="text-yellow-500 text-3xl font-bold"
-                          >⭐</span
+                          >🤴</span
                         >
                       {:else if week.proGoalRejected}
-                        <span class="text-red-500 text-2xl font-bold">❌</span>
+                        <span class="text-red-500 text-2xl font-bold">🤡</span>
                       {:else}
                         <span
                           class="w-4 h-4 rounded-full bg-red-500 inline-block"
@@ -573,7 +573,7 @@
                                 : day.priGoalRejected
                                   ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]'
                                   : 'border border-purple-500'}"
-                              placeholder="Personal goals..."
+                              placeholder=""
                               rows="1"
                               value={day.dayPrivateGoals || ""}
                               use:autoResize
@@ -622,11 +622,11 @@
                             >
                               {#if day.priGoalCompleted}
                                 <span class="text-yellow-500 text-3xl font-bold"
-                                 >⭐</span
+                                 >🤴</span
                                 >
                               {:else if day.priGoalRejected}
                                 <span class="text-red-500 text-2xl font-bold"
-                                  >❌</span
+                                  >🤡</span
                                 >
                               {:else}
                                 <span
@@ -646,7 +646,7 @@
                                 : day.proGoalRejected
                                   ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]'
                                   : 'border border-blue-500'}"
-                              placeholder="Professional goals ..."
+                              placeholder=""
                               rows="1"
                               value={day.dayProfessionalGoals || ""}
                               use:autoResize
@@ -696,11 +696,11 @@
                             >
                               {#if day.proGoalCompleted}
                                 <span class="text-yellow-500 text-3xl font-bold"
-                                  >⭐</span
+                                  >🤴</span
                                 >
                               {:else if day.proGoalRejected}
                                 <span class="text-red-500 text-2xl font-bold"
-                                  >❌</span
+                                  >🤡</span
                                 >
                               {:else}
                                 <span
@@ -793,7 +793,7 @@
                               }}
                             >
                               {#if day.screenFollowed}
-                                <span class="text-yellow-500 text-xl font-bold">⭐</span>
+                                <span class="text-yellow-500 text-xl font-bold">🤴</span>
                               {:else}
                                 <span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
                               {/if}

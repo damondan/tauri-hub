@@ -5,7 +5,8 @@ import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/sto
 import { commandData, commandExpandedCategories, commandExpandedSubcategories } from '$lib/stores/commands';
 import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/projects';
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
-import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks, expensesData } from '$lib/stores/finance';
+import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
+import { calendarData } from '$lib/stores/calendar';
 import { goalData, goalExpandedYears, goalExpandedMonths, goalExpandedWeeks } from '$lib/stores/goal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { get } from 'svelte/store';
@@ -17,7 +18,7 @@ interface UserData {
 	projects?: Record<string, any>;
 	howto?: any[];
 	finance?: any[];
-	topExpenses?: any[]; // Top-level expenses management list
+	calendar?: any[]; // Top-level expenses management list
 	goal?: any[];
 	workspaceA?: string;
 	workspaceB?: string;
@@ -63,7 +64,7 @@ export async function saveUserData(): Promise<void> {
 		projects: get(projectsData),
 		howto: get(howtoData),
 		finance: get(financeData),
-		topExpenses: get(expensesData),
+		calendar: get(calendarData),
 		goal: get(goalData),
 		workspaceA: get(workspaceContentA),
 		workspaceB: get(workspaceContentB),
@@ -144,8 +145,8 @@ export async function loadUserData(): Promise<void> {
 	if (data.finance) {
 		financeData.set(data.finance);
 	}
-	if (data.topExpenses) {
-		expensesData.set(data.topExpenses);
+	if (data.calendar) {
+		calendarData.set(data.calendar);
 	}
 	if (data.financeExpandedYears) {
 		financeExpandedYears.set(data.financeExpandedYears);
@@ -253,7 +254,7 @@ export function initPersistence() {
 		scheduleSave();
 	});
 
-	expensesData.subscribe(() => {
+	calendarData.subscribe(() => {
 		scheduleSave();
 	});
 

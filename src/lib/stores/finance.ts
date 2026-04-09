@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { makeId, getDaysInMonth, getDayOfWeek} from '$lib/stores/general'
+import { makeId, getDaysInMonth, getDayOfWeek } from '$lib/stores/general'
 
 // roundCurrency(value: number): number
 // Rounds a number to 2 decimal places to avoid floating-point precision issues
@@ -11,225 +11,123 @@ export const financeExpandedYears = writable<Record<string, boolean>>({});
 export const financeExpandedMonths = writable<Record<string, boolean>>({});
 export const financeExpandedWeeks = writable<Record<string, boolean>>({});
 
-export interface miscExpenses {
-    id:string;
-    name: string;
-    cost: string;
-}
-
-export interface Expenses {
-    id: string;
-    name: string;
-    cost: string;
-    increase: string;
-    decrease: string;
-    datePaid: string;
-    dateDue: string;
-    paid: boolean;
-}
-
 // Finance
 export interface FinanceEntry {
-	id: string;
-	addAmount: string; // User input for addition
-	subAmount: string; // User input for subtraction
-	description: string;
-	isHB: boolean; // Home Bank (checking account)
-	isDisc: boolean; // Discover card checkbox
-	isAmerX: boolean; // American Express checkbox
-	isGas: boolean; // Gas category checkbox
-	isFood: boolean; // Food category checkbox
-	isOther: boolean; // Other category checkbox
-    expenses: Expenses[];
-    miscExp: miscExpenses[];
+    id: string;
+    addAmount: string; // User input for addition
+    subAmount: string; // User input for subtraction
+    description: string;
+    isHB: boolean; // Home Bank (checking account)
+    isDisc: boolean; // Discover card checkbox
+    isAmerX: boolean; // American Express checkbox
+    isGas: boolean; // Gas category checkbox
+    isFood: boolean; // Food category checkbox
+    isOther: boolean; // Other category checkbox
 }
 
 export interface FinanceDay {
-	id: string;
-	dayNumber: number; // 1-31
-	dayOfWeek: string; // 'Monday', 'Tuesday', etc.
-	entries: FinanceEntry[];
+    id: string;
+    dayNumber: number; // 1-31
+    dayOfWeek: string; // 'Monday', 'Tuesday', etc.
+    entries: FinanceEntry[];
 }
 
 export interface FinanceWeek {
-	id: string;
-	weekNumber: number; // 1, 2, 3, 4, 5
-	startDay: number; // First day number in week (e.g., 1, 8, 15)
-	endDay: number; // Last day number in week (e.g., 7, 14, 21)
+    id: string;
+    weekNumber: number; // 1, 2, 3, 4, 5
+    startDay: number; // First day number in week (e.g., 1, 8, 15)
+    endDay: number; // Last day number in week (e.g., 7, 14, 21)
     balanceWeek: string;
-	days: FinanceDay[];
+    days: FinanceDay[];
 }
 
 export interface FinanceMonth {
-	id: string;
-	monthNumber: number; // 1-12 (1=January, 2=February, etc.)
-	discAmount: string; // Discover card amount
-	discIntAmount: string; // Discover interest amount
-	amerXAmount: string; // American Express amount
-	amerXIntAmount: string; // American Express interest amount
-	foodAmount: string; // Food category total
-	gasAmount: string; // Gas category total
-	balanceMonth: string; // Home Bank balance
-	expenses: Expenses[]; // Monthly expenses with paid tracking
-	weeks: FinanceWeek[];
+    id: string;
+    monthNumber: number; // 1-12 (1=January, 2=February, etc.)
+    discAmount: string; // Discover card amount
+    discIntAmount: string; // Discover interest amount
+    amerXAmount: string; // American Express amount
+    amerXIntAmount: string; // American Express interest amount
+    foodAmount: string; // Food category total
+    gasAmount: string; // Gas category total
+    balanceMonth: string; // Home Bank balance
+    weeks: FinanceWeek[];
 }
 
 export interface FinanceYear {
-	id: string;
-	year: number; // 2026, 2027, etc.
-	months: FinanceMonth[];
-}
-
-export interface CalendarDay {
     id: string;
-    date: string;
-    isPaycheck: boolean;
-    isExpense: boolean;
-    expenses: Expenses[];
-    amount: string;
-    name: string;
+    year: number; // 2026, 2027, etc.
+    months: FinanceMonth[];
 }
 
-export interface CalendarMonth {
-    id: string;
-    calDays: CalendarDay[];
-}
+// export interface CalendarDay {
+//     id: string;
+//     date: string;
+//     isPaycheck: boolean;
+//     isExpense: boolean;
+//     expenses: Expenses[];
+//     amount: string;
+//     name: string;
+// }
 
-export interface CalendarYears {
-    id:string;
-    calMonth: CalendarMonth[];
-}
+// export interface CalendarMonth {
+//     id: string;
+//     calDays: CalendarDay[];
+// }
+
+// export interface CalendarYears {
+//     id:string;
+//     calMonth: CalendarMonth[];
+// }
 
 export const financeData = writable<FinanceYear[]>([]);
-export const expensesData = writable<Expenses[]>([]);
+//export const calendarData = writable<CalendarYears[]>([]);
 
-// addOrUpdateExpense(name: string, cost: string): void
-// If expense with same name exists (case-insensitive): updates cost in expensesData and current+future months.
-// If not found: adds new expense to expensesData and the current month.
-export function addOrUpdateExpense(name: string, cost: string): void {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
 
-    // Check if expense already exists in top-level store
-    let found = false;
-    expensesData.update((list) => {
-        const idx = list.findIndex((e) => e.name.toLowerCase() === name.toLowerCase());
-        if (idx !== -1) {
-            found = true;
-            return list.map((e) =>
-                e.name.toLowerCase() === name.toLowerCase() ? { ...e, cost } : e
-            );
-        } else {
-            return [...list, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', dateDue: '', paid: false }];
-        }
-    });
+// // toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void
+// // Toggles paid status on a month's expense. Sets datePaid to current datetime when paid, clears when unpaid.
+// export function toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void {
+//     financeData.update((years) =>
+//         years.map((y) => {
+//             if (y.id === yearId) {
+//                 return {
+//                     ...y,
+//                     months: y.months.map((m) => {
+//                         if (m.id === monthId) {
+//                             return {
+//                                 ...m,
+//                                 expenses: (m.expenses || []).map((e) => {
+//                                     if (e.id === expenseId) {
+//                                         const nowPaid = !e.paid;
+//                                         return {
+//                                             ...e,
+//                                             paid: nowPaid,
+//                                             datePaid: nowPaid ? new Date().toLocaleDateString() : ''
+//                                         };
+//                                     }
+//                                     return e;
+//                                 })
+//                             };
+//                         }
+//                         return m;
+//                     })
+//                 };
+//             }
+//             return y;
+//         })
+//     );
+// }
 
-    // Update financeData: add or update expense in current and future months
-    financeData.update((years) =>
-        years.map((y) => {
-            if (y.year < currentYear) return y;
-            return {
-                ...y,
-                months: y.months.map((m) => {
-                    // Only affect current month and future months
-                    if (y.year === currentYear && m.monthNumber < currentMonth) return m;
-                    const monthExpenses = m.expenses || [];
-                    const expIdx = monthExpenses.findIndex((e) => e.name.toLowerCase() === name.toLowerCase());
-                    if (expIdx !== -1) {
-                        // Update cost
-                        return {
-                            ...m,
-                            expenses: monthExpenses.map((e) =>
-                                e.name.toLowerCase() === name.toLowerCase() ? { ...e, cost } : e
-                            )
-                        };
-                    } else {
-                        // Add new expense
-                        return {
-                            ...m,
-                            expenses: [...monthExpenses, { id: makeId(), name, cost, increase: '', decrease: '', datePaid: '', dateDue: '', paid: false }]
-                        };
-                    }
-                })
-            };
-        })
-    );
-}
+// // sumExpenses(expenses: Expenses[]): number
+// export function sumExpenses(expenses: Expenses[]): number {
+//     let total = 0;
+//     for (const exp of expenses) {
+//         total += parseFloat(exp.cost) || 0;
+//     }
+//     return total;
+// }
 
-// removeExpenseByName(name: string): void
-// Case-insensitive search. Removes from expensesData and from current+future months.
-// Past months keep the expense in history.
-export function removeExpenseByName(name: string): void {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    expensesData.update((list) =>
-        list.filter((e) => e.name.toLowerCase() !== name.toLowerCase())
-    );
-
-    financeData.update((years) =>
-        years.map((y) => {
-            if (y.year < currentYear) return y;
-            return {
-                ...y,
-                months: y.months.map((m) => {
-                    if (y.year === currentYear && m.monthNumber < currentMonth) return m;
-                    return {
-                        ...m,
-                        expenses: (m.expenses || []).filter((e) => e.name.toLowerCase() !== name.toLowerCase())
-                    };
-                })
-            };
-        })
-    );
-}
-
-// toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void
-// Toggles paid status on a month's expense. Sets datePaid to current datetime when paid, clears when unpaid.
-export function toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void {
-    financeData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                expenses: (m.expenses || []).map((e) => {
-                                    if (e.id === expenseId) {
-                                        const nowPaid = !e.paid;
-                                        return {
-                                            ...e,
-                                            paid: nowPaid,
-                                            datePaid: nowPaid ? new Date().toLocaleDateString() : ''
-                                        };
-                                    }
-                                    return e;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// sumExpenses(expenses: Expenses[]): number
-export function sumExpenses(expenses: Expenses[]): number {
-    let total = 0;
-    for (const exp of expenses) {
-        total += parseFloat(exp.cost) || 0;
-    }
-    return total;
-}
-
-// Generate Finance structure up to a specific date
+// OnMount Generate Finance structure up to a specific date
 // generateFinanceStructureToDate(targetDate: Date): void
 export function generateFinanceStructureToDate(targetDate: Date): void {
     const targetYear = targetDate.getFullYear();
@@ -238,7 +136,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
 
     financeData.update((years) => {
         const updatedYears = [...years];
-        
+
         // Find or create year
         let yearEntry = updatedYears.find(y => y.year === targetYear);
         if (!yearEntry) {
@@ -249,7 +147,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
             };
             updatedYears.push(yearEntry);
         }
-        
+
         // Generate months up to target month
         for (let monthNum = 1; monthNum <= targetMonth; monthNum++) {
             let monthEntry = yearEntry.months.find(m => m.monthNumber === monthNum);
@@ -259,7 +157,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                 let discIntAmount = '';
                 let amerXAmount = '';
                 let amerXIntAmount = '';
-                
+
                 if (monthNum > 1) {
                     const prevMonth = yearEntry.months.find(m => m.monthNumber === monthNum - 1);
                     if (prevMonth) {
@@ -269,20 +167,20 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                         amerXIntAmount = prevMonth.amerXIntAmount || '';
                     }
                 }
-                
+
                 // Carry forward expenses from previous month (reset paid status)
-                let carriedExpenses: Expenses[] = [];
-                if (monthNum > 1) {
-                    const prevMonthForExpenses = yearEntry.months.find(m => m.monthNumber === monthNum - 1);
-                    if (prevMonthForExpenses && prevMonthForExpenses.expenses) {
-                        carriedExpenses = prevMonthForExpenses.expenses.map(e => ({
-                            ...e,
-                            id: makeId(),
-                            paid: false,
-                            datePaid: ''
-                        }));
-                    }
-                }
+                // let carriedExpenses: Expenses[] = [];
+                // if (monthNum > 1) {
+                //     const prevMonthForExpenses = yearEntry.months.find(m => m.monthNumber === monthNum - 1);
+                //     if (prevMonthForExpenses && prevMonthForExpenses.expenses) {
+                //         carriedExpenses = prevMonthForExpenses.expenses.map(e => ({
+                //             ...e,
+                //             id: makeId(),
+                //             paid: false,
+                //             datePaid: ''
+                //         }));
+                //     }
+                // }
 
                 monthEntry = {
                     id: makeId(),
@@ -294,17 +192,16 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                     foodAmount: '',
                     gasAmount: '',
                     balanceMonth: '',
-                    expenses: carriedExpenses,
                     weeks: []
                 };
                 yearEntry.months.push(monthEntry);
                 yearEntry.months.sort((a, b) => a.monthNumber - b.monthNumber);
             }
-            
+
             // Determine how many days to generate for this month
             const daysInMonth = getDaysInMonth(targetYear, monthNum);
             const lastDayToGenerate = monthNum === targetMonth ? targetDay : daysInMonth;
-            
+
             // Generate weeks and days
             for (let dayNum = 1; dayNum <= lastDayToGenerate; dayNum++) {
                 const weekNum = Math.ceil(dayNum / 7);
@@ -325,7 +222,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                     monthEntry.weeks.push(weekEntry);
                     monthEntry.weeks.sort((a, b) => a.weekNumber - b.weekNumber);
                 }
-                
+
                 // Check if day already exists
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
                 if (!dayExists) {
@@ -345,16 +242,14 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                             isGas: false,
                             isFood: false,
                             isOther: false,
-                            expenses: [],
-                            miscExp: [],
-                        }]
+                        }],
                     };
                     weekEntry.days.push(dayEntry);
                     weekEntry.days.sort((a, b) => a.dayNumber - b.dayNumber);
                 }
             }
         }
-        
+
         return updatedYears;
     });
 }
@@ -385,7 +280,7 @@ export function addFinanceEntry(
                                                 if (d.id === dayId) {
                                                     return {
                                                         ...d,
-                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, isOther: false, expenses:[], miscExp: [] }]
+                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, isOther: false, expenses: [], paycheck: '', miscExp: [] }]
                                                     };
                                                 }
                                                 return d;
@@ -482,16 +377,16 @@ export function updateFinanceEntryCheckbox(
                                 }
                                 if (currentEntry) break;
                             }
-                            
+
                             let discAmountAdjustment = 0;
                             let amerXAmountAdjustment = 0;
                             let foodAmountAdjustment = 0;
                             let gasAmountAdjustment = 0;
-                            
+
                             if (currentEntry) {
                                 const subVal = parseFloat(currentEntry.subAmount) || 0;
                                 const amount = Math.abs(subVal);
-                                
+
                                 // Handle HB radio button (Home Bank - regular checking)
                                 if (field === 'isHB') {
                                     if (value) {
@@ -518,7 +413,7 @@ export function updateFinanceEntryCheckbox(
                                         }
                                     }
                                 }
-                                
+
                                 // Handle Disc radio button
                                 if (field === 'isDisc') {
                                     if (value) {
@@ -544,7 +439,7 @@ export function updateFinanceEntryCheckbox(
                                         }
                                     }
                                 }
-                                
+
                                 // Handle AmerX radio button
                                 if (field === 'isAmerX') {
                                     if (value) {
@@ -570,7 +465,7 @@ export function updateFinanceEntryCheckbox(
                                         }
                                     }
                                 }
-                                
+
                                 // Handle Food radio button
                                 if (field === 'isFood') {
                                     // Only update Food amount if a credit card is checked
@@ -585,7 +480,7 @@ export function updateFinanceEntryCheckbox(
                                         }
                                     }
                                 }
-                                
+
                                 // Handle Gas radio button
                                 if (field === 'isGas') {
                                     // Only update Gas amount if a credit card is checked
@@ -600,11 +495,11 @@ export function updateFinanceEntryCheckbox(
                                         }
                                     }
                                 }
-                                
+
                                 // Handle Other radio button (no additional amounts to track)
                                 // Other is just a category marker
                             }
-                            
+
                             return {
                                 ...m,
                                 discAmount: roundCurrency((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
@@ -623,7 +518,7 @@ export function updateFinanceEntryCheckbox(
                                                             if (e.id === entryId) {
                                                                 // Update the field and uncheck other radio buttons in same group
                                                                 const updated = { ...e, [field]: value };
-                                                                
+
                                                                 // Payment method radio group (HB, Disc, AmerX)
                                                                 if (field === 'isHB' && value) {
                                                                     updated.isDisc = false;
@@ -652,7 +547,7 @@ export function updateFinanceEntryCheckbox(
                                                                     updated.isFood = false;
                                                                     updated.isGas = false;
                                                                 }
-                                                                
+
                                                                 return updated;
                                                             }
                                                             return e;
@@ -700,7 +595,7 @@ export function updateFinanceEntry(
                             let amerXAmountAdjustment = 0;
                             let foodAmountAdjustment = 0;
                             let gasAmountAdjustment = 0;
-                            
+
                             // Find old entry
                             for (const w of m.weeks) {
                                 for (const d of w.days) {
@@ -712,7 +607,7 @@ export function updateFinanceEntry(
                                 }
                                 if (oldEntry) break;
                             }
-                            
+
                             // Recalculate amounts if addAmount or subAmount field is being updated
                             if (oldEntry) {
                                 // Handle subAmount changes (spending on credit card)
@@ -722,7 +617,7 @@ export function updateFinanceEntry(
                                     const oldAmount = Math.abs(oldSubVal);
                                     const newAmount = Math.abs(newSubVal);
                                     const amountDiff = newAmount - oldAmount;
-                                    
+
                                     // Update Disc amount if Disc is checked
                                     if (oldEntry.isDisc) {
                                         discAmountAdjustment = amountDiff;
@@ -734,7 +629,7 @@ export function updateFinanceEntry(
                                             gasAmountAdjustment = amountDiff;
                                         }
                                     }
-                                    
+
                                     // Update AmerX amount if AmerX is checked
                                     if (oldEntry.isAmerX) {
                                         amerXAmountAdjustment = amountDiff;
@@ -747,25 +642,25 @@ export function updateFinanceEntry(
                                         }
                                     }
                                 }
-                                
+
                                 // Handle addAmount changes (paying off credit card)
                                 if (field === 'addAmount') {
                                     const oldAddVal = parseFloat(oldEntry.addAmount) || 0;
                                     const newAddVal = parseFloat(value) || 0;
                                     const amountDiff = newAddVal - oldAddVal;
-                                    
+
                                     // Add to Disc amount if Disc is checked
                                     if (oldEntry.isDisc) {
                                         discAmountAdjustment = amountDiff;
                                     }
-                                    
+
                                     // Add to AmerX amount if AmerX is checked
                                     if (oldEntry.isAmerX) {
                                         amerXAmountAdjustment = amountDiff;
                                     }
                                 }
                             }
-                            
+
                             return {
                                 ...m,
                                 discAmount: roundCurrency((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
@@ -851,7 +746,7 @@ export function calculateMonthTotal(month: FinanceMonth): number {
                                 // Skip this entry - it's a pure Disc or AmerX entry
                                 continue;
                             }
-                            
+
                             const addVal = parseFloat(entry.addAmount) || 0;
                             const subVal = parseFloat(entry.subAmount) || 0;
                             total += addVal - subVal;
@@ -925,7 +820,7 @@ export function calculateMonthGasTotal(month: FinanceMonth): number {
 export function calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number {
     // Get starting balance (copied from previous month via "Copy Prev" button)
     const startingBalance = parseFloat(month.balanceMonth) || 0;
-    
+
     // Calculate this month's HB transactions
     let monthHBTotal = 0;
     if (month.weeks) {
@@ -933,7 +828,7 @@ export function calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth):
             monthHBTotal += calculateWeekTotal(week); // Week total already only counts HB
         }
     }
-    
+
     return startingBalance + monthHBTotal;
 }
 

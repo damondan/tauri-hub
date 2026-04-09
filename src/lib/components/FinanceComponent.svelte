@@ -1,8 +1,8 @@
 <!-- src/lib/components/FinanceComponent.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { getMonthName } from '$lib/stores/general';
-  import FinanceCalendar from '$lib/components/FinanceCalendar.svelte';
+  import { onMount } from "svelte";
+  import { getMonthName } from "$lib/stores/general";
+  import FinanceCalendar from "$lib/components/FinanceCalendar.svelte";
   import {
     financeData,
     generateFinanceStructureToDate,
@@ -11,11 +11,6 @@
     updateFinanceEntry,
     updateFinanceEntryCheckbox,
     updateFinanceMonthAmount,
-    addOrUpdateExpense,
-    removeExpenseByName,
-    toggleExpensePaid,
-    expensesData,
-    sumExpenses,
     calculateYearTotal,
     calculateMonthTotal,
     calculateMonthHBBalance,
@@ -31,26 +26,6 @@
   let currentDay = new Date().getDate();
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
-
-  // Expense input fields
-  let expenseName = "";
-  let expenseCost = "";
-
-  // handleAddExpense(): void
-  function handleAddExpense() {
-    if (!expenseName.trim()) return;
-    addOrUpdateExpense(expenseName.trim(), expenseCost.trim());
-    expenseName = "";
-    expenseCost = "";
-  }
-
-  // handleRemoveExpense(): void
-  function handleRemoveExpense() {
-    if (!expenseName.trim()) return;
-    removeExpenseByName(expenseName.trim());
-    expenseName = "";
-    expenseCost = "";
-  }
 
   // onMount(): void
   onMount(() => {
@@ -125,7 +100,7 @@
 </script>
 
 <!-- Top-level Expenses section -->
-<div class="mb-4 bg-white/10 rounded-xl p-3">
+<!-- <div class="mb-4 bg-white/10 rounded-xl p-3">
   <div class="flex items-center gap-3">
     <div class="justify-center">
       <label class="text-white text-2xl font-semibold">Expenses</label>
@@ -157,14 +132,14 @@
     >
       -
     </button>
-    <!-- Display current top-level expenses -->
-    <div class="flex items-center gap-4 ml-4">
+   
+     <div class="flex items-center gap-4 ml-4">
       {#each $expensesData as exp (exp.id)}
         <span class="text-white/70 text-lg">{exp.name} ${exp.cost}</span>
       {/each}
-    </div>
+    </div> 
   </div>
-</div>
+</div> -->
 
 <!-- Empty state -->
 {#if $financeData.length === 0}
@@ -198,6 +173,7 @@
     {#if $financeExpandedYears[year.id]}
       <div class="ml-12 mt-2 space-y-2">
         {#each year.months as month (month.id)}
+         {@const presentMonth = new Date().getMonth()}
           {@const monthKey = `${year.id}-${month.id}`}
           <div class="bg-white/10 rounded-xl p-1">
             <div class="relative flex items-center justify-center gap-4">
@@ -313,28 +289,20 @@
               </div>
 
               <!-- HB Balance pinned to far right -->
-              <div
-                class="absolute right-0 text-white text-2xl font-semibold pr-2"
-              >
-                {formatCurrency(calculateMonthHBBalance(year, month))}
-              </div>
+              {#if presentMonth == month.monthNumber-1}
+                <div
+                  class="absolute right-0 text-green-600 text-3xl font-semibold pr-2"
+                >
+                  {formatCurrency(calculateMonthHBBalance(year, month))}
+                </div>
+              {:else}
+                <div
+                  class="absolute right-0 text-white text-2xl font-semibold pr-2"
+                >
+                  {formatCurrency(calculateMonthHBBalance(year, month))}
+                </div>
+              {/if}
             </div>
-
-            <!-- Month-level expenses display -->
-            {#if month.expenses && month.expenses.length > 0}
-              <div class="flex items-center gap-4 mt-1 px-3 pb-1 flex-wrap">
-                {#each month.expenses as exp (exp.id)}
-                  <span
-                    class="text-xl font-semibold {exp.paid
-                      ? 'text-green-500'
-                      : 'text-white/40'}"
-                  >
-                    {exp.name} ${exp.cost}{#if exp.paid && exp.datePaid}
-                      — {exp.datePaid}{/if}
-                  </span>
-                {/each}
-              </div>
-            {/if}
           </div>
 
           <!-- Level 3: Weeks (only show when month expanded) -->
@@ -357,7 +325,7 @@
                     </div>
 
                     <!-- Week-level expenses with checkboxes -->
-                    {#if month.expenses && month.expenses.length > 0}
+                    <!-- {#if month.expenses && month.expenses.length > 0}
                       <div class="flex-1 flex justify-center gap-10">
                         {#each month.expenses as exp (exp.id)}
                           <label
@@ -378,9 +346,9 @@
                       </div>
                     {:else}
                       <div class="flex-1"></div>
-                    {/if}
+                    {/if} -->
 
-                    <div class="text-white text-2xl font-semibold">
+                    <div class="ml-auto text-white text-2xl font-semibold">
                       {formatCurrency(calculateWeekTotal(week))}
                     </div>
                   </div>
