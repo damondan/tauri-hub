@@ -1,8 +1,10 @@
 <!-- src/lib/components/FinanceCalendar.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fade,fly } from 'svelte/transition';
+  import { fade, fly } from "svelte/transition";
   import { getDaysInMonth, getMonthName } from "$lib/stores/general";
+  import MonthSliderStatus from "$lib/components/MonthSliderStatus.svelte";
+
   import {
     calendarData,
     addOrUpdateFinancial,
@@ -20,6 +22,8 @@
   let todayDate: Date = $state(new Date());
 
   let showDayCalendarDialog = $state(false);
+  let showStatusDialog = $state(false);
+
   let payType: string = $state("expense");
   let payName: string = $state("");
   let payAmount: string = $state("");
@@ -118,9 +122,18 @@
       day === displayDay
     );
   }
-</script>
 
+  function showStatusDialogFunction(){
+    showStatusDialog = !showStatusDialog;
+  }
+</script>
+ <button class="text-white bg-black text-xl bg-purple-600" onclick={showStatusDialogFunction}>Status</button>
 <div class="flex justify-center">
+
+  {#if showStatusDialog == true}
+    <MonthSliderStatus />
+  {/if}
+  
   <div class="bg-white/10 rounded-xl p-3 w-7xl">
     <!-- Header with nav -->
     <div class="flex items-center justify-between mb-2">
@@ -130,6 +143,7 @@
       >
         ◀
       </button>
+     
       <div class="text-white text-4xl font-semibold">
         {getMonthName(displayMonth)}
         {displayYear}
@@ -189,7 +203,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "paycheck":"expense";
+                      payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -202,7 +216,7 @@
                   <!-- Gas / Food -->
                   <button
                     class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-red-500 hover:bg-red-600 cursor-crosshair"
-                     onclick={(e) => {
+                    onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
                         day: day.dayNumber,
@@ -211,7 +225,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "paycheck":"expense";
+                      payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -224,7 +238,7 @@
                   <!-- Other paycheck -->
                   <button
                     class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-orange-400 hover:bg-orange-500 cursor-crosshair"
-                     onclick={(e) => {
+                    onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
                         day: day.dayNumber,
@@ -233,7 +247,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "paycheck":"expense";
+                      payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -246,7 +260,7 @@
                   <!-- Other expense -->
                   <button
                     class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-blue-400 hover:bg-blue-500 cursor-crosshair"
-                     onclick={(e) => {
+                    onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
                         day: day.dayNumber,
@@ -255,7 +269,7 @@
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
-                      payType = cal.isPaycheck ? "paycheck":"expense";
+                      payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
                       showDayCalendarDialog = true;
@@ -272,13 +286,14 @@
       {/each}
     </div>
   </div>
-   <!-- // in:fade={{ duration: 500 }}
+  <!-- // in:fade={{ duration: 500 }}
     // out:fade={{ duration: 500 }} -->
   {#if showDayCalendarDialog == true}
-    <div 
-    in:fly={{ x: 50, duration: 800 }}
-    out:fly={{ x: 50, duration: 800 }}
-    class="flex flex-col w-80 h-auto border-2 border-red-600">
+    <div
+      in:fly={{ x: 50, duration: 800 }}
+      out:fly={{ x: 50, duration: 800 }}
+      class="flex flex-col w-80 h-auto border-2 border-red-600"
+    >
       <div class="flex flex-row justify-center">
         <label class="text-2xl text-white mr-3">Paycheck</label>
         <input

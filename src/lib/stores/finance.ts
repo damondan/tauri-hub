@@ -60,72 +60,7 @@ export interface FinanceYear {
     months: FinanceMonth[];
 }
 
-// export interface CalendarDay {
-//     id: string;
-//     date: string;
-//     isPaycheck: boolean;
-//     isExpense: boolean;
-//     expenses: Expenses[];
-//     amount: string;
-//     name: string;
-// }
-
-// export interface CalendarMonth {
-//     id: string;
-//     calDays: CalendarDay[];
-// }
-
-// export interface CalendarYears {
-//     id:string;
-//     calMonth: CalendarMonth[];
-// }
-
 export const financeData = writable<FinanceYear[]>([]);
-//export const calendarData = writable<CalendarYears[]>([]);
-
-
-// // toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void
-// // Toggles paid status on a month's expense. Sets datePaid to current datetime when paid, clears when unpaid.
-// export function toggleExpensePaid(yearId: string, monthId: string, expenseId: string): void {
-//     financeData.update((years) =>
-//         years.map((y) => {
-//             if (y.id === yearId) {
-//                 return {
-//                     ...y,
-//                     months: y.months.map((m) => {
-//                         if (m.id === monthId) {
-//                             return {
-//                                 ...m,
-//                                 expenses: (m.expenses || []).map((e) => {
-//                                     if (e.id === expenseId) {
-//                                         const nowPaid = !e.paid;
-//                                         return {
-//                                             ...e,
-//                                             paid: nowPaid,
-//                                             datePaid: nowPaid ? new Date().toLocaleDateString() : ''
-//                                         };
-//                                     }
-//                                     return e;
-//                                 })
-//                             };
-//                         }
-//                         return m;
-//                     })
-//                 };
-//             }
-//             return y;
-//         })
-//     );
-// }
-
-// // sumExpenses(expenses: Expenses[]): number
-// export function sumExpenses(expenses: Expenses[]): number {
-//     let total = 0;
-//     for (const exp of expenses) {
-//         total += parseFloat(exp.cost) || 0;
-//     }
-//     return total;
-// }
 
 // OnMount Generate Finance structure up to a specific date
 // generateFinanceStructureToDate(targetDate: Date): void
@@ -167,21 +102,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                         amerXIntAmount = prevMonth.amerXIntAmount || '';
                     }
                 }
-
-                // Carry forward expenses from previous month (reset paid status)
-                // let carriedExpenses: Expenses[] = [];
-                // if (monthNum > 1) {
-                //     const prevMonthForExpenses = yearEntry.months.find(m => m.monthNumber === monthNum - 1);
-                //     if (prevMonthForExpenses && prevMonthForExpenses.expenses) {
-                //         carriedExpenses = prevMonthForExpenses.expenses.map(e => ({
-                //             ...e,
-                //             id: makeId(),
-                //             paid: false,
-                //             datePaid: ''
-                //         }));
-                //     }
-                // }
-
+                
                 monthEntry = {
                     id: makeId(),
                     monthNumber: monthNum,

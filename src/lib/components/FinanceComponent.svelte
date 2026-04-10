@@ -99,48 +99,6 @@
   }
 </script>
 
-<!-- Top-level Expenses section -->
-<!-- <div class="mb-4 bg-white/10 rounded-xl p-3">
-  <div class="flex items-center gap-3">
-    <div class="justify-center">
-      <label class="text-white text-2xl font-semibold">Expenses</label>
-      <label class="text-white text-xl font-serif"
-        >Total<span class="ml-1">{sumExpenses($expensesData)}</span></label
-      >
-    </div>
-    <input
-      type="text"
-      class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-48"
-      placeholder="Name..."
-      bind:value={expenseName}
-    />
-    <input
-      type="text"
-      class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-28"
-      placeholder="Cost..."
-      bind:value={expenseCost}
-    />
-    <button
-      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-lg font-semibold"
-      on:click={handleAddExpense}
-    >
-      +
-    </button>
-    <button
-      class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg font-semibold"
-      on:click={handleRemoveExpense}
-    >
-      -
-    </button>
-   
-     <div class="flex items-center gap-4 ml-4">
-      {#each $expensesData as exp (exp.id)}
-        <span class="text-white/70 text-lg">{exp.name} ${exp.cost}</span>
-      {/each}
-    </div> 
-  </div>
-</div> -->
-
 <!-- Empty state -->
 {#if $financeData.length === 0}
   <div class="text-white/70 italic">Loading...</div>
