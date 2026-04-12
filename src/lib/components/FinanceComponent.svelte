@@ -21,11 +21,22 @@
     financeExpandedYears,
     financeExpandedMonths,
     financeExpandedWeeks,
+    type FinanceYear,
+    type FinanceMonth,
   } from "$lib/stores/finance";
 
   let currentDay = new Date().getDate();
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
+
+  let selectedPresentYear: FinanceYear = $state({
+    id:'',
+    year:new Date().getFullYear(),
+    months:[]
+  });
+  let selectedPresentMonth: FinanceMonth = $state({
+    id : '',monthNumber : 0, discAmount : '', discIntAmount : '', amerXAmount : '', amerXIntAmount : '', foodAmount : '', gasAmount : '',balanceMonth : '',weeks:[],
+  })
 
   // onMount(): void
   onMount(() => {
@@ -281,30 +292,6 @@
                     <div class="text-white text-3xl font-semibold">
                       {week.weekNumber} Week {week.startDay}-{week.endDay}
                     </div>
-
-                    <!-- Week-level expenses with checkboxes -->
-                    <!-- {#if month.expenses && month.expenses.length > 0}
-                      <div class="flex-1 flex justify-center gap-10">
-                        {#each month.expenses as exp (exp.id)}
-                          <label
-                            class="flex items-center gap-1 text-lg font-semibold {exp.paid
-                              ? 'text-green-500'
-                              : 'text-white/40'}"
-                          >
-                            {exp.name} ${exp.cost}
-                            <input
-                              type="checkbox"
-                              class="w-4 h-4 ml-1"
-                              checked={exp.paid || false}
-                              on:change={() =>
-                                toggleExpensePaid(year.id, month.id, exp.id)}
-                            />
-                          </label>
-                        {/each}
-                      </div>
-                    {:else}
-                      <div class="flex-1"></div>
-                    {/if} -->
 
                     <div class="ml-auto text-white text-2xl font-semibold">
                       {formatCurrency(calculateWeekTotal(week))}

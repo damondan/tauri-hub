@@ -102,7 +102,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                         amerXIntAmount = prevMonth.amerXIntAmount || '';
                     }
                 }
-                
+
                 monthEntry = {
                     id: makeId(),
                     monthNumber: monthNum,
@@ -511,7 +511,7 @@ export function updateFinanceEntry(
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
                             // Get the old entry to update amounts based on amount changes
-                            let oldEntry: FinanceEntry | undefined;
+                            let getFinanceEntry: FinanceEntry | undefined;
                             let discAmountAdjustment = 0;
                             let amerXAmountAdjustment = 0;
                             let foodAmountAdjustment = 0;
@@ -522,64 +522,59 @@ export function updateFinanceEntry(
                                 for (const d of w.days) {
                                     const found = d.entries.find(e => e.id === entryId);
                                     if (found) {
-                                        oldEntry = found;
+                                        getFinanceEntry = found;
                                         break;
                                     }
                                 }
-                                if (oldEntry) break;
+                                if (getFinanceEntry) break;
                             }
 
                             // Recalculate amounts if addAmount or subAmount field is being updated
-                            if (oldEntry) {
-                                // Handle subAmount changes (spending on credit card)
+                            if (getFinanceEntry) {
                                 if (field === 'subAmount') {
-                                    const oldSubVal = parseFloat(oldEntry.subAmount) || 0;
+                                    console.log("IN SUBAMOUNT and value is " + value);
+                                    
+                                    //parseFloat turns string into decimal number
+                                    const oldSubVal = parseFloat(getFinanceEntry.subAmount) || 0;
                                     const newSubVal = parseFloat(value) || 0;
+                                    //returns only positive. If -50 will return 50
                                     const oldAmount = Math.abs(oldSubVal);
                                     const newAmount = Math.abs(newSubVal);
                                     const amountDiff = newAmount - oldAmount;
 
                                     // Update Disc amount if Disc is checked
-                                    if (oldEntry.isDisc) {
-                                        discAmountAdjustment = amountDiff;
-                                        // Also update Food/Gas if those categories are checked
-                                        if (oldEntry.isFood) {
-                                            foodAmountAdjustment = amountDiff;
-                                        }
-                                        if (oldEntry.isGas) {
-                                            gasAmountAdjustment = amountDiff;
-                                        }
+                                    if (getFinanceEntry.isDisc) {
+                                        discAmountAdjustment = -Math.abs(amountDiff);
                                     }
-
                                     // Update AmerX amount if AmerX is checked
-                                    if (oldEntry.isAmerX) {
-                                        amerXAmountAdjustment = amountDiff;
-                                        // Also update Food/Gas if those categories are checked
-                                        if (oldEntry.isFood) {
-                                            foodAmountAdjustment = amountDiff;
-                                        }
-                                        if (oldEntry.isGas) {
-                                            gasAmountAdjustment = amountDiff;
-                                        }
+                                    if (getFinanceEntry.isAmerX) {
+                                        amerXAmountAdjustment = -Math.abs(amountDiff);
                                     }
                                 }
 
                                 // Handle addAmount changes (paying off credit card)
                                 if (field === 'addAmount') {
-                                    const oldAddVal = parseFloat(oldEntry.addAmount) || 0;
+                                    const oldAddVal = parseFloat(getFinanceEntry.addAmount) || 0;
                                     const newAddVal = parseFloat(value) || 0;
                                     const amountDiff = newAddVal - oldAddVal;
 
                                     // Add to Disc amount if Disc is checked
-                                    if (oldEntry.isDisc) {
+                                    if (getFinanceEntry.isDisc) {
                                         discAmountAdjustment = amountDiff;
+                                         if (getFinanceEntry.isFood) {
+                                            foodAmountAdjustment = amountDiff;
+                                        }
+                                        if (getFinanceEntry.isGas) {
+                                            gasAmountAdjustment = amountDiff;
+                                        }
                                     }
 
                                     // Add to AmerX amount if AmerX is checked
-                                    if (oldEntry.isAmerX) {
+                                    if (getFinanceEntry.isAmerX) {
                                         amerXAmountAdjustment = amountDiff;
                                     }
                                 }
+                                console.log("in RETURN and discAmountAdjusment is " +discAmountAdjustment + "and gas amount is " + m.gasAmount);
                             }
 
                             return {
@@ -587,7 +582,7 @@ export function updateFinanceEntry(
                                 discAmount: roundCurrency((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
                                 amerXAmount: roundCurrency((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
                                 foodAmount: roundCurrency((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
-                                gasAmount: roundCurrency((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
+                                gasAmount: roundCurrency((parseFloat(m.gasAmount) || 0) - gasAmountAdjustment).toString(),
                                 weeks: m.weeks.map((w) => {
 
                                     if (w.id === weekId) { //The specific week in
@@ -691,8 +686,7 @@ export function calculateMonthFoodTotal(month: FinanceMonth): number {
                     if (day.entries) {
                         for (const entry of day.entries) {
                             if (entry.isFood) {
-                                const subVal = parseFloat(entry.subAmount) || 0;
-                                // If it's a card purchase (Disc/AmerX), use subAmount as positive; otherwise use subAmount as-is
+                                const subVal = parseFloat(entry.addAmount) || 0;
                                 if (entry.isDisc || entry.isAmerX) {
                                     total += Math.abs(subVal);
                                 } else {
@@ -798,4 +792,18 @@ export function updateFinanceMonthAmount(
     );
 }
 
+export function getFinanceMonthFromNumber(financeData: FinanceYear[]): FinanceMonth | undefined{
+    const getMonth = new Date().getMonth() + 1;
+    const getYear = new Date().getFullYear();
+    return financeData
+        .find(y => y.year === getYear)
+        ?.months.find(m => m.monthNumber === getMonth);
 
+}
+
+export function getFinanceYearFromNumber(financeData: FinanceYear[]): FinanceYear | undefined{
+    const getMonth = new Date().getMonth() + 1;
+    const getYear = new Date().getFullYear();
+     return financeData
+        .find(y => y.year === getYear)
+}

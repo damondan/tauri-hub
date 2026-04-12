@@ -13,8 +13,8 @@ export interface CalendarFinanceDayEntry {
     id: string;
     name: string;
     amount: string;
-    datePaid: string;
-    dateDue: string;
+    datePaid: string | null;
+    dateDue: string | null;
     isPaycheck: boolean;
 }
 
@@ -103,58 +103,17 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
     });
 }
 
-// export function addOrUpdateFinancial(payType: string, name: string, amount: string,
-//     day: number, month: number, year: number, entry: CalendarFinanceDayEntry | null): void {
-//     console.log("addOrUpdateExpense");
-//     console.log("payType= " + payType + "name= " + name + " amount= " + amount + " day = " + day + " month = " + month + " year= " + year);
-//      const entryId = entry ? entry.id : makeId();
-//         calendarData.update((years) => {
-//             return years.map((y) => {
-//                 if (y.yearNumber === year) {
-//                     return {
-//                         ...y,
-//                         months: y.months.map((m) => {
-//                             if (m.monthNumber !== month) return m;
-//                             return {
-//                                 ...m,
-//                                 days: m.days.map((d) => {
-//                                     if (d.dayNumber === day) {
-//                                         return {
-//                                             ...d,
-//                                             calEntries: [
-//                                                 ...d.calEntries,
-//                                                 {
-//                                                     id: entryId,
-//                                                     name,
-//                                                     amount,
-//                                                     datePaid: "",
-//                                                     dateDue: String(day),
-//                                                     isPaycheck: payType !== "expense"
-//                                                 }
-//                                             ]
-//                                         };
-//                                     }
-//                                     return d; // ✅ must return original
-//                                 })
-//                             };
-//                         })
-//                     };
-//                 }
-//                 return y; // ✅ must return original
-//             });
-//         });
-//     }
-
 export function addOrUpdateFinancial(
     payType: string,
     name: string,
     amount: string,
+    datePaid: string | null,
     day: number,
     month: number,
     year: number,
     entry: CalendarFinanceDayEntry | null
 ): void {
-    console.log("addOrUpdateFinancial", { payType, name, amount, day, month, year, entry });
+    console.log("addOrUpdateFinancial", { payType, name, amount, datePaid, day, month, year, entry });
 
     const entryId = entry?.id || makeId();
 
@@ -183,7 +142,7 @@ export function addOrUpdateFinancial(
                                                             amount,
                                                             isPaycheck: payType !== "expense",
                                                             dateDue: String(day),
-                                                            datePaid: e.datePaid || ""
+                                                            datePaid
                                                         }
                                                         : e
                                                 )
@@ -193,7 +152,7 @@ export function addOrUpdateFinancial(
                                                         id: entryId,
                                                         name,
                                                         amount,
-                                                        datePaid: "",
+                                                        datePaid: null,
                                                         dateDue: String(day),
                                                         isPaycheck: payType !== "expense"
                                                     }
@@ -261,3 +220,56 @@ export function getDaysInMonthCal(month: number, year: number): CalendarMonth | 
     const monthEntry = yearEntry.months.find((m) => m.monthNumber === month);
     return monthEntry;
 }
+
+// const cleanDatePaid = (value: unknown): string | null => {
+//   return typeof value === "string" && value.trim() !== ""
+//     ? value
+//     : null;
+// };
+
+export function getMonthSpent() {
+
+}
+
+export function getMonthLeft() {
+
+}
+
+export function foodSpent() {
+
+}
+
+export function foodLeft() {
+
+}
+
+export function gasSpent() {
+
+}
+
+export function gasLeft() {
+
+}
+
+export function expensesTotal() {
+
+}
+
+export function expensesPaid() {
+
+}
+
+export function expensesLeft() {
+
+}
+
+export function updatedPay() {
+
+}
+
+export function updatedPayLeftOver() {
+
+}
+
+
+

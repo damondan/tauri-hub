@@ -16,6 +16,7 @@
     type CalendarFinanceDayEntry,
   } from "$lib/stores/calendar";
 
+  
   let displayYear: number = $state(0);
   let displayMonth: number = $state(0);
   let displayDay: number = $state(0);
@@ -46,7 +47,7 @@
     console.log("Today is the " + displayDay + " of April");
     displayYear = todayDate.getFullYear();
     displayMonth = todayDate.getMonth() + 1; // 1-12
-
+    
     const currentData = $calendarData;
 
     // Check if we need to regenerate (empty or old structure without days array)
@@ -123,17 +124,33 @@
     );
   }
 
-  function showStatusDialogFunction(){
+  function showStatusDialogFunction() {
     showStatusDialog = !showStatusDialog;
   }
-</script>
- <button class="text-white bg-black text-xl bg-purple-600" onclick={showStatusDialogFunction}>Status</button>
-<div class="flex justify-center">
 
+  // function togglePaid(e:Event) {
+  //   const input = e.currentTarget as HTMLInputElement;
+
+  //     expensePaidEntry.datePaid = input.checked
+  //       ? new Date().toISOString()
+  //       : null;
+  //   }
+</script>
+
+<button
+  class="text-white bg-black text-xl bg-purple-600"
+  onclick={showStatusDialogFunction}>Status</button
+>
+<div class="flex justify-center">
   {#if showStatusDialog == true}
-    <MonthSliderStatus />
+    <div
+      in:fly={{ x: -50, duration: 800 }}
+      out:fly={{ x: -50, duration: 800 }}
+      class=""
+    >
+      <MonthSliderStatus />
+    </div>
   {/if}
-  
   <div class="bg-white/10 rounded-xl p-3 w-7xl">
     <!-- Header with nav -->
     <div class="flex items-center justify-between mb-2">
@@ -143,7 +160,7 @@
       >
         ◀
       </button>
-     
+
       <div class="text-white text-4xl font-semibold">
         {getMonthName(displayMonth)}
         {displayYear}
@@ -257,9 +274,13 @@
                     {cal.amount}
                   </button>
                 {:else if !cal.isPaycheck && !["Gas", "Food"].includes(cal.name)}
+                  {@const isExpPaid = cal.datePaid != null}
+                 {@const debugDate = cal.datePaid?.toString}
                   <!-- Other expense -->
                   <button
-                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-blue-400 hover:bg-blue-500 cursor-crosshair"
+                    class={`w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-blue-400 
+                    hover:bg-blue-500 cursor-crosshair
+                    ${isExpPaid ? "bg-green-400 hover:bg-green-500" : "bg-blue-400 hover:bg-blue-500"}`}
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
@@ -277,6 +298,8 @@
                   >
                     {cal.name}
                     {cal.amount}
+                    {debugDate}
+                    <!-- {isExpPaid ? "Paid" : "Mark Paid"} -->
                   </button>
                 {/if}
               {/each}
@@ -314,6 +337,18 @@
           bind:group={payType}
         />
       </div>
+      <div class="flex flex-row justify-center">
+        <label class="text-2xl text-white mr-3">Is Paid</label>
+        <input
+          type="checkbox"
+          checked={selectedEntry?.datePaid != null}
+          onchange={(e) => {
+            const checked = e.currentTarget.checked;
+            if(!selectedEntry) return;
+            selectedEntry.datePaid = checked ? new Date().toISOString() : null;
+          }}
+        />
+      </div>
       <div class="flex flex-col mt-3 items-center">
         <label class="text-2xl text-white mr-3">Name</label>
         <textarea
@@ -334,10 +369,12 @@
         <button
           class="w-20 h-10 rounded-2xl text-white bg-green-400 hover:bg-green-900"
           onclick={() => {
+            if(!selectedEntry) return;
             addOrUpdateFinancial(
               payType,
               payName,
               payAmount,
+              selectedEntry.datePaid,
               selectedDayMonthYear!.day,
               selectedDayMonthYear!.month,
               selectedDayMonthYear!.year,
@@ -371,10 +408,12 @@
           <button
             class="w-20 h-10 rounded-2xl text-white bg-purple-500 hover:bg-purple-700"
             onclick={() => {
+               if(!selectedEntry) return;
               addOrUpdateFinancial(
                 payType,
                 payName,
                 payAmount,
+                selectedEntry.datePaid,
                 selectedDayMonthYear!.day,
                 selectedDayMonthYear!.month,
                 selectedDayMonthYear!.year,
@@ -393,7 +432,6 @@
             payType = "expense";
             payName = "";
             payAmount = "";
-
             showDayCalendarDialog = false;
           }}>Cancel</button
         >
