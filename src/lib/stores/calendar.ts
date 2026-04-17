@@ -2,6 +2,8 @@
 
 import { get, writable } from 'svelte/store';
 import { makeId, getDaysInMonth } from '$lib/stores/general';
+import FinanceCalendar from '$lib/components/FinanceCalendar.svelte';
+import { monitorFromPoint } from '@tauri-apps/api/window';
 
 export interface miscExpenses {
     id: string;
@@ -16,6 +18,7 @@ export interface CalendarFinanceDayEntry {
     datePaid: string | null;
     dateDue: string | null;
     isPaycheck: boolean;
+    note: string;
 }
 
 export interface CalendarDay {
@@ -27,6 +30,10 @@ export interface CalendarDay {
 export interface CalendarMonth {
     id: string;
     monthNumber: number;
+    monthBalLimit: string;
+    monthSpent: string;
+    foodLimit: string;
+    gasLimit: string;
     days: CalendarDay[];
 }
 
@@ -64,7 +71,11 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
                 yearEntry.months[monthNum - 1] = {
                     id: makeId(),
                     monthNumber: monthNum,
-                    days: []
+                    monthBalLimit: "",
+                    monthSpent: "",
+                    foodLimit: "",
+                    gasLimit: "",
+                    days: [],
                 };
             }
 
@@ -111,9 +122,10 @@ export function addOrUpdateFinancial(
     day: number,
     month: number,
     year: number,
-    entry: CalendarFinanceDayEntry | null
+    note: string,
+    entry: CalendarFinanceDayEntry
 ): void {
-    console.log("addOrUpdateFinancial", { payType, name, amount, datePaid, day, month, year, entry });
+    console.log("addOrUpdateFinancial", { payType, name, amount, datePaid, day, month, year, note, entry });
 
     const entryId = entry?.id || makeId();
 
@@ -133,7 +145,8 @@ export function addOrUpdateFinancial(
                                         ? d
                                         : {
                                             ...d,
-                                            calEntries: entry
+                                            calEntries: 
+                                                entry?.id && entry.id !== ""
                                                 ? d.calEntries.map((e) =>
                                                     e.id === entry.id
                                                         ? {
@@ -142,7 +155,8 @@ export function addOrUpdateFinancial(
                                                             amount,
                                                             isPaycheck: payType !== "expense",
                                                             dateDue: String(day),
-                                                            datePaid
+                                                            datePaid,
+                                                            note,
                                                         }
                                                         : e
                                                 )
@@ -154,7 +168,8 @@ export function addOrUpdateFinancial(
                                                         amount,
                                                         datePaid: null,
                                                         dateDue: String(day),
-                                                        isPaycheck: payType !== "expense"
+                                                        isPaycheck: payType !== "expense",
+                                                        note,
                                                     }
                                                 ]
                                         }
@@ -220,15 +235,64 @@ export function getDaysInMonthCal(month: number, year: number): CalendarMonth | 
     const monthEntry = yearEntry.months.find((m) => m.monthNumber === month);
     return monthEntry;
 }
+// Not good. Neets to have an argument that inputs the year that is active on the tabs.
+export function getFinanceYearCal(calYears: CalendarYear[], calYear: CalendarYear): CalendarYear | undefined {
+    return calYears
+        .find(y => y.yearNumber === calYear.yearNumber)
 
-// const cleanDatePaid = (value: unknown): string | null => {
-//   return typeof value === "string" && value.trim() !== ""
-//     ? value
-//     : null;
-// };
+}
+// Not good. Neets to have an argument that inputs the year that is active on the tabs.
+export function getFinanceMonthCal(calYears: CalendarYear[], calYear: number, calMonth: number): CalendarMonth | undefined {
+    return calYears
+        .find(y => y.yearNumber === calYear)
+        ?.months.find(m => m.monthNumber === calMonth);
+}
+////Is triggered by getMonthStatus in clicking Go button
+export function setCalMonthLimits(calYear: number, 
+        calMonth: number, incomeLimit: string,
+        foodLimit: string, gasLimit: string): void {
+            console.log("In setCalMonthIncomeLimit");
+            console.log(`Cal Year is ${calYear} and Cal Month is ${calMonth} and incomeLimit is ${incomeLimit} and foodLimit is ${foodLimit}`)
+    calendarData.update((years) =>
+        years.map((y) =>
+            y.yearNumber !== calYear
+                ? y
+                : {
+                    ...y,
+                    months: y.months.map((m) =>
+                        m.monthNumber !== calMonth
+                            ? m
+                            : {
+                                ...m,
+                                monthBalLimit: incomeLimit,
+                                foodLimit,
+                                gasLimit,
+                            }
+                    )
+                }
+        )
+    );
+}
 
-export function getMonthSpent() {
+export function getMonthExpensesSpent(years: CalendarYear[],
+    year: number, month: number): number {
+    const foundMonth = years
+        .find(y => y.yearNumber === year)
+        ?.months.find(m => m.monthNumber === month);
 
+    if (!foundMonth) return 0;
+
+    return foundMonth.days.reduce((monthTotal, day) => {
+        const dayTotal = day.calEntries.reduce((entryTotal, entry) => {
+            if (!entry.name || entry.name.trim() === "") return entryTotal;
+
+            const amount = Number(entry.amount) || 0;
+
+            return entryTotal + amount;
+        }, 0);
+console.log(`Month Expense total is ${monthTotal + dayTotal}`)
+        return monthTotal + dayTotal;
+    }, 0);
 }
 
 export function getMonthLeft() {

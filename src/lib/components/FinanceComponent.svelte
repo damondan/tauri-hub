@@ -14,13 +14,13 @@
     calculateYearTotal,
     calculateMonthTotal,
     calculateMonthHBBalance,
-    calculateMonthFoodTotal,
-    calculateMonthGasTotal,
     calculateWeekTotal,
     formatCurrency,
     financeExpandedYears,
     financeExpandedMonths,
     financeExpandedWeeks,
+    calculateMonthFoodTotal,
+    calculateMonthGasTotal,
     type FinanceYear,
     type FinanceMonth,
   } from "$lib/stores/finance";
@@ -53,7 +53,7 @@
     if (needsRegeneration) {
       financeData.set([]);
     }
-
+   
     generateFinanceStructureToDate(today);
   });
 

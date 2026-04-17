@@ -14,43 +14,43 @@ export const financeExpandedWeeks = writable<Record<string, boolean>>({});
 // Finance
 export interface FinanceEntry {
     id: string;
-    addAmount: string; // User input for addition
-    subAmount: string; // User input for subtraction
+    addAmount: string;
+    subAmount: string;
     description: string;
-    isHB: boolean; // Home Bank (checking account)
-    isDisc: boolean; // Discover card checkbox
-    isAmerX: boolean; // American Express checkbox
-    isGas: boolean; // Gas category checkbox
-    isFood: boolean; // Food category checkbox
-    isOther: boolean; // Other category checkbox
+    isHB: boolean;
+    isDisc: boolean;
+    isAmerX: boolean;
+    isGas: boolean;
+    isFood: boolean;
+    isOther: boolean;
 }
 
 export interface FinanceDay {
     id: string;
-    dayNumber: number; // 1-31
-    dayOfWeek: string; // 'Monday', 'Tuesday', etc.
+    dayNumber: number;
+    dayOfWeek: string;
     entries: FinanceEntry[];
 }
 
 export interface FinanceWeek {
     id: string;
-    weekNumber: number; // 1, 2, 3, 4, 5
-    startDay: number; // First day number in week (e.g., 1, 8, 15)
-    endDay: number; // Last day number in week (e.g., 7, 14, 21)
+    weekNumber: number;
+    startDay: number;
+    endDay: number;
     balanceWeek: string;
     days: FinanceDay[];
 }
 
 export interface FinanceMonth {
     id: string;
-    monthNumber: number; // 1-12 (1=January, 2=February, etc.)
-    discAmount: string; // Discover card amount
-    discIntAmount: string; // Discover interest amount
-    amerXAmount: string; // American Express amount
-    amerXIntAmount: string; // American Express interest amount
-    foodAmount: string; // Food category total
-    gasAmount: string; // Gas category total
-    balanceMonth: string; // Home Bank balance
+    monthNumber: number;
+    discAmount: string;
+    discIntAmount: string;
+    amerXAmount: string;
+    amerXIntAmount: string;
+    foodAmount: string;
+    gasAmount: string;
+    balanceMonth: string;
     weeks: FinanceWeek[];
 }
 
@@ -71,7 +71,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
 
     financeData.update((years) => {
         const updatedYears = [...years];
-
+        console.log(`In generateFinancialStructureToDate`);
         // Find or create year
         let yearEntry = updatedYears.find(y => y.year === targetYear);
         if (!yearEntry) {
@@ -146,6 +146,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
 
                 // Check if day already exists
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
+               
                 if (!dayExists) {
                     const dayOfWeek = getDayOfWeek(targetYear, monthNum, dayNum);
                     const dayEntry: FinanceDay = {
@@ -165,6 +166,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                             isOther: false,
                         }],
                     };
+
                     weekEntry.days.push(dayEntry);
                     weekEntry.days.sort((a, b) => a.dayNumber - b.dayNumber);
                 }
@@ -201,7 +203,9 @@ export function addFinanceEntry(
                                                 if (d.id === dayId) {
                                                     return {
                                                         ...d,
-                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, isOther: false, expenses: [], paycheck: '', miscExp: [] }]
+                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', 
+                                                            isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, 
+                                                            isOther: false }]
                                                     };
                                                 }
                                                 return d;
@@ -533,7 +537,7 @@ export function updateFinanceEntry(
                             if (getFinanceEntry) {
                                 if (field === 'subAmount') {
                                     console.log("IN SUBAMOUNT and value is " + value);
-                                    
+
                                     //parseFloat turns string into decimal number
                                     const oldSubVal = parseFloat(getFinanceEntry.subAmount) || 0;
                                     const newSubVal = parseFloat(value) || 0;
@@ -561,7 +565,7 @@ export function updateFinanceEntry(
                                     // Add to Disc amount if Disc is checked
                                     if (getFinanceEntry.isDisc) {
                                         discAmountAdjustment = amountDiff;
-                                         if (getFinanceEntry.isFood) {
+                                        if (getFinanceEntry.isFood) {
                                             foodAmountAdjustment = amountDiff;
                                         }
                                         if (getFinanceEntry.isGas) {
@@ -574,7 +578,7 @@ export function updateFinanceEntry(
                                         amerXAmountAdjustment = amountDiff;
                                     }
                                 }
-                                console.log("in RETURN and discAmountAdjusment is " +discAmountAdjustment + "and gas amount is " + m.gasAmount);
+                                console.log("in RETURN and discAmountAdjusment is " + discAmountAdjustment + "and gas amount is " + m.gasAmount);
                             }
 
                             return {
@@ -582,7 +586,7 @@ export function updateFinanceEntry(
                                 discAmount: roundCurrency((parseFloat(m.discAmount) || 0) + discAmountAdjustment).toString(),
                                 amerXAmount: roundCurrency((parseFloat(m.amerXAmount) || 0) + amerXAmountAdjustment).toString(),
                                 foodAmount: roundCurrency((parseFloat(m.foodAmount) || 0) + foodAmountAdjustment).toString(),
-                                gasAmount: roundCurrency((parseFloat(m.gasAmount) || 0) - gasAmountAdjustment).toString(),
+                                gasAmount: roundCurrency((parseFloat(m.gasAmount) || 0) + gasAmountAdjustment).toString(),
                                 weeks: m.weeks.map((w) => {
 
                                     if (w.id === weekId) { //The specific week in
@@ -647,6 +651,57 @@ export function calculateWeekTotal(week: FinanceWeek): number {
     return total;
 }
 
+export function calculateMonthFoodTotal(month: FinanceMonth): number {
+    let total = 0;
+    if (month.weeks) {
+        for (const week of month.weeks) {
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            if (entry.isFood) {
+                                const subVal = parseFloat(entry.addAmount) || 0;
+                                if (entry.isDisc || entry.isAmerX) {
+                                    total += Math.abs(subVal);
+                                } else {
+                                    total += subVal;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return total;
+}
+
+export function calculateMonthGasTotal(month: FinanceMonth): number {
+    let total = 0;
+    if (month.weeks) {
+        for (const week of month.weeks) {
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            if (entry.isGas) {
+                                const subVal = parseFloat(entry.subAmount) || 0;
+                                // If it's a card purchase (Disc/AmerX), use subAmount as positive; otherwise use subAmount as-is
+                                if (entry.isDisc || entry.isAmerX) {
+                                    total += Math.abs(subVal);
+                                } else {
+                                    total += subVal;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return total;
+}
+
 // Calculate month total (excluding Disc and AmerX entries unless they also have Food/Gas)
 // calculateMonthTotal(month: FinanceMonth): number
 export function calculateMonthTotal(month: FinanceMonth): number {
@@ -675,59 +730,41 @@ export function calculateMonthTotal(month: FinanceMonth): number {
     return total;
 }
 
-// Calculate Food total for a month (including Food entries with Disc/AmerX)
-// calculateMonthFoodTotal(month: FinanceMonth): number
-export function calculateMonthFoodTotal(month: FinanceMonth): number {
-    let total = 0;
-    if (month.weeks) {
-        for (const week of month.weeks) {
-            if (week.days) {
-                for (const day of week.days) {
-                    if (day.entries) {
-                        for (const entry of day.entries) {
-                            if (entry.isFood) {
-                                const subVal = parseFloat(entry.addAmount) || 0;
-                                if (entry.isDisc || entry.isAmerX) {
-                                    total += Math.abs(subVal);
-                                } else {
-                                    total += subVal;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return total;
-}
+export function calculateFoodGasOtherTotal(financeYears: FinanceYear[], financeYear: number, financeMonth: number): string {
+    const foundMonth = financeYears
+        .find(y => y.year === financeYear)
+        ?.months.find(m => m.monthNumber === financeMonth);
 
-// Calculate Gas total for a month (including Gas entries with Disc/AmerX)
-// calculateMonthGasTotal(month: FinanceMonth): number
-export function calculateMonthGasTotal(month: FinanceMonth): number {
-    let total = 0;
-    if (month.weeks) {
-        for (const week of month.weeks) {
+    if (!foundMonth) {
+        return "";
+    }
+ 
+     let total = 0;
+    if (foundMonth.weeks) {
+        for (const week of foundMonth.weeks) {
             if (week.days) {
                 for (const day of week.days) {
                     if (day.entries) {
                         for (const entry of day.entries) {
-                            if (entry.isGas) {
-                                const subVal = parseFloat(entry.subAmount) || 0;
-                                // If it's a card purchase (Disc/AmerX), use subAmount as positive; otherwise use subAmount as-is
-                                if (entry.isDisc || entry.isAmerX) {
-                                    total += Math.abs(subVal);
-                                } else {
-                                    total += subVal;
+                            const addVal = parseFloat(entry.addAmount) || 0;
+                            const subVal = parseFloat(entry.subAmount) || 0;
+                            if (entry.isDisc || entry.isAmerX) {
+                                if(entry.isFood || entry.isGas || entry.isOther){
+                                    total += addVal;
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.addAmount}`);
                                 }
+                            }else{
+                                total += Math.abs(subVal);
+                                console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.subAmount}`);
                             }
                         }
                     }
                 }
             }
         }
-    }
-    return total;
+}
+Math.floor(total);
+return total.toString();
 }
 
 // Calculate HB balance for a month (starting balance from balanceMonth + this month's HB transactions)
@@ -792,18 +829,14 @@ export function updateFinanceMonthAmount(
     );
 }
 
-export function getFinanceMonthFromNumber(financeData: FinanceYear[]): FinanceMonth | undefined{
-    const getMonth = new Date().getMonth() + 1;
-    const getYear = new Date().getFullYear();
+export function getFinanceMonthFin(financeData: FinanceYear[], financeYear: number, financeMonth: number): FinanceMonth | undefined {
     return financeData
-        .find(y => y.year === getYear)
-        ?.months.find(m => m.monthNumber === getMonth);
+        .find(y => y.year === financeYear)
+        ?.months.find(m => m.monthNumber === financeMonth);
 
 }
 
-export function getFinanceYearFromNumber(financeData: FinanceYear[]): FinanceYear | undefined{
-    const getMonth = new Date().getMonth() + 1;
-    const getYear = new Date().getFullYear();
-     return financeData
-        .find(y => y.year === getYear)
+export function getFinanceYearFin(financeData: FinanceYear[], financeYear: number): FinanceYear | undefined {
+    return financeData
+        .find(y => y.year === financeYear)
 }

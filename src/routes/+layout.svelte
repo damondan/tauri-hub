@@ -6,19 +6,21 @@
 	import Navigation from "$lib/components/Navigation.svelte";
 	import { loadUserData, initPersistence } from "$lib/persistence";
 
-	let backupStatus = $state<'idle' | 'saving' | 'done'>('idle');
+	let backupStatus = $state<"idle" | "saving" | "done">("idle");
 
 	// backupData(): Promise<void>
 	// Invokes backup_user_data Rust command and shows brief status feedback
 	async function backupData() {
 		try {
-			backupStatus = 'saving';
-			await invoke('backup_user_data');
-			backupStatus = 'done';
-			setTimeout(() => { backupStatus = 'idle'; }, 2000);
+			backupStatus = "saving";
+			await invoke("backup_user_data");
+			backupStatus = "done";
+			setTimeout(() => {
+				backupStatus = "idle";
+			}, 2000);
 		} catch (error) {
-			console.error('Failed to backup:', error);
-			backupStatus = 'idle';
+			console.error("Failed to backup:", error);
+			backupStatus = "idle";
 		}
 	}
 
@@ -47,7 +49,7 @@
 			// Initialize auto-save after loading
 			initPersistence();
 		});
-		
+
 		updateRamUsage();
 		updateGpuUsage();
 		updateDiskUsage();
@@ -57,8 +59,10 @@
 		const diskInterval = setInterval(updateDiskUsage, 1000);
 
 		// Play background audio
-		audio = new Audio('/jorelToSuperman.mp3');
-		audio.play().catch(err => console.log('Audio autoplay blocked:', err));
+		audio = new Audio("/jorelToSuperman.mp3");
+		audio
+			.play()
+			.catch((err) => console.log("Audio autoplay blocked:", err));
 
 		return () => {
 			clearInterval(ramInterval);
@@ -66,18 +70,18 @@
 			clearInterval(diskInterval);
 			if (audio) {
 				audio.pause();
-				audio.src = '';
+				audio.src = "";
 			}
 		};
 	});
 
-		// Clean up when component unmounts
+	// Clean up when component unmounts
 	// onDestroy(): void
 	onDestroy(() => {
 		if (audio) {
-		audio.pause();
-		audio.src = '';
-		audio = null;
+			audio.pause();
+			audio.src = "";
+			audio = null;
 		}
 	});
 
@@ -111,7 +115,6 @@
 		try {
 			const [used, avail, total] =
 				await invoke<[number, number, number]>("get_disk_usage");
-				console.log("in updateDiskUsage and diskUsed is " + diskUsed);
 			diskUsed = used;
 			diskAvailable = avail;
 			diskTotal = total;
@@ -168,7 +171,7 @@
 			recordingStatus = "Processing";
 			const text = await invoke<string>("stop_recording_and_transcribe", {
 				inputLang: inputLanguage,
-				outputLang: outputLanguage
+				outputLang: outputLanguage,
 			});
 			transcribedText = text;
 			recordingStatus = "Idle";
@@ -207,8 +210,6 @@
 		) {
 			return;
 		}
-
-		console.log("Key:", e.key, "Alt:", e.altKey);
 
 		if (e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
 			if (e.key === "3") {
@@ -302,145 +303,151 @@
 		</div>
 
 		<!-- Speech To Text -->
-			<div class="flex flex-wrap gap-4 mb-4 items-stretch">
-				<!-- Backup Button -->
-				<button
-					onclick={backupData}
-					disabled={backupStatus === 'saving'}
-					class="px-3 h-[52px] rounded-lg font-semibold text-sm transition-all
+		<div class="flex flex-wrap gap-4 mb-4 items-stretch">
+			<!-- Backup Button -->
+			<button
+				onclick={backupData}
+				disabled={backupStatus === "saving"}
+				class="px-3 h-[52px] rounded-lg font-semibold text-sm transition-all
 						{backupStatus === 'done' ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}
 						text-white disabled:opacity-50"
-				>
-					{#if backupStatus === 'saving'}
-						💾...
-					{:else if backupStatus === 'done'}
-						✅
-					{:else}
-						💾
-					{/if}
-				</button>
+			>
+				{#if backupStatus === "saving"}
+					💾...
+				{:else if backupStatus === "done"}
+					✅
+				{:else}
+					💾
+				{/if}
+			</button>
 
-				<!-- Disk Usage and Language Selection -->
-				<div class="flex flex-col justify-between h-[52px]">
-					<!--Disk Usage-->
-					<h1 class="text-white text-lg leading-tight">AD {(diskAvailable / 1073741824).toFixed(1)}</h1>
-					
-					<!-- Language Selection -->
-					<div class="flex flex-col gap-0.5 text-xs">
-						<!-- English row -->
-						<div class="flex items-center gap-2 text-white">
-							<span class="w-6">en</span>
-							<label class="flex items-center gap-1 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={inputLanguage === "en"}
-									onchange={() => handleInputLanguageChange("en")}
-									class="w-3 h-3 cursor-pointer"
-								/>
-								<span class="text-[10px]">in</span>
-							</label>
-							<label class="flex items-center gap-1 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={outputLanguage === "en"}
-									onchange={() => handleOutputLanguageChange("en")}
-									class="w-3 h-3 cursor-pointer"
-								/>
-								<span class="text-[10px]">out</span>
-							</label>
-						</div>
-						
-						<!-- Spanish row -->
-						<div class="flex items-center gap-2 text-white">
-							<span class="w-6">sp</span>
-							<label class="flex items-center gap-1 cursor-pointer">
-								<input
-									type="checkbox"
-									checked={inputLanguage === "es"}
-									onchange={() => handleInputLanguageChange("es")}
-									class="w-3 h-3 cursor-pointer"
-								/>
-								<span class="text-[10px]">in</span>
-							</label>
-							<label class="flex items-center gap-1 cursor-pointer"
-								class:opacity-50={inputLanguage === "en"}
-								class:cursor-not-allowed={inputLanguage === "en"}>
-								<input
-									type="checkbox"
-									checked={outputLanguage === "es"}
-									onchange={() => handleOutputLanguageChange("es")}
-									disabled={inputLanguage === "en"}
-									class="w-3 h-3"
-									class:cursor-pointer={inputLanguage !== "en"}
-									class:cursor-not-allowed={inputLanguage === "en"}
-								/>
-								<span class="text-[10px]">out</span>
-							</label>
-						</div>
+			<!-- Disk Usage and Language Selection -->
+			<div class="flex flex-col justify-between h-[52px]">
+				<!--Disk Usage-->
+				<h1 class="text-white text-lg leading-tight">
+					AD {(diskAvailable / 1073741824).toFixed(1)}
+				</h1>
+
+				<!-- Language Selection -->
+				<div class="flex flex-col gap-0.5 text-xs">
+					<!-- English row -->
+					<div class="flex items-center gap-2 text-white">
+						<span class="w-6">en</span>
+						<label class="flex items-center gap-1 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={inputLanguage === "en"}
+								onchange={() => handleInputLanguageChange("en")}
+								class="w-3 h-3 cursor-pointer"
+							/>
+							<span class="text-[10px]">in</span>
+						</label>
+						<label class="flex items-center gap-1 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={outputLanguage === "en"}
+								onchange={() =>
+									handleOutputLanguageChange("en")}
+								class="w-3 h-3 cursor-pointer"
+							/>
+							<span class="text-[10px]">out</span>
+						</label>
 					</div>
-				</div>
-				<!-- Speech to Text Controls -->
-				<div
-					class="bg-white/10 backdrop-blur-sm rounded-2xl p-1 w-45 h-[52px]"
-				>
-					<div class="flex items-center gap-2">
-						<!-- Play/Pause Button -->
-						<button
-							onclick={handlePlayPause}
-							disabled={recordingStatus === "Processing"}
-							class="w-12 h-12 rounded-lg font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-							class:bg-green-500={recordingStatus === "Recording"}
-							class:hover:bg-green-600={recordingStatus ===
-								"Recording"}
-							class:bg-yellow-500={recordingStatus === "Paused"}
-							class:hover:bg-yellow-600={recordingStatus ===
-								"Paused"}
-							class:bg-gray-700={recordingStatus === "Idle"}
-							class:hover:bg-gray-600={recordingStatus === "Idle"}
-							class:text-white={true}
-						>
-							{#if recordingStatus === "Recording"}
-								⏸️
-							{:else if recordingStatus === "Processing"}
-								⏳
-							{:else}
-								▶️
-							{/if}
-						</button>
 
-						<!-- Stop Button -->
-						<button
-							onclick={stopRecordingAndTranscribe}
-							disabled={recordingStatus === "Idle" ||
-								recordingStatus === "Processing"}
-							class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+					<!-- Spanish row -->
+					<div class="flex items-center gap-2 text-white">
+						<span class="w-6">sp</span>
+						<label class="flex items-center gap-1 cursor-pointer">
+							<input
+								type="checkbox"
+								checked={inputLanguage === "es"}
+								onchange={() => handleInputLanguageChange("es")}
+								class="w-3 h-3 cursor-pointer"
+							/>
+							<span class="text-[10px]">in</span>
+						</label>
+						<label
+							class="flex items-center gap-1 cursor-pointer"
+							class:opacity-50={inputLanguage === "en"}
+							class:cursor-not-allowed={inputLanguage === "en"}
 						>
-							⏹️
-						</button>
-
-						<!-- Status Text -->
-						<div class="ml-2 flex-1">
-							<p class="text-white font-semibold text-sm">
-								{#if recordingStatus === "Recording"}
-									Recording...
-								{:else if recordingStatus === "Paused"}
-									Paused
-								{:else if recordingStatus === "Processing"}
-									Processing...
-								{:else}
-									Ready
-								{/if}
-							</p>
-							{#if transcribedText}
-								<p class="text-green-300 text-xs mt-0.5">
-									✓ Copied
-								</p>
-							{/if}
-						</div>
+							<input
+								type="checkbox"
+								checked={outputLanguage === "es"}
+								onchange={() =>
+									handleOutputLanguageChange("es")}
+								disabled={inputLanguage === "en"}
+								class="w-3 h-3"
+								class:cursor-pointer={inputLanguage !== "en"}
+								class:cursor-not-allowed={inputLanguage ===
+									"en"}
+							/>
+							<span class="text-[10px]">out</span>
+						</label>
 					</div>
 				</div>
 			</div>
-		
+			<!-- Speech to Text Controls -->
+			<div
+				class="bg-white/10 backdrop-blur-sm rounded-2xl p-1 w-45 h-[52px]"
+			>
+				<div class="flex items-center gap-2">
+					<!-- Play/Pause Button -->
+					<button
+						onclick={handlePlayPause}
+						disabled={recordingStatus === "Processing"}
+						class="w-12 h-12 rounded-lg font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+						class:bg-green-500={recordingStatus === "Recording"}
+						class:hover:bg-green-600={recordingStatus ===
+							"Recording"}
+						class:bg-yellow-500={recordingStatus === "Paused"}
+						class:hover:bg-yellow-600={recordingStatus === "Paused"}
+						class:bg-gray-700={recordingStatus === "Idle"}
+						class:hover:bg-gray-600={recordingStatus === "Idle"}
+						class:text-white={true}
+					>
+						{#if recordingStatus === "Recording"}
+							⏸️
+						{:else if recordingStatus === "Processing"}
+							⏳
+						{:else}
+							▶️
+						{/if}
+					</button>
+
+					<!-- Stop Button -->
+					<button
+						onclick={stopRecordingAndTranscribe}
+						disabled={recordingStatus === "Idle" ||
+							recordingStatus === "Processing"}
+						class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+					>
+						⏹️
+					</button>
+
+					<!-- Status Text -->
+					<div class="ml-2 flex-1">
+						<p class="text-white font-semibold text-sm">
+							{#if recordingStatus === "Recording"}
+								Recording...
+							{:else if recordingStatus === "Paused"}
+								Paused
+							{:else if recordingStatus === "Processing"}
+								Processing...
+							{:else}
+								Ready
+							{/if}
+						</p>
+						{#if transcribedText}
+							<p class="text-green-300 text-xs mt-0.5">
+								✓ Copied
+							</p>
+						{/if}
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<Navigation />
 		{@render children?.()}
 	</div>

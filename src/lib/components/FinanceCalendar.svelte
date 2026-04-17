@@ -1,8 +1,8 @@
 <!-- src/lib/components/FinanceCalendar.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fade, fly } from "svelte/transition";
-  import { getDaysInMonth, getMonthName } from "$lib/stores/general";
+  import { fly } from "svelte/transition";
+  import { getMonthName } from "$lib/stores/general";
   import MonthSliderStatus from "$lib/components/MonthSliderStatus.svelte";
 
   import {
@@ -16,7 +16,6 @@
     type CalendarFinanceDayEntry,
   } from "$lib/stores/calendar";
 
-  
   let displayYear: number = $state(0);
   let displayMonth: number = $state(0);
   let displayDay: number = $state(0);
@@ -28,41 +27,50 @@
   let payType: string = $state("expense");
   let payName: string = $state("");
   let payAmount: string = $state("");
+  let note: string = $state("");
+  let firstEntry: boolean = $state(false);
 
   //This is data saved for showDayCalendarDialog
   let selectedDayMonthYear = $state<{
-    day: number;
+    dayNum: number;
     month: number;
     year: number;
+    day: CalendarDay;
     calEntries: CalendarFinanceDayEntry[];
   } | null>(null);
 
-  let selectedEntry = $state<CalendarFinanceDayEntry | null>(null);
+  function isSelectedDay(dayNumber: number) {
+    return (
+      showDayCalendarDialog &&
+      selectedDayMonthYear?.dayNum === dayNumber &&
+      selectedDayMonthYear?.month === displayMonth &&
+      selectedDayMonthYear?.year === displayYear
+    );
+  }
+
+let selectedEntry = $state<CalendarFinanceDayEntry>({
+  id:"",name:"",amount:"",datePaid:"",dateDue:"",isPaycheck:false,note:""
+});
 
   const dayHeaders = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // onMount(): void
+  // onMount(): void - Fix this - it is regenerating some crazy shit.
   onMount(() => {
-    displayDay = todayDate.getDate();
-    console.log("Today is the " + displayDay + " of April");
-    displayYear = todayDate.getFullYear();
-    displayMonth = todayDate.getMonth() + 1; // 1-12
-    
-    const currentData = $calendarData;
+  displayDay = todayDate.getDate();
+  displayYear = todayDate.getFullYear();
+  displayMonth = todayDate.getMonth() + 1;
 
-    // Check if we need to regenerate (empty or old structure without days array)
-    const needsRegeneration =
-      currentData.length === 0 ||
-      (currentData[0]?.months?.[0]?.days && !currentData[0].months[0].days);
+  const currentData = $calendarData;
 
-    if (needsRegeneration) {
-      console.log("IN regeneration");
-      calendarData.set([]);
-    }
-    //The todayDate is used within to get the year
-    //This initializes
-    generateCalendarStructureToDate(todayDate);
-  });
+  const needsRegeneration = currentData.length === 0;
+
+  if (needsRegeneration) {
+    console.log("IN regeneration");
+  }
+
+  // Always safe to call
+  generateCalendarStructureToDate(todayDate);
+});
 
   // getFirstDayOfMonth(year: number, month: number): number
   function getFirstDayOfMonth(year: number, month: number): number {
@@ -127,14 +135,6 @@
   function showStatusDialogFunction() {
     showStatusDialog = !showStatusDialog;
   }
-
-  // function togglePaid(e:Event) {
-  //   const input = e.currentTarget as HTMLInputElement;
-
-  //     expensePaidEntry.datePaid = input.checked
-  //       ? new Date().toISOString()
-  //       : null;
-  //   }
 </script>
 
 <button
@@ -148,7 +148,7 @@
       out:fly={{ x: -50, duration: 800 }}
       class=""
     >
-      <MonthSliderStatus />
+      <MonthSliderStatus {displayMonth} {displayYear} />
     </div>
   {/if}
   <div class="bg-white/10 rounded-xl p-3 w-7xl">
@@ -192,11 +192,14 @@
             class="flex flex-col border-2 border-gray-300/20 text-center text-xl py-1 {isToday(
               day.dayNumber,
             )
-              ? 'h-40 cursor-pointer bg-green-500 text-white font-bold shadow-[0_0_12px_rgba(34,197,94,0.7)]'
-              : 'h-40 cursor-pointer text-white/80 hover:bg-white/10'}"
+              ? 'h-40 cursor-pointer bg-white text-black font-bold shadow-[0_0_12px_rgba(34,197,94,0.7)]'
+              : isSelectedDay(day.dayNumber)
+                ? 'h-40 cursor-pointer text-white/80 bg-white/10'
+                : 'h-40 cursor-pointer text-white/80 hover:bg-white/10'}"
             onclick={() => {
               selectedDayMonthYear = {
-                day: day.dayNumber,
+                dayNum: day.dayNumber,
+                day: day,
                 month: displayMonth,
                 year: displayYear,
                 calEntries: day?.calEntries,
@@ -214,15 +217,17 @@
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
-                        day: day.dayNumber,
+                        dayNum: day.dayNumber,
                         month: displayMonth,
                         year: displayYear,
+                        day: day,
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
                       payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
+                      note = cal.note;
                       showDayCalendarDialog = true;
                     }}
                   >
@@ -236,15 +241,17 @@
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
-                        day: day.dayNumber,
+                        dayNum: day.dayNumber,
                         month: displayMonth,
                         year: displayYear,
+                        day: day,
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
                       payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
+                      note = cal.note;
                       showDayCalendarDialog = true;
                     }}
                   >
@@ -258,15 +265,17 @@
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
-                        day: day.dayNumber,
+                        dayNum: day.dayNumber,
                         month: displayMonth,
                         year: displayYear,
+                        day: day,
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
                       payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
+                      note = cal.note;
                       showDayCalendarDialog = true;
                     }}
                   >
@@ -275,7 +284,6 @@
                   </button>
                 {:else if !cal.isPaycheck && !["Gas", "Food"].includes(cal.name)}
                   {@const isExpPaid = cal.datePaid != null}
-                 {@const debugDate = cal.datePaid?.toString}
                   <!-- Other expense -->
                   <button
                     class={`w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-blue-400 
@@ -284,21 +292,23 @@
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
-                        day: day.dayNumber,
+                        dayNum: day.dayNumber,
                         month: displayMonth,
                         year: displayYear,
+                        day: day,
                         calEntries: day?.calEntries,
                       };
                       selectedEntry = cal;
                       payType = cal.isPaycheck ? "paycheck" : "expense";
                       payName = cal.name;
                       payAmount = cal.amount;
+                      note = cal.note;
                       showDayCalendarDialog = true;
                     }}
                   >
                     {cal.name}
                     {cal.amount}
-                    {debugDate}
+                  
                     <!-- {isExpPaid ? "Paid" : "Mark Paid"} -->
                   </button>
                 {/if}
@@ -340,11 +350,11 @@
       <div class="flex flex-row justify-center">
         <label class="text-2xl text-white mr-3">Is Paid</label>
         <input
+          class="w-5 h-5 mt-1.5"
           type="checkbox"
-          checked={selectedEntry?.datePaid != null}
+         checked={!!selectedEntry?.datePaid}
           onchange={(e) => {
             const checked = e.currentTarget.checked;
-            if(!selectedEntry) return;
             selectedEntry.datePaid = checked ? new Date().toISOString() : null;
           }}
         />
@@ -365,24 +375,35 @@
           bind:value={payAmount}
         ></textarea>
       </div>
+      <div class="mt-8 flex flex-col items-center">
+        <label class="text-2xl text-white mr-3">Notes</label>
+        <textarea
+          class="text-white pl-2 text-2xl w-50 h-100 border-2 border-amber-100"
+          rows="1"
+          bind:value={note}
+        ></textarea>
+      </div>
       <div class="flex flex-wrap gap-3 m-3 justify-center">
         <button
           class="w-20 h-10 rounded-2xl text-white bg-green-400 hover:bg-green-900"
           onclick={() => {
-            if(!selectedEntry) return;
-            addOrUpdateFinancial(
-              payType,
-              payName,
-              payAmount,
-              selectedEntry.datePaid,
-              selectedDayMonthYear!.day,
-              selectedDayMonthYear!.month,
-              selectedDayMonthYear!.year,
-              selectedEntry,
-            );
+            console.log("selectedEntry:", selectedEntry);
+              addOrUpdateFinancial(
+                payType,
+                payName,
+                payAmount,
+                selectedEntry.datePaid,
+                selectedDayMonthYear!.dayNum,
+                selectedDayMonthYear!.month,
+                selectedDayMonthYear!.year,
+                note,
+                selectedEntry,
+              );
+            
             payType = "expense";
             payName = "";
             payAmount = "";
+            note = "";
             showDayCalendarDialog = false;
           }}>Add</button
         >
@@ -395,33 +416,35 @@
             if (!selectedEntry) return;
             removeFinancialEntry(
               selectedEntry,
-              selectedDayMonthYear.day,
+              selectedDayMonthYear.dayNum,
               selectedDayMonthYear.month,
               selectedDayMonthYear.year,
             );
             payType = "expense";
             payName = "";
             payAmount = "";
+            note = "";
           }}>Del</button
         >
         {#if selectedEntry != null}
           <button
             class="w-20 h-10 rounded-2xl text-white bg-purple-500 hover:bg-purple-700"
             onclick={() => {
-               if(!selectedEntry) return;
               addOrUpdateFinancial(
                 payType,
                 payName,
                 payAmount,
                 selectedEntry.datePaid,
-                selectedDayMonthYear!.day,
+                selectedDayMonthYear!.dayNum,
                 selectedDayMonthYear!.month,
                 selectedDayMonthYear!.year,
+                note,
                 selectedEntry,
               );
               payType = "expense";
               payName = "";
               payAmount = "";
+              note = "";
               showDayCalendarDialog = false;
             }}>Update</button
           >
