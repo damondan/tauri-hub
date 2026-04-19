@@ -2,8 +2,6 @@
 
 import { get, writable } from 'svelte/store';
 import { makeId, getDaysInMonth } from '$lib/stores/general';
-import FinanceCalendar from '$lib/components/FinanceCalendar.svelte';
-import { monitorFromPoint } from '@tauri-apps/api/window';
 
 export interface miscExpenses {
     id: string;
@@ -15,8 +13,8 @@ export interface CalendarFinanceDayEntry {
     id: string;
     name: string;
     amount: string;
-    datePaid: string | null;
-    dateDue: string | null;
+    datePaid: string;
+    dateDue: string;
     isPaycheck: boolean;
     note: string;
 }
@@ -30,10 +28,12 @@ export interface CalendarDay {
 export interface CalendarMonth {
     id: string;
     monthNumber: number;
+    projectedEarnings: string;
     monthBalLimit: string;
     monthSpent: string;
     foodLimit: string;
     gasLimit: string;
+    otherLimit: string;
     days: CalendarDay[];
 }
 
@@ -51,9 +51,7 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
     const record: Record<number, number> = createMonthDaysMap(targetYear);
 
     calendarData.update((years) => {
-        const updatedYears = [...years];
-
-        let yearEntry = updatedYears.find(y => y.yearNumber === targetYear);
+        let yearEntry = years.find(y => y.yearNumber === targetYear);
 
         if (!yearEntry) {
             yearEntry = {
@@ -61,7 +59,7 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
                 yearNumber: targetYear,
                 months: []
             };
-            updatedYears.push(yearEntry);
+            years.push(yearEntry);
         }
 
         for (let monthNum = 1; monthNum <= 12; monthNum++) {
@@ -71,10 +69,12 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
                 yearEntry.months[monthNum - 1] = {
                     id: makeId(),
                     monthNumber: monthNum,
+                    projectedEarnings: "",
                     monthBalLimit: "",
                     monthSpent: "",
                     foodLimit: "",
                     gasLimit: "",
+                    otherLimit: "",
                     days: [],
                 };
             }
@@ -110,7 +110,7 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
             }
         }
 
-        return updatedYears;
+        return years
     });
 }
 
@@ -118,7 +118,7 @@ export function addOrUpdateFinancial(
     payType: string,
     name: string,
     amount: string,
-    datePaid: string | null,
+    datePaid: string | "",
     day: number,
     month: number,
     year: number,
@@ -129,8 +129,8 @@ export function addOrUpdateFinancial(
 
     const entryId = entry?.id || makeId();
 
-    calendarData.update((years) =>
-        years.map((y) =>
+    calendarData.update((years) => {
+        const updatedYears = years.map((y) =>
             y.yearNumber !== year
                 ? y
                 : {
@@ -145,40 +145,42 @@ export function addOrUpdateFinancial(
                                         ? d
                                         : {
                                             ...d,
-                                            calEntries: 
+                                            calEntries:
                                                 entry?.id && entry.id !== ""
-                                                ? d.calEntries.map((e) =>
-                                                    e.id === entry.id
-                                                        ? {
-                                                            ...e,
+                                                    ? d.calEntries.map((e) =>
+                                                        e.id === entry.id
+                                                            ? {
+                                                                ...e,
+                                                                name,
+                                                                amount,
+                                                                isPaycheck: payType !== "expense",
+                                                                dateDue: String(day),
+                                                                datePaid,
+                                                                note,
+                                                            }
+                                                            : e
+                                                    )
+                                                    : [
+                                                        ...d.calEntries,
+                                                        {
+                                                            id: entryId,
                                                             name,
                                                             amount,
-                                                            isPaycheck: payType !== "expense",
+                                                            datePaid: "",
                                                             dateDue: String(day),
-                                                            datePaid,
+                                                            isPaycheck: payType !== "expense",
                                                             note,
                                                         }
-                                                        : e
-                                                )
-                                                : [
-                                                    ...d.calEntries,
-                                                    {
-                                                        id: entryId,
-                                                        name,
-                                                        amount,
-                                                        datePaid: null,
-                                                        dateDue: String(day),
-                                                        isPaycheck: payType !== "expense",
-                                                        note,
-                                                    }
-                                                ]
+                                                    ]
                                         }
                                 )
                             }
                     )
                 }
-        )
-    );
+        );
+
+        return updatedYears;
+    });
 }
 
 export function removeFinancialEntry(
@@ -188,9 +190,9 @@ export function removeFinancialEntry(
     year: number
 ): void {
     const entryId: string = entry?.id;
-    calendarData.update((years) =>
-        years.map((y) =>
-            y.yearNumber !== year
+    calendarData.update((years) => {
+        const removeFinEntry = years.map((y) => {
+            return y.yearNumber !== year
                 ? y
                 : {
                     ...y,
@@ -212,8 +214,9 @@ export function removeFinancialEntry(
                             }
                     )
                 }
-        )
-    );
+        });
+        return removeFinEntry;
+    });
 }
 
 export function createMonthDaysMap(year: number): Record<number, number> {
@@ -226,8 +229,8 @@ export function createMonthDaysMap(year: number): Record<number, number> {
     return monthDays;
 }
 
-export function getDaysInMonthCal(month: number, year: number): CalendarMonth | undefined {
-    const data = get(calendarData);
+// getDaysInMonthCal(data: CalendarYear[], month: number, year: number): CalendarMonth | undefined
+export function getDaysInMonthCal(data: CalendarYear[], month: number, year: number): CalendarMonth | undefined {
     const yearEntry = data.find((y) => y.yearNumber === year);
 
     if (!yearEntry) { console.log("undefined"); return undefined; }
@@ -248,11 +251,12 @@ export function getFinanceMonthCal(calYears: CalendarYear[], calYear: number, ca
         ?.months.find(m => m.monthNumber === calMonth);
 }
 ////Is triggered by getMonthStatus in clicking Go button
-export function setCalMonthLimits(calYear: number, 
-        calMonth: number, incomeLimit: string,
-        foodLimit: string, gasLimit: string): void {
-            console.log("In setCalMonthIncomeLimit");
-            console.log(`Cal Year is ${calYear} and Cal Month is ${calMonth} and incomeLimit is ${incomeLimit} and foodLimit is ${foodLimit}`)
+// setCalMonthLimits(calYear: number, calMonth: number, incomeLimit: string, foodLimit: string, gasLimit: string): void
+export function setCalMonthLimits(calYear: number,
+    calMonth: number, projectedEarnings: string, incomeLimit: string,
+    foodLimit: string, gasLimit: string, otherLimit: string): void {
+    console.log("In setCalMonthIncomeLimit");
+    console.log(`Cal Year is ${calYear} and Cal Month is ${calMonth} and incomeLimit is ${incomeLimit} and foodLimit is ${foodLimit}`)
     calendarData.update((years) =>
         years.map((y) =>
             y.yearNumber !== calYear
@@ -264,9 +268,11 @@ export function setCalMonthLimits(calYear: number,
                             ? m
                             : {
                                 ...m,
+                                projectedEarnings,
                                 monthBalLimit: incomeLimit,
                                 foodLimit,
                                 gasLimit,
+                                otherLimit,
                             }
                     )
                 }
@@ -290,49 +296,9 @@ export function getMonthExpensesSpent(years: CalendarYear[],
 
             return entryTotal + amount;
         }, 0);
-console.log(`Month Expense total is ${monthTotal + dayTotal}`)
+        console.log(`Month Expense total is ${monthTotal + dayTotal}`)
         return monthTotal + dayTotal;
     }, 0);
-}
-
-export function getMonthLeft() {
-
-}
-
-export function foodSpent() {
-
-}
-
-export function foodLeft() {
-
-}
-
-export function gasSpent() {
-
-}
-
-export function gasLeft() {
-
-}
-
-export function expensesTotal() {
-
-}
-
-export function expensesPaid() {
-
-}
-
-export function expensesLeft() {
-
-}
-
-export function updatedPay() {
-
-}
-
-export function updatedPayLeftOver() {
-
 }
 
 

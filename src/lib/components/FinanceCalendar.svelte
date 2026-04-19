@@ -48,29 +48,35 @@
     );
   }
 
-let selectedEntry = $state<CalendarFinanceDayEntry>({
-  id:"",name:"",amount:"",datePaid:"",dateDue:"",isPaycheck:false,note:""
-});
+  let selectedEntry = $state<CalendarFinanceDayEntry>({
+    id: "",
+    name: "",
+    amount: "",
+    datePaid: "",
+    dateDue: "",
+    isPaycheck: false,
+    note: "",
+  });
 
   const dayHeaders = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   // onMount(): void - Fix this - it is regenerating some crazy shit.
   onMount(() => {
-  displayDay = todayDate.getDate();
-  displayYear = todayDate.getFullYear();
-  displayMonth = todayDate.getMonth() + 1;
+    displayDay = todayDate.getDate();
+    displayYear = todayDate.getFullYear();
+    displayMonth = todayDate.getMonth() + 1;
 
-  const currentData = $calendarData;
+    const currentData = $calendarData;
 
-  const needsRegeneration = currentData.length === 0;
+    const needsRegeneration = currentData.length === 0;
 
-  if (needsRegeneration) {
-    console.log("IN regeneration");
-  }
+    if (needsRegeneration) {
+      console.log("IN regeneration");
+    }
 
-  // Always safe to call
-  generateCalendarStructureToDate(todayDate);
-});
+    // Always safe to call
+    generateCalendarStructureToDate(todayDate);
+  });
 
   // getFirstDayOfMonth(year: number, month: number): number
   function getFirstDayOfMonth(year: number, month: number): number {
@@ -120,8 +126,7 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
   });
 
   let calendarMonth = $derived.by((): CalendarMonth | undefined => {
-    const data = $calendarData;
-    return getDaysInMonthCal(displayMonth, displayYear);
+    return getDaysInMonthCal($calendarData, displayMonth, displayYear);
   });
 
   function isToday(day: number): boolean {
@@ -204,16 +209,21 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
                 year: displayYear,
                 calEntries: day?.calEntries,
               };
+          
+              payType = "expense";
+              payName = "";
+              payAmount = "";
+              note = "";
               showDayCalendarDialog = true;
             }}
           >
             {day.dayNumber}
             {#if day.calEntries.length > 0}
               {#each day.calEntries as cal (cal.id)}
-                {#if cal.isPaycheck && ["Checking"].includes(cal.name)}
-                  <!-- Checking paycheck -->
+                 {#if cal.isPaycheck}
+                  <!-- Other paycheck -->
                   <button
-                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-white hover:bg-yellow-100 cursor-crosshair"
+                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-orange-400 hover:bg-orange-500 cursor-crosshair"
                     onclick={(e) => {
                       e.stopPropagation();
                       selectedDayMonthYear = {
@@ -258,32 +268,9 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
                     {cal.name}
                     {cal.amount}
                   </button>
-                {:else if cal.isPaycheck && !["Checking"].includes(cal.name)}
-                  <!-- Other paycheck -->
-                  <button
-                    class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-orange-400 hover:bg-orange-500 cursor-crosshair"
-                    onclick={(e) => {
-                      e.stopPropagation();
-                      selectedDayMonthYear = {
-                        dayNum: day.dayNumber,
-                        month: displayMonth,
-                        year: displayYear,
-                        day: day,
-                        calEntries: day?.calEntries,
-                      };
-                      selectedEntry = cal;
-                      payType = cal.isPaycheck ? "paycheck" : "expense";
-                      payName = cal.name;
-                      payAmount = cal.amount;
-                      note = cal.note;
-                      showDayCalendarDialog = true;
-                    }}
-                  >
-                    {cal.name}
-                    {cal.amount}
-                  </button>
+                
                 {:else if !cal.isPaycheck && !["Gas", "Food"].includes(cal.name)}
-                  {@const isExpPaid = cal.datePaid != null}
+                  {@const isExpPaid = cal.datePaid != ""}
                   <!-- Other expense -->
                   <button
                     class={`w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-blue-400 
@@ -308,7 +295,7 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
                   >
                     {cal.name}
                     {cal.amount}
-                  
+
                     <!-- {isExpPaid ? "Paid" : "Mark Paid"} -->
                   </button>
                 {/if}
@@ -352,10 +339,10 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
         <input
           class="w-5 h-5 mt-1.5"
           type="checkbox"
-         checked={!!selectedEntry?.datePaid}
+          checked={selectedEntry.datePaid != ""}
           onchange={(e) => {
             const checked = e.currentTarget.checked;
-            selectedEntry.datePaid = checked ? new Date().toISOString() : null;
+            selectedEntry.datePaid = checked ? new Date().toISOString() : "";
           }}
         />
       </div>
@@ -388,18 +375,18 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
           class="w-20 h-10 rounded-2xl text-white bg-green-400 hover:bg-green-900"
           onclick={() => {
             console.log("selectedEntry:", selectedEntry);
-              addOrUpdateFinancial(
-                payType,
-                payName,
-                payAmount,
-                selectedEntry.datePaid,
-                selectedDayMonthYear!.dayNum,
-                selectedDayMonthYear!.month,
-                selectedDayMonthYear!.year,
-                note,
-                selectedEntry,
-              );
-            
+            addOrUpdateFinancial(
+              payType,
+              payName,
+              payAmount,
+              selectedEntry.datePaid,
+              selectedDayMonthYear!.dayNum,
+              selectedDayMonthYear!.month,
+              selectedDayMonthYear!.year,
+              note,
+              selectedEntry,
+            );
+
             payType = "expense";
             payName = "";
             payAmount = "";
@@ -424,6 +411,12 @@ let selectedEntry = $state<CalendarFinanceDayEntry>({
             payName = "";
             payAmount = "";
             note = "";
+            selectedEntry.datePaid = "";
+            selectedEntry.amount = "";
+            selectedEntry.dateDue = "";
+            selectedEntry.isPaycheck = false;
+            selectedEntry.note = "";
+
           }}>Del</button
         >
         {#if selectedEntry != null}

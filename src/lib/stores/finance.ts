@@ -146,7 +146,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
 
                 // Check if day already exists
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
-               
+
                 if (!dayExists) {
                     const dayOfWeek = getDayOfWeek(targetYear, monthNum, dayNum);
                     const dayEntry: FinanceDay = {
@@ -203,9 +203,11 @@ export function addFinanceEntry(
                                                 if (d.id === dayId) {
                                                     return {
                                                         ...d,
-                                                        entries: [...d.entries, { id: entryId, addAmount: '', subAmount: '', description: '', 
-                                                            isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false, 
-                                                            isOther: false }]
+                                                        entries: [...d.entries, {
+                                                            id: entryId, addAmount: '', subAmount: '', description: '',
+                                                            isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false,
+                                                            isOther: false
+                                                        }]
                                                     };
                                                 }
                                                 return d;
@@ -651,6 +653,7 @@ export function calculateWeekTotal(week: FinanceWeek): number {
     return total;
 }
 
+//Accesses the Month Food total by FinanceMonth
 export function calculateMonthFoodTotal(month: FinanceMonth): number {
     let total = 0;
     if (month.weeks) {
@@ -660,9 +663,10 @@ export function calculateMonthFoodTotal(month: FinanceMonth): number {
                     if (day.entries) {
                         for (const entry of day.entries) {
                             if (entry.isFood) {
-                                const subVal = parseFloat(entry.addAmount) || 0;
+                                const subVal = parseFloat(entry.subAmount) || 0;
+                                const addVal = parseFloat(entry.addAmount) || 0;
                                 if (entry.isDisc || entry.isAmerX) {
-                                    total += Math.abs(subVal);
+                                    total += Math.abs(addVal);
                                 } else {
                                     total += subVal;
                                 }
@@ -676,6 +680,7 @@ export function calculateMonthFoodTotal(month: FinanceMonth): number {
     return total;
 }
 
+//Accesses the Month Gas total by FinanceMonth
 export function calculateMonthGasTotal(month: FinanceMonth): number {
     let total = 0;
     if (month.weeks) {
@@ -686,9 +691,10 @@ export function calculateMonthGasTotal(month: FinanceMonth): number {
                         for (const entry of day.entries) {
                             if (entry.isGas) {
                                 const subVal = parseFloat(entry.subAmount) || 0;
+                                const addVal = parseFloat(entry.addAmount) || 0;
                                 // If it's a card purchase (Disc/AmerX), use subAmount as positive; otherwise use subAmount as-is
                                 if (entry.isDisc || entry.isAmerX) {
-                                    total += Math.abs(subVal);
+                                    total += addVal;
                                 } else {
                                     total += subVal;
                                 }
@@ -728,43 +734,6 @@ export function calculateMonthTotal(month: FinanceMonth): number {
         }
     }
     return total;
-}
-
-export function calculateFoodGasOtherTotal(financeYears: FinanceYear[], financeYear: number, financeMonth: number): string {
-    const foundMonth = financeYears
-        .find(y => y.year === financeYear)
-        ?.months.find(m => m.monthNumber === financeMonth);
-
-    if (!foundMonth) {
-        return "";
-    }
- 
-     let total = 0;
-    if (foundMonth.weeks) {
-        for (const week of foundMonth.weeks) {
-            if (week.days) {
-                for (const day of week.days) {
-                    if (day.entries) {
-                        for (const entry of day.entries) {
-                            const addVal = parseFloat(entry.addAmount) || 0;
-                            const subVal = parseFloat(entry.subAmount) || 0;
-                            if (entry.isDisc || entry.isAmerX) {
-                                if(entry.isFood || entry.isGas || entry.isOther){
-                                    total += addVal;
-                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.addAmount}`);
-                                }
-                            }else{
-                                total += Math.abs(subVal);
-                                console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.subAmount}`);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-}
-Math.floor(total);
-return total.toString();
 }
 
 // Calculate HB balance for a month (starting balance from balanceMonth + this month's HB transactions)
@@ -839,4 +808,153 @@ export function getFinanceMonthFin(financeData: FinanceYear[], financeYear: numb
 export function getFinanceYearFin(financeData: FinanceYear[], financeYear: number): FinanceYear | undefined {
     return financeData
         .find(y => y.year === financeYear)
+}
+
+//Access the FoodGasOther total in financeData through financeData and year-month number - for MonthSliderStatus
+export function calculateFoodGasOtherTotal(financeYears: FinanceYear[], financeYear: number, financeMonth: number): string {
+    const foundMonth = financeYears
+        .find(y => y.year === financeYear)
+        ?.months.find(m => m.monthNumber === financeMonth);
+
+    if (!foundMonth) {
+        return "";
+    }
+
+    let total = 0;
+    if (foundMonth.weeks) {
+        for (const week of foundMonth.weeks) {
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            const addVal = parseFloat(entry.addAmount) || 0;
+                            const subVal = parseFloat(entry.subAmount) || 0;
+                            if (entry.isDisc || entry.isAmerX) {
+                                if (entry.isFood || entry.isGas || entry.isOther) {
+                                    total += addVal;
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.addAmount}`);
+                                }
+                            } else {
+                                total += Math.abs(subVal);
+                                console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.subAmount}`);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let rettotal = total.toFixed(2);
+    return rettotal;
+}
+
+export function calculateFoodTotal(financeYears: FinanceYear[], financeYear: number, financeMonth: number): string {
+    const foundMonth = financeYears
+        .find(y => y.year === financeYear)
+        ?.months.find(m => m.monthNumber === financeMonth);
+
+    if (!foundMonth) {
+        return "";
+    }
+
+    let foodTotal = 0;
+    if (foundMonth.weeks) {
+        for (const week of foundMonth.weeks) {
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            const addVal = parseFloat(entry.addAmount) || 0;
+                            const subVal = parseFloat(entry.subAmount) || 0;
+                            if (entry.isFood) {
+                                if (entry.isDisc || entry.isAmerX) {
+                                    foodTotal += addVal;
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.addAmount}`);
+                                } else {
+                                    foodTotal += Math.abs(subVal);
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.subAmount}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let rettotal = String(Math.round(foodTotal));
+    return rettotal;
+}
+
+export function calculateGasTotal(financeYears: FinanceYear[], financeYear: number, financeMonth: number): string {
+    const foundMonth = financeYears
+        .find(y => y.year === financeYear)
+        ?.months.find(m => m.monthNumber === financeMonth);
+
+    if (!foundMonth) {
+        return "";
+    }
+
+    let gasTotal = 0;
+    if (foundMonth.weeks) {
+        for (const week of foundMonth.weeks) {
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            const addVal = parseFloat(entry.addAmount) || 0;
+                            const subVal = parseFloat(entry.subAmount) || 0;
+                            if (entry.isGas) {
+                                if (entry.isDisc || entry.isAmerX) {
+                                    gasTotal += addVal;
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.addAmount}`);
+                                } else {
+                                    gasTotal += Math.abs(subVal);
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.subAmount}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let rettotal = String(Math.round(gasTotal));
+    return rettotal;
+}
+
+export function calculateOtherTotal(financeYears: FinanceYear[], financeYear: number, financeMonth: number): string {
+    const foundMonth = financeYears
+        .find(y => y.year === financeYear)
+        ?.months.find(m => m.monthNumber === financeMonth);
+
+    if (!foundMonth) {
+        return "";
+    }
+
+    let otherTotal = 0;
+    if (foundMonth.weeks) {
+        for (const week of foundMonth.weeks) {
+            if (week.days) {
+                for (const day of week.days) {
+                    if (day.entries) {
+                        for (const entry of day.entries) {
+                            const addVal = parseFloat(entry.addAmount) || 0;
+                            const subVal = parseFloat(entry.subAmount) || 0;
+                            if (entry.isOther) {
+                                if ((entry.isDisc || entry.isAmerX) && entry.description.includes('@')) {
+                                    otherTotal += addVal;
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.addAmount}`);
+                                } else if (entry.description.includes('@')) {
+                                    otherTotal += Math.abs(subVal);
+                                    console.log(`entryId is ${entry.id} and description is ${entry.description} and amount is ${entry.subAmount}`);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+     let rettotal = String(Math.round(otherTotal));
+    return rettotal;
 }
