@@ -7,7 +7,8 @@ import { projectsData, projectExpandedProjects, projectExpandedSubprojects, proj
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
-import { goalData, goalExpandedYears, goalExpandedMonths, goalExpandedWeeks } from '$lib/stores/goal';
+import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks } from '$lib/stores/persgoal';
+import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { get } from 'svelte/store';
 
@@ -19,7 +20,8 @@ interface UserData {
 	howto?: any[];
 	finance?: any[];
 	calendar?: any[]; // Top-level expenses management list
-	goal?: any[];
+	persgoal?: any[];
+	profgoal?: any[],
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -34,9 +36,12 @@ interface UserData {
 	financeExpandedYears?: Record<string, boolean>;
 	financeExpandedMonths?: Record<string, boolean>;
 	financeExpandedWeeks?: Record<string, boolean>;
-	goalExpandedYears?: Record<string, boolean>;
-	goalExpandedMonths?: Record<string, boolean>;
-	goalExpandedWeeks?: Record<string, boolean>;
+	persGoalExpandedYears?: Record<string, boolean>;
+	persGoalExpandedMonths?: Record<string, boolean>;
+	persGoalExpandedWeeks?: Record<string, boolean>;
+	profGoalExpandedYears?: Record<string, boolean>;
+	profGoalExpandedMonths?: Record<string, boolean>;
+	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
 	commandExpandedSubcategories?: Record<string, boolean>;
 }
@@ -65,7 +70,8 @@ export async function saveUserData(): Promise<void> {
 		howto: get(howtoData),
 		finance: get(financeData),
 		calendar: get(calendarData),
-		goal: get(goalData),
+		persgoal: get(persGoalData),
+		profgoal: get(profGoalData),
 		workspaceA: get(workspaceContentA),
 		workspaceB: get(workspaceContentB),
 		field1: get(todoField1),
@@ -80,9 +86,12 @@ export async function saveUserData(): Promise<void> {
 		financeExpandedYears: get(financeExpandedYears),
 		financeExpandedMonths: get(financeExpandedMonths),
 		financeExpandedWeeks: get(financeExpandedWeeks),
-		goalExpandedYears: get(goalExpandedYears),
-		goalExpandedMonths: get(goalExpandedMonths),
-		goalExpandedWeeks: get(goalExpandedWeeks)
+		persGoalExpandedYears:  get(persGoalExpandedYears),
+		persGoalExpandedMonths: get(persGoalExpandedMonths),
+		persGoalExpandedWeeks:  get(persGoalExpandedWeeks),
+		profGoalExpandedYears:  get(persGoalExpandedYears),
+		profGoalExpandedMonths: get(persGoalExpandedMonths),
+		profGoalExpandedWeeks:  get(persGoalExpandedWeeks)
 	};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -157,17 +166,29 @@ export async function loadUserData(): Promise<void> {
 	if (data.financeExpandedWeeks) {
 		financeExpandedWeeks.set(data.financeExpandedWeeks);
 	}
-	if (data.goal) {
-		goalData.set(data.goal);
+	if (data.persgoal) {
+		persGoalData.set(data.persgoal);
 	}
-	if (data.goalExpandedYears) {
-		goalExpandedYears.set(data.goalExpandedYears);
+	if (data.persGoalExpandedYears) {
+		persGoalExpandedYears.set(data.persGoalExpandedYears);
 	}
-	if (data.goalExpandedMonths) {
-		goalExpandedMonths.set(data.goalExpandedMonths);
+	if (data.persGoalExpandedMonths) {
+		persGoalExpandedMonths.set(data.persGoalExpandedMonths);
 	}
-	if (data.goalExpandedWeeks) {
-		goalExpandedWeeks.set(data.goalExpandedWeeks);
+	if (data.persGoalExpandedWeeks) {
+		persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
+	}
+	if (data.profgoal) {
+		persGoalData.set(data.profgoal);
+	}
+	if (data.profGoalExpandedYears) {
+		profGoalExpandedYears.set(data.profGoalExpandedYears);
+	}
+	if (data.profGoalExpandedMonths) {
+		profGoalExpandedMonths.set(data.profGoalExpandedMonths);
+	}
+	if (data.profGoalExpandedWeeks) {
+		persGoalExpandedWeeks.set(data.profGoalExpandedWeeks);
 	}
 	if (data.workspaceA !== undefined) {
 		workspaceContentA.set(data.workspaceA);
@@ -271,19 +292,36 @@ export function initPersistence() {
 	});
 
 	// Subscribe to goal changes
-	goalData.subscribe(() => {
+	persGoalData.subscribe(() => {
 		scheduleSave();
 	});
 
-	goalExpandedYears.subscribe(() => {
+	persGoalExpandedYears.subscribe(() => {
 		scheduleSave();
 	});
 
-	goalExpandedMonths.subscribe(() => {
+	persGoalExpandedMonths.subscribe(() => {
 		scheduleSave();
 	});
 
-	goalExpandedWeeks.subscribe(() => {
+	persGoalExpandedWeeks.subscribe(() => {
+		scheduleSave();
+	});
+
+	// Subscribe to goal changes
+	profGoalData.subscribe(() => {
+		scheduleSave();
+	});
+
+	profGoalExpandedYears.subscribe(() => {
+		scheduleSave();
+	});
+
+	profGoalExpandedMonths.subscribe(() => {
+		scheduleSave();
+	});
+
+	profGoalExpandedWeeks.subscribe(() => {
 		scheduleSave();
 	});
 

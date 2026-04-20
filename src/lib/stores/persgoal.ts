@@ -2,25 +2,22 @@ import { writable } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 
-export const goalExpandedYears = writable<Record<string, boolean>>({});
-export const goalExpandedMonths = writable<Record<string, boolean>>({});
-export const goalExpandedWeeks = writable<Record<string, boolean>>({});
+export const persGoalExpandedYears = writable<Record<string, boolean>>({});
+export const persGoalExpandedMonths = writable<Record<string, boolean>>({});
+export const persGoalExpandedWeeks = writable<Record<string, boolean>>({});
 
-export interface GoalEntry {
-	id: string;
-	description: string;
+export interface PersGoalEntry {
+    id: string;
+    description: string;
 }
 
-export interface GoalDay {
-	id: string;
-	dayNumber: number; // 1-31
-	dayOfWeek: string; // 'Monday', 'Tuesday', etc.
-	dayPrivateGoals: string; // TV-related goals
-	dayProfessionalGoals: string; // Sleep-related goals
-	priGoalCompleted: boolean; // TV checkbox state
-	priGoalRejected: boolean; // TV checkbox rejected state (clicked No)
-	proGoalCompleted: boolean; // Sleep checkbox state
-	proGoalRejected: boolean; // Sleep checkbox rejected state (clicked No)
+export interface PersGoalDay {
+    id: string;
+    dayNumber: number; 
+    dayOfWeek: string; 
+    dayPrivateGoals: string;
+    priGoalCompleted: boolean; 
+    priGoalRejected: boolean; 
     sleepTime: string;
     sleepWake: string;
     sleepTimeBack: string;
@@ -28,55 +25,47 @@ export interface GoalDay {
     sleepTotal: string;
     screenGoal: string;
     screenFollowed: boolean;
-	entries: GoalEntry[];
+    entries: PersGoalEntry[];
 }
 
-export interface GoalWeek {
-	id: string;
-	weekNumber: number; // 1, 2, 3, 4, 5
-	startDay: number; // First day number in week (e.g., 1, 8, 15)
-	endDay: number; // Last day number in week (e.g., 7, 14, 21)
-	weekPrivateGoals: string; // TV-related goals
-	weekProfessionalGoals: string; // Sleep-related goals
-	priGoalCompleted: boolean; // Week private goal completed
-	priGoalRejected: boolean; // Week private goal rejected
-	proGoalCompleted: boolean; // Week professional goal completed
-	proGoalRejected: boolean; // Week professional goal rejected
-	days: GoalDay[];
+export interface PersGoalWeek {
+    id: string;
+    weekNumber: number; // 1, 2, 3, 4, 5
+    startDay: number; // First day number in week (e.g., 1, 8, 15)
+    endDay: number; // Last day number in week (e.g., 7, 14, 21)
+    weekPrivateGoals: string; // TV-related goals
+    priGoalCompleted: boolean; // Week private goal completed
+    priGoalRejected: boolean; // Week private goal rejected
+    days: PersGoalDay[];
 }
 
-export interface GoalMonth {
-	id: string;
-	monthNumber: number; // 1-12 (1=January, 2=February, etc.)
-	monthGoals: string; // Month- Goals
-	monthPrivateGoals: string; // TV-related goals
-	monthProfessionalGoals: string; // Sleep-related goals
-	priGoalCompleted: boolean; // Month private goal completed
-	priGoalRejected: boolean; // Month private goal rejected
-	proGoalCompleted: boolean; // Month professional goal completed
-	proGoalRejected: boolean; // Month professional goal rejected
-	weeks: GoalWeek[];
+export interface PersGoalMonth {
+    id: string;
+    monthNumber: number; // 1-12 (1=January, 2=February, etc.)
+    monthGoals: string; // Month- Goals
+    monthPrivateGoals: string; // TV-related goals
+    priGoalCompleted: boolean; // Month private goal completed
+    priGoalRejected: boolean; // Month private goal rejected
+    weeks: PersGoalWeek[];
 }
 
-export interface GoalYear {
-	id: string;
-	year: number; // 2026, 2027, etc.
-	yearHealthGoal: string; // Year-level goals
-	yearPrivateGoal: string; // Yearly private goal
-	yearProfessionalGoal: string; // Yearly professional goal
-	yearPrivateGoalChangeCount: number; // Count of private goal changes
-	yearProfessionalGoalChangeCount: number; // Count of professional goal changes
-	months: GoalMonth[];
+export interface PersGoalYear {
+    id: string;
+    year: number; // 2026, 2027, etc.
+    yearHealthGoal: string; // Year-level goals
+    yearPrivateGoal: string; // Yearly private goal
+    yearPrivateGoalChangeCount: number; // Count of private goal changes
+    months: PersGoalMonth[];
 }
 
-export const goalData = writable<GoalYear[]>([]);
+export const persGoalData = writable<PersGoalYear[]>([]);
 
-export function generateGoalStructureToDate(targetDate: Date): void {
+export function generatePersGoalStructureToDate(targetDate: Date): void {
     const targetYear = targetDate.getFullYear();
     const targetMonth = targetDate.getMonth() + 1; // 1-12
     const targetDay = targetDate.getDate();
 
-    goalData.update((years) => {
+    persGoalData.update((years) => {
         const updatedYears = [...years];
         
         // Find or create year
@@ -87,9 +76,7 @@ export function generateGoalStructureToDate(targetDate: Date): void {
                 year: targetYear,
                 yearHealthGoal: '',
                 yearPrivateGoal: '',
-                yearProfessionalGoal: '',
                 yearPrivateGoalChangeCount: 0,
-                yearProfessionalGoalChangeCount: 0,
                 months: []
             };
             updatedYears.push(yearEntry);
@@ -104,11 +91,8 @@ export function generateGoalStructureToDate(targetDate: Date): void {
                     monthNumber: monthNum,
                     monthGoals: '',
                     monthPrivateGoals: '',
-                    monthProfessionalGoals: '',
                     priGoalCompleted: false,
                     priGoalRejected: false,
-                    proGoalCompleted: false,
-                    proGoalRejected: false,
                     weeks: []
                 };
                 yearEntry.months.push(monthEntry);
@@ -134,11 +118,8 @@ export function generateGoalStructureToDate(targetDate: Date): void {
                         startDay,
                         endDay,
                         weekPrivateGoals: '',
-                        weekProfessionalGoals: '',
                         priGoalCompleted: false,
                         priGoalRejected: false,
-                        proGoalCompleted: false,
-                        proGoalRejected: false,
                         days: []
                     };
                     monthEntry.weeks.push(weekEntry);
@@ -149,16 +130,13 @@ export function generateGoalStructureToDate(targetDate: Date): void {
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
                 if (!dayExists) {
                     const dayOfWeek = getDayOfWeek(targetYear, monthNum, dayNum);
-                    const dayEntry: GoalDay = {
+                    const dayEntry: PersGoalDay = {
                         id: makeId(),
                         dayNumber: dayNum,
                         dayOfWeek,
                         dayPrivateGoals: '',
-                        dayProfessionalGoals: '',
                         priGoalCompleted: false,
                         priGoalRejected: false,
-                        proGoalCompleted: false,
-                        proGoalRejected: false,
                         sleepTime: '',
                         sleepWake: '',
                         sleepTimeBack: '',
@@ -190,7 +168,7 @@ export function addHealthEntry(
     dayId: string
 ): string {
     const entryId = makeId();
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -237,7 +215,7 @@ export function deleteHealthEntry(
     dayId: string,
     entryId: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -280,7 +258,7 @@ export function updateHealthYearGoal(
     yearId: string,
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return { ...y, yearHealthGoal: value };
@@ -296,33 +274,13 @@ export function updateYearPrivateGoal(
     yearId: string,
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return { 
                     ...y, 
                     yearPrivateGoal: value,
                     yearPrivateGoalChangeCount: y.yearPrivateGoalChangeCount + 1
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// Update year professional goal
-// updateYearProfessionalGoal(yearId: string, value: string): void
-export function updateYearProfessionalGoal(
-    yearId: string,
-    value: string
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return { 
-                    ...y, 
-                    yearProfessionalGoal: value,
-                    yearProfessionalGoalChangeCount: y.yearProfessionalGoalChangeCount + 1
                 };
             }
             return y;
@@ -337,7 +295,7 @@ export function updateHealthMonthGoal(
     monthId: string,
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -362,7 +320,7 @@ export function updateMonthPrivateGoals(
     monthId: string,
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -370,31 +328,6 @@ export function updateMonthPrivateGoals(
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
                             return { ...m, monthPrivateGoals: value };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// Update month professional goals
-// updateMonthProfessionalGoals(yearId: string, monthId: string, value: string): void
-export function updateMonthProfessionalGoals(
-    yearId: string,
-    monthId: string,
-    value: string
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return { ...m, monthProfessionalGoals: value };
                         }
                         return m;
                     })
@@ -413,7 +346,7 @@ export function updateWeekPrivateGoals(
     weekId: string,
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -439,40 +372,6 @@ export function updateWeekPrivateGoals(
     );
 }
 
-// Update week professional goals
-// updateWeekProfessionalGoals(yearId: string, monthId: string, weekId: string, value: string): void
-export function updateWeekProfessionalGoals(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    value: string
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return { ...w, weekProfessionalGoals: value };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
 // Update day private goals
 // updateDayPrivateGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
 export function updateDayPrivateGoals(
@@ -482,7 +381,7 @@ export function updateDayPrivateGoals(
     dayId: string,
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -516,49 +415,6 @@ export function updateDayPrivateGoals(
     );
 }
 
-// Update day professional goals
-// updateDayProfessionalGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
-export function updateDayProfessionalGoals(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string,
-    value: string
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    return { ...d, dayProfessionalGoals: value };
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
 // updateDaySleepScreen(yearId: string, monthId: string, weekId: string, dayId: string, field: 'sleepTime' | 'sleepWake' | 'sleepTimeBack' | 'sleepWakeAgain' | 'sleepTotal' | 'screenGoal', value: string): void
 export function updateDaySleepScreen(
     yearId: string,
@@ -568,7 +424,7 @@ export function updateDaySleepScreen(
     field: 'sleepTime' | 'sleepWake' | 'sleepTimeBack' | 'sleepWakeAgain' | 'sleepTotal' | 'screenGoal',
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -610,7 +466,7 @@ export function toggleDayScreenFollowed(
     dayId: string,
     completed?: boolean
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -659,7 +515,7 @@ export function toggleDayPrivateCompleted(
     dayId: string,
     completed?: boolean
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -714,70 +570,6 @@ export function toggleDayPrivateCompleted(
     );
 }
 
-// Toggle day professional checkbox
-// toggleDayProfessionalCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
-export function toggleDayProfessionalCompleted(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string,
-    completed?: boolean
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    if (completed === true) {
-                                                        // User clicked Yes
-                                                        return { 
-                                                            ...d, 
-                                                            proGoalCompleted: true, 
-                                                            proGoalRejected: false
-                                                        };
-                                                    } else if (completed === false) {
-                                                        // User clicked No
-                                                        return { 
-                                                            ...d, 
-                                                            proGoalCompleted: false, 
-                                                            proGoalRejected: true 
-                                                        };
-                                                    } else {
-                                                        // Toggle (reset)
-                                                        return { 
-                                                            ...d, 
-                                                            proGoalCompleted: false, 
-                                                            proGoalRejected: false
-                                                        };
-                                                    }
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
 // Toggle week private checkbox
 // toggleWeekPrivateCompleted(yearId: string, monthId: string, weekId: string, completed?: boolean): void
 export function toggleWeekPrivateCompleted(
@@ -786,7 +578,7 @@ export function toggleWeekPrivateCompleted(
     weekId: string,
     completed?: boolean
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -830,58 +622,6 @@ export function toggleWeekPrivateCompleted(
     );
 }
 
-// Toggle week professional checkbox
-// toggleWeekProfessionalCompleted(yearId: string, monthId: string, weekId: string, completed?: boolean): void
-export function toggleWeekProfessionalCompleted(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    completed?: boolean
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        if (completed === true) {
-                                            return { 
-                                                ...w, 
-                                                proGoalCompleted: true, 
-                                                proGoalRejected: false
-                                            };
-                                        } else if (completed === false) {
-                                            return { 
-                                                ...w, 
-                                                proGoalCompleted: false, 
-                                                proGoalRejected: true 
-                                            };
-                                        } else {
-                                            return { 
-                                                ...w, 
-                                                proGoalCompleted: false, 
-                                                proGoalRejected: false
-                                            };
-                                        }
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
 // Toggle month private checkbox
 // toggleMonthPrivateCompleted(yearId: string, monthId: string, completed?: boolean): void
 export function toggleMonthPrivateCompleted(
@@ -889,7 +629,7 @@ export function toggleMonthPrivateCompleted(
     monthId: string,
     completed?: boolean
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
@@ -925,49 +665,6 @@ export function toggleMonthPrivateCompleted(
     );
 }
 
-// Toggle month professional checkbox
-// toggleMonthProfessionalCompleted(yearId: string, monthId: string, completed?: boolean): void
-export function toggleMonthProfessionalCompleted(
-    yearId: string,
-    monthId: string,
-    completed?: boolean
-): void {
-    goalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            if (completed === true) {
-                                return { 
-                                    ...m, 
-                                    proGoalCompleted: true, 
-                                    proGoalRejected: false
-                                };
-                            } else if (completed === false) {
-                                return { 
-                                    ...m, 
-                                    proGoalCompleted: false, 
-                                    proGoalRejected: true 
-                                };
-                            } else {
-                                return { 
-                                    ...m, 
-                                    proGoalCompleted: false, 
-                                    proGoalRejected: false
-                                };
-                            }
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
 // Update entry field
 // updateHealthEntry(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'description', value: string): void
 export function updateHealthEntry(
@@ -979,7 +676,7 @@ export function updateHealthEntry(
     field: 'description',
     value: string
 ): void {
-    goalData.update((years) =>
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
                 return {
