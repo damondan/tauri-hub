@@ -89,9 +89,9 @@ export async function saveUserData(): Promise<void> {
 		persGoalExpandedYears:  get(persGoalExpandedYears),
 		persGoalExpandedMonths: get(persGoalExpandedMonths),
 		persGoalExpandedWeeks:  get(persGoalExpandedWeeks),
-		profGoalExpandedYears:  get(persGoalExpandedYears),
-		profGoalExpandedMonths: get(persGoalExpandedMonths),
-		profGoalExpandedWeeks:  get(persGoalExpandedWeeks)
+		profGoalExpandedYears:  get(profGoalExpandedYears),
+		profGoalExpandedMonths: get(profGoalExpandedMonths),
+		profGoalExpandedWeeks:  get(profGoalExpandedWeeks)
 	};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -179,7 +179,7 @@ export async function loadUserData(): Promise<void> {
 		persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
 	}
 	if (data.profgoal) {
-		persGoalData.set(data.profgoal);
+		profGoalData.set(data.profgoal);
 	}
 	if (data.profGoalExpandedYears) {
 		profGoalExpandedYears.set(data.profGoalExpandedYears);

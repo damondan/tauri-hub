@@ -116,7 +116,7 @@
 
 <!-- Header -->
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-3xl font-bold text-white">Goals</h1>
+  <h1 class="text-3xl font-bold text-white">Personal</h1>
 </div>
 
 <!-- Empty state -->
@@ -143,11 +143,11 @@
 
         <!-- Yrly Priv. Goal -->
         <label class="text-purple-500 text-2xl font-semibold whitespace-nowrap"
-          >Y. Personal</label
+          ></label
         >
         <textarea
           class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
-          placeholder="Private Goal"
+          placeholder="Personal ... "
           rows="1"
           readonly
           value={year.yearPrivateGoal || ""}
@@ -180,9 +180,7 @@
                 {getMonthName(month.monthNumber)}
               </div>
               <!--Monthly Private Goals -->
-              <label class="text-purple-500 text-xl font-semibold"
-                >M. Personal</label
-              >
+             
               <textarea
                 class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {month.priGoalCompleted
                   ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
@@ -256,9 +254,7 @@
                     </div>
 
                     <!-- Private Wkly -->
-                    <label class="text-purple-500 text-xl font-semibold"
-                      >W. Personal</label
-                    >
+                    
                     <textarea
                       class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {week.priGoalCompleted
                         ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
@@ -336,10 +332,7 @@
                             </div>
 
                             <!-- Private Daily -->
-                            <label
-                              class="text-purple-500 text-xl font-semibold whitespace-nowrap"
-                              >D. Personal</label
-                            >
+                           
                             <textarea
                               class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {day.priGoalCompleted
                                 ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'

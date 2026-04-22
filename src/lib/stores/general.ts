@@ -37,3 +37,5 @@ export function getDayOfWeek(year: number, month: number, day: number): string {
 export function getDaysInMonth(year: number, month: number): number {
 	return new Date(year, month, 0).getDate();
 }
+
+

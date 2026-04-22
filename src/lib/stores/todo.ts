@@ -22,8 +22,6 @@ export interface TodoItem {
 	rows: TodoRow[];
 }
 
-let todosDataLoaded = false;
-
 export const todosByDate = writable<Record<string, TodoItem[]>>({});
 
 export function addTodoItem(date: string = todayKey()): { id: string; date: string } {

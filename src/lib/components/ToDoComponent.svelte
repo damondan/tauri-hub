@@ -1,209 +1,299 @@
-<!-- src/lib/components/ToDoComponent.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { todayKey } from '$lib/stores/general';
-  import { todosByDate, 
-    addTodoItem, 
-    addTodoRow, 
-    updateTodoTitle, 
-    updateTodoRowText, 
-    toggleTodoRow, 
-    deleteTodoRow, 
-    removeTodoItem, 
-    todoField1, 
-    todoField2, 
-    sendTodoToProjects, 
-    todoExpandedState } from '$lib/stores/todo';
-  import { resizeTextarea, resizeAllTextareas, setupTextareaResizeListener } from '$lib/utils/textareaResize';
+  import { onMount } from "svelte";
+  import { todayKey } from "$lib/stores/general";
+  import {
+    todosByDate,
+    addTodoItem,
+    addTodoRow,
+    updateTodoTitle,
+    updateTodoRowText,
+    toggleTodoRow,
+    deleteTodoRow,
+    removeTodoItem,
+    todoField1,
+    todoField2,
+    sendTodoToProjects,
+    todoExpandedState,
+  } from "$lib/stores/todo";
+  import {
+    resizeTextarea,
+    resizeAllTextareas,
+    setupTextareaResizeListener,
+  } from "$lib/utils/textareaResize";
 
-  function toggleExpanded(itemId: string) {
-    todoExpandedState.update(state => {
-      const newState = { ...state };
-      newState[itemId] = !newState[itemId];
-      return newState;
-    });
-    // Recalculate textarea heights after expansion
-    if ($todoExpandedState[itemId]) {
-      setTimeout(() => {
-        resizeAllTextareas();
-      }, 0);
+  // --- Reactive State ---
+  let draggingId = $state<string | null>(null);
+
+  // --- Drag and Drop Handlers ---
+  function onDragStart(e: DragEvent, id: string) {
+    console.log("onDrag");
+    draggingId = id;
+    if (e.dataTransfer) {
+      // The "Unlock" for Tauri/Brave
+      e.dataTransfer.setData("text/plain", id);
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.dropEffect = "move";
     }
+    console.log(`Drag started: ${id}`);
   }
 
-  // Handlers
+  function onDrop(date: string, targetId: string) {
+    const currentDraggingId = draggingId;
+    if (!currentDraggingId) return;
+
+    todosByDate.update((currentMap) => {
+      const newMap = { ...currentMap };
+      let movedItem: any = null;
+
+      // 1. FIND AND REMOVE from wherever it currently lives
+      for (const d in newMap) {
+        const index = newMap[d].findIndex((i) => i.id === currentDraggingId);
+        if (index !== -1) {
+          [movedItem] = newMap[d].splice(index, 1);
+          // Force a fresh array reference for the source date
+          newMap[d] = [...newMap[d]];
+          break;
+        }
+      }
+
+      if (!movedItem) {
+        console.error(
+          "Could not find the item being dragged in any date group!",
+        );
+        return currentMap;
+      }
+
+      // 2. INSERT into the target date at the target position
+      const targetItems = [...(newMap[date] || [])];
+      const toIndex = targetItems.findIndex((i) => i.id === targetId);
+
+      if (toIndex !== -1) {
+        targetItems.splice(toIndex, 0, movedItem);
+      } else {
+        targetItems.push(movedItem);
+      }
+
+      newMap[date] = targetItems;
+      console.log(`Successfully moved "${movedItem.title}" to ${date}`);
+      return newMap;
+    });
+
+    draggingId = null;
+  }
+  // --- UI Handlers ---
+  function toggleExpanded(itemId: string) {
+    todoExpandedState.update((state) => ({
+      ...state,
+      [itemId]: !state[itemId],
+    }));
+
+    // Allow DOM to update before resizing
+    setTimeout(() => resizeAllTextareas(), 0);
+  }
+
   function handleAddTopLevel() {
     addTodoItem(todayKey());
   }
 
   function handleAddRow(date: string, itemId: string) {
     addTodoRow(date, itemId);
-    // Auto-expand when adding a row
-    todoExpandedState.update(state => ({ ...state, [itemId]: true }));
+    todoExpandedState.update((state) => ({ ...state, [itemId]: true }));
+    setTimeout(() => resizeAllTextareas(), 0);
   }
 
   async function handleCopy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
     } catch (e) {
-      console.error('Failed to copy', e);
+      console.error("Failed to copy", e);
     }
   }
 
   function handleSend(date: string, itemId: string, item: any) {
-    // Check if all rows are completed
-    console.log("**********In Send");
-    if (!allRowsCompleted(item)) {
-      console.log('Cannot send: not all rows are completed');
-      return;
-    }
-    
+    if (!allRowsCompleted(item)) return;
     const success = sendTodoToProjects(date, itemId);
-    if (!success) {
-      console.error('Failed to send todo to projects - check title format');
-    }
+    if (!success) console.error("Failed to send todo");
   }
 
   function allRowsCompleted(item: any): boolean {
     return item.rows.length > 0 && item.rows.every((row: any) => row.completed);
   }
 
-  function autoResizeInput(element: HTMLInputElement) {
-    const minWidth = 40; // minimum width in px
-    const padding = 32; // account for padding
-    element.style.width = '0';
-    element.style.width = Math.max(minWidth, element.scrollWidth + padding) + 'px';
-  }
-
-  // Setup window resize listener for textareas
+  // --- Lifecycles & Effects ---
   onMount(() => {
+    resizeAllTextareas();
     return setupTextareaResizeListener();
   });
 
-  // Reactive effect to resize field inputs when their values change
   $effect(() => {
-    // Track the store values to trigger reactivity
-    const val1 = $todoField1;
-    const val2 = $todoField2;
-    
-    const field1El = document.getElementById('field1-input') as HTMLInputElement;
-    const field2El = document.getElementById('field2-input') as HTMLInputElement;
-    if (field1El) autoResizeInput(field1El);
-    if (field2El) autoResizeInput(field2El);
+    // This tracks store changes to trigger re-renders if necessary
+    const _trigger = [$todoField1, $todoField2, $todosByDate];
+    resizeAllTextareas();
+  });
+  $effect(() => {
+    console.group("--- Full Todo List Update ---");
+    Object.entries($todosByDate).forEach(([date, items]) => {
+      const titles = items.map((t) => t.title || "Untitled");
+      console.log(`Date [${date}]:`, titles);
+    });
   });
 </script>
 
-<!-- Header with Add button -->
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-4xl font-bold text-white">To Do</h1>
-  <div class="flex items-center gap-2">
-     <textarea
-      id="field1-input"
-      bind:value={$todoField1}
-     class="bg-white/5 border border-white rounded px-3 py-1  
-         text-white text-xl leading-tight 
-         placeholder-white/40 resize-none overflow-hidden text-wrap"
-      style="min-width: 40rem; width: 40rem;"
-      placeholder="Field 1"
-    ></textarea>
-    <textarea
-      id="field2-input"
-      bind:value={$todoField2}
-     class="bg-white/5 border border-white rounded px-3 py-1  
-         text-white text-xl leading-tight 
-         placeholder-white/40 resize-none overflow-hidden text-wrap"
-      style="min-width: 40rem; width: 40rem;"
-      placeholder="Field 2"
-    ></textarea>
-  </div>
-  <div class="flex items-center gap-2">
-    <button onclick={handleAddTopLevel} class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center">+</button>
-  </div>
+<div class="flex items-start gap-2 mb-0 p-4 w-full">
+  <textarea
+    bind:value={$todoField1}
+    class="bg-white/5 border border-white/40 w-[35%] rounded px-3 py-2 text-white text-xl resize-none"
+    placeholder="Field 1"
+  ></textarea>
+  <textarea
+    bind:value={$todoField2}
+    class="bg-white/5 border border-white/40 w-[62%] rounded px-3 py-2 text-white text-xl resize-none"
+    placeholder="Field 2"
+    rows="2"
+  ></textarea>
 </div>
+<button
+  onclick={handleAddTopLevel}
+  class="bg-green-500 hover:bg-green-600 float-right text-white w-10 h-10 mt-0 mr-6 rounded-lg font-bold text-2xl transition-colors"
+>
+  +
+</button>
 
-<!-- Empty state -->
 {#if Object.keys($todosByDate).length === 0}
-  <div class="text-white/70 italic">No todos yet. Click + to add your first To Do.</div>
+  <div class="text-white/70 italic p-10">No todos yet. Click + to start.</div>
 {/if}
 
-<!-- Date groups -->
-{#each Object.entries($todosByDate) as [date, items]}
-  <div class="mb-6">
-    <!-- <h2 class="text-3xl text-white/90 mb-2">{date}</h2> -->
-
-    {#each items as item (item.id)}
-      <!-- TodoItem container -->
-      <div class="bg-white/10 rounded-xl p-3 mb-3">
-        <div class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2" 
-        onclick={() => toggleExpanded(item.id)}>
-          <!-- Expand/collapse indicator -->
-          <span class="text-white text-3xl w-6">{$todoExpandedState[item.id] ? '▼' : '▶'}</span>
-
-          <!-- Date label (redundant inside group, but kept per spec) -->
-          <span class="text-white/70 text-3xl">{item.date}</span>
-
-          <!-- Add row under this container -->
-          <button class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded" onclick={(e) => {e.stopPropagation(); handleAddRow(date, item.id);}}>+
-          </button>
-
-          <!-- Title input -->
-          <input
-            class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
-            placeholder="Title"
-            value={item.title}
-            oninput={(e) => {e.stopPropagation(); updateTodoTitle(date, item.id, (e.target as HTMLInputElement).value)}}
-            onclick={(e)=> e.stopPropagation}
-          />
-
-          <!-- Send/Delete buttons (stacked) -->
-          <div class="flex flex-col gap-1" onclick={(e)=> e.stopPropagation}>
-            <button 
-              class="px-3 py-1 rounded text-lg text-white {allRowsCompleted(item) ? 'bg-blue-600 hover:bg-blue-700 cursor-pointer' : 'bg-blue-600/30 cursor-not-allowed'}"
-              onclick={(e) => {e.stopPropagation(); handleSend(date, item.id, item);}}
+{#each Object.entries($todosByDate) as [date, items] (date)}
+  {#if items.length > 0}
+    <div class="w-full flex flex-col gap-2 py-2 px-6 border-b border-white/10">
+      {#each items as item (item.id)}
+        <div
+          role="listitem"
+          draggable="true"
+          ondragstart={(e) => onDragStart(e, item.id)}
+          ondragover={(e) => {
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+          }}
+          ondrop={(e) => {
+            e.preventDefault();
+            onDrop(date, item.id);
+          }}
+          ondragend={() => (draggingId = null)}
+          class="group relative flex flex-col bg-white/5 rounded-xl border-2 transition-all duration-200
+           {draggingId === item.id
+            ? 'opacity-20 border-blue-500'
+            : 'border-transparent hover:border-white/20'} 
+           mb-0"
+        >
+          <div
+            class="flex items-center gap-4 p-4 {draggingId
+              ? 'pointer-events-none'
+              : ''}"
+          >
+            <div
+              class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
             >
-              Send
-            </button>
-            <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" onclick={(e) => {e.stopPropagation(); removeTodoItem(date, item.id);}}>Del</button>
-          </div>
-        </div>
-
-        <!-- Rows list (only show when expanded) -->
-        {#if $todoExpandedState[item.id]}
-        <div class="mt-3 space-y-2">
-          {#each item.rows as row (row.id)}
-            <div class="border rounded-lg p-2 flex items-start gap-3 {row.completed ? 'border-green-500' : 'border-red-500'}">
-              <!-- red circle / green check button -->
-              <button class="w-7 h-7 rounded-full border-2 flex items-center justify-center {row.completed ? 'border-green-500' : 'border-red-500'}" onclick={(e) => {e.stopPropagation(); toggleTodoRow(date, item.id, row.id);}}>
-                {#if row.completed}
-                  ✅
-                {:else}
-                  <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
-                {/if}
-              </button>
-
-              <!-- Text input -->
-              <textarea
-                rows="1"
-                class="flex-1 bg-transparent border border-white/20 rounded px-2 py-1 text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
-                placeholder="Describe the task..."
-                value={row.text}
-                oninput={(e) => {
-                  const target = e.target as HTMLTextAreaElement;
-                  updateTodoRowText(date, item.id, row.id, target.value);
-                  // Auto-resize
-                  resizeTextarea(target);
-                }}
-              ></textarea>
-
-              <!-- Copy / Delete (side by side) -->
-              <div class="flex gap-1">
-                <button class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-lg" onclick={(e) => {e.stopPropagation(); handleCopy(row.text);}}>Copy</button>
-                <button class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg" onclick={(e) => {e.stopPropagation(); deleteTodoRow(date, item.id, row.id);}}>Del</button>
-              </div>
+              ⠿
             </div>
-          {/each}
+
+            <button
+              class="text-white text-2xl w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded"
+              onclick={(e) => {
+                e.stopPropagation();
+                toggleExpanded(item.id);
+              }}
+            >
+              {$todoExpandedState[item.id] ? "▼" : "▶"}
+            </button>
+
+            <span class="text-white/50 text-xl whitespace-nowrap"
+              >{item.date}</span
+            >
+
+            <input
+              class="flex-1 font-mono bg-transparent border-b border-transparent focus:border-blue-500 px-2 py-1 text-white text-3xl outline-none"
+              value={item.title}
+              onclick={(e) => e.stopPropagation()}
+              oninput={(e) => {
+                e.stopPropagation();
+                updateTodoTitle(
+                  date,
+                  item.id,
+                  (e.target as HTMLInputElement).value,
+                );
+              }}
+            />
+
+            <div class="flex gap-2" onclick={(e) => e.stopPropagation()}>
+              <button
+                class="px-4 py-1 rounded-lg text-white font-medium transition-colors {allRowsCompleted(
+                  item,
+                )
+                  ? 'bg-blue-600 hover:bg-blue-500'
+                  : 'bg-white/10 text-white/30 cursor-not-allowed'}"
+                onclick={() => handleSend(date, item.id, item)}>Send</button
+              >
+              <button
+                class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
+                onclick={() => removeTodoItem(date, item.id)}>Del</button
+              >
+              <button
+                class="bg-green-600 hover:bg-green-500 text-white px-4 py-1 rounded-lg font-bold"
+                onclick={() => handleAddRow(date, item.id)}>+</button
+              >
+            </div>
+          </div>
+
+          {#if $todoExpandedState[item.id]}
+            <div
+              class=" p-2 pt- space-y-3 ml-12"
+              onclick={(e) => e.stopPropagation()}
+            >
+              {#each item.rows as row (row.id)}
+                <div
+                  class="flex items-center gap-1 p-0 bg-black/20 rounded-lg border {row.completed
+                    ? 'border-green-500/50'
+                    : 'border-white/10'}"
+                >
+                  <button
+                    class="ml-4 w-6 h-6 rounded-full justify-center border-2 flex transition-colors {row.completed
+                      ? 'bg-green-500 border-green-500'
+                      : 'border-white/30'}"
+                    onclick={() => toggleTodoRow(date, item.id, row.id)}
+                  >
+                    {#if row.completed}
+                      <span class="text-xs">✔</span>
+                    {/if}
+                  </button>
+
+                  <textarea
+                    class=" flex-1 font-mono bg-transparent text-white ml-6 text-xl outline-none resize-none overflow-hidden py-1 leading-tight"
+                    value={row.text}
+                    oninput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      updateTodoRowText(date, item.id, row.id, target.value);
+                      resizeTextarea(target);
+                    }}
+                  ></textarea>
+
+                  <div class="flex gap-2">
+                    <button
+                      class="text-white/40 hover:text-white text-sm"
+                      onclick={() => handleCopy(row.text)}>Copy</button
+                    >
+                    <button
+                      class="text-red-400 hover:text-red-300 text-sm"
+                      onclick={() => deleteTodoRow(date, item.id, row.id)}
+                      >Del</button
+                    >
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
-        {/if}
-      </div>
-    {/each}
-  </div>
+      {/each}
+    </div>
+  {/if}
 {/each}

@@ -104,7 +104,7 @@
 
 <!-- Header -->
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-3xl font-bold text-white">Goals</h1>
+  <h1 class="text-3xl font-bold text-white">Professional</h1>
 </div>
 
 <!-- Empty state -->
@@ -130,12 +130,10 @@
         </div>
 
         <!-- Yrly Prof. Goal -->
-        <label class="text-blue-500 text-2xl font-semibold whitespace-nowrap"
-          >Y. Professional</label
-        >
+    
         <textarea
           class="flex-1 bg-transparent border-0 px-20 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
-          placeholder="Professional Goal"
+          placeholder="Professional ..."
           rows="1"
           readonly
           value={year.yearProfessionalGoal || ""}
@@ -166,6 +164,28 @@
               <div class="text-white text-3xl font-semibold w-48 shrink-0">
                 {getMonthName(month.monthNumber)}
               </div>
+              <!--Monthly Professional Goals -->
+              <textarea
+                class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted
+                  ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                  : month.proGoalRejected
+                    ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]'
+                    : 'border border-purple-500'}"
+                placeholder=""
+                rows="1"
+                value={month.monthProfessionalGoals || ""}
+                use:autoResize
+                oninput={(e) => {
+                  const textarea = e.target as HTMLTextAreaElement;
+                  textarea.style.height = "auto";
+                  textarea.style.height = textarea.scrollHeight + "px";
+                  updateMonthProfessionalGoals(
+                    year.id,
+                    month.id,
+                    (e.target as HTMLTextAreaElement).value,
+                  );
+                }}
+              ></textarea>
               <button
                 class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.proGoalCompleted
                   ? 'shadow-[0_0_15px_rgba(234,179,8,0.8)]'
@@ -215,9 +235,7 @@
                     </div>
 
                     <!-- Professional -->
-                    <label class="text-blue-500 text-xl font-semibold"
-                      >W. Professional</label
-                    >
+              
                     <textarea
                       class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted
                         ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
@@ -293,10 +311,7 @@
                             </div>
 
                             <!-- Professional -->
-                            <label
-                              class="text-blue-500 text-xl font-semibold whitespace-nowrap"
-                              >D. Professional</label
-                            >
+                           
                             <textarea
                               class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {day.proGoalCompleted
                                 ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
