@@ -3,6 +3,6 @@
 	import CommandsComponent from "$lib/components/CommandsComponent.svelte";
 </script>
 
-<div class="tab-content">
+<div class="tab-content font-mono">
 	<CommandsComponent />
 </div>

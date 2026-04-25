@@ -43,6 +43,8 @@
 
 	type RecordingStatus = "Idle" | "Recording" | "Paused" | "Processing";
 
+	let showFocus = $state(false);
+
 	onMount(() => {
 		// Load saved data first
 		loadUserData().then(() => {
@@ -228,6 +230,10 @@
 			}
 		}
 	}
+
+	let focusTextClass = $derived(
+  		showFocus ? 'text-white/30' : 'text-white'
+	);
 </script>
 
 <svelte:head>
@@ -236,16 +242,22 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="h-screen bg-black overflow-y-auto">
+<div class="h-screen bg-black overflow-y-auto font-mono">
 	<div class="mx-auto px-8 py-4 max-w-[95%]">
 		<div class="bg-white/10 backdrop-blur-sm rounded-xl p-1 mb-2">
 			<div class="grid grid-cols-2 gap-6">
 				<!-- RAM Monitor -->
 				<div class="flex items-center gap-4">
-					<span class="text-white font-semibold text-lg">RAM:</span>
+					<span
+						class="text-white font-semibold text-lg {focusTextClass}">RAM:</span
+					>
 					<div class="flex-1">
 						<div class="flex items-center gap-2">
-							<span class="text-white text-sm">
+							<span
+								class="text-sm {showFocus
+									? 'text-white/30'
+									: 'text-white'}"
+							>
 								{ramUsed.toFixed(2)} GB / {ramTotal.toFixed(2)} GB
 							</span>
 							<span class="text-white/60 text-sm"
@@ -254,11 +266,14 @@
 						</div>
 						<div class="w-full bg-gray-700 rounded-full h-2 mt-2">
 							<div
-								class="h-2 rounded-full transition-all duration-300"
-								class:bg-green-500={ramPercent < 50}
-								class:bg-yellow-500={ramPercent >= 50 &&
-									ramPercent < 80}
-								class:bg-red-500={ramPercent >= 80}
+								class="h-2 rounded-full transition-all duration-300
+    								{showFocus
+									? 'bg-white/30'
+									: ramPercent < 50
+										? 'bg-green-500'
+										: ramPercent < 80
+											? 'bg-yellow-500'
+											: 'bg-red-500'}"
 								style="width: {ramPercent}%"
 							></div>
 						</div>
@@ -267,11 +282,15 @@
 
 				<!-- GPU Monitor -->
 				<div class="flex items-center gap-4">
-					<span class="text-white font-semibold text-lg">GPU:</span>
+					<span class="text-white font-semibold text-lg {showFocus
+							? 'text-white/30'
+							: 'text-white'}">GPU:</span>
 					<div class="flex-1">
 						{#if gpuAvailable}
 							<div class="flex items-center gap-2">
-								<span class="text-white text-sm">
+								<span class="text-white text-sm {showFocus
+							? 'text-white/30'
+							: 'text-white'}">
 									{gpuUsed.toFixed(2)} GB / {gpuTotal.toFixed(
 										2,
 									)} GB
@@ -284,11 +303,12 @@
 								class="w-full bg-gray-700 rounded-full h-2 mt-2"
 							>
 								<div
-									class="h-2 rounded-full transition-all duration-300"
-									class:bg-green-500={gpuPercent < 50}
-									class:bg-yellow-500={gpuPercent >= 50 &&
-										gpuPercent < 80}
-									class:bg-red-500={gpuPercent >= 80}
+									class="h-2 rounded-full transition-all duration-300
+									{showFocus ? 'bg-white/30' :
+									gpuPercent < 50 ? 'bg-green-500' :
+									gpuPercent >= 50 && gpuPercent < 80
+									? 'bg-yellow-500' :
+									'bg-red-500'}"
 									style="width: {gpuPercent}%"
 								></div>
 							</div>
@@ -298,6 +318,12 @@
 							>
 						{/if}
 					</div>
+					<button
+						class="rounded text-sm p-1 bg-white/10 text-white/30 hover:bg-black/70 hover:text-white/80 float-right transition-all"
+						onclick={() => (showFocus = !showFocus)}
+					>
+						Dim
+					</button>
 				</div>
 			</div>
 		</div>
@@ -308,8 +334,10 @@
 			<button
 				onclick={backupData}
 				disabled={backupStatus === "saving"}
+
 				class="px-3 h-[52px] rounded-lg font-semibold text-sm transition-all
-						{backupStatus === 'done' ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}
+						{showFocus ? 'bg-white/30' :
+						backupStatus === 'done' ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'}
 						text-white disabled:opacity-50"
 			>
 				{#if backupStatus === "saving"}
@@ -324,21 +352,21 @@
 			<!-- Disk Usage and Language Selection -->
 			<div class="flex flex-col justify-between h-[52px]">
 				<!--Disk Usage-->
-				<h1 class="text-white text-lg leading-tight">
+				<h1 class="text-lg leading-tight {showFocus ? 'text-white/30' : 'text-white'}">
 					AD {(diskAvailable / 1073741824).toFixed(1)}
 				</h1>
 
 				<!-- Language Selection -->
 				<div class="flex flex-col gap-0.5 text-xs">
 					<!-- English row -->
-					<div class="flex items-center gap-2 text-white">
+					<div class="flex items-center gap-2  {showFocus ? 'text-white/30': 'text-white'}">
 						<span class="w-6">en</span>
 						<label class="flex items-center gap-1 cursor-pointer">
 							<input
 								type="checkbox"
 								checked={inputLanguage === "en"}
 								onchange={() => handleInputLanguageChange("en")}
-								class="w-3 h-3 cursor-pointer"
+								class="w-3 h-3 cursor-pointer {showFocus ? 'opacity-50':'opacity-80'}"
 							/>
 							<span class="text-[10px]">in</span>
 						</label>
@@ -348,21 +376,21 @@
 								checked={outputLanguage === "en"}
 								onchange={() =>
 									handleOutputLanguageChange("en")}
-								class="w-3 h-3 cursor-pointer"
+								class="w-3 h-3 cursor-pointer {showFocus ? 'opacity-50':'opacity-80'}"
 							/>
 							<span class="text-[10px]">out</span>
 						</label>
 					</div>
 
 					<!-- Spanish row -->
-					<div class="flex items-center gap-2 text-white">
+					<div class="flex items-center gap-2 {showFocus ? 'text-white/30': 'text-white'}">
 						<span class="w-6">sp</span>
 						<label class="flex items-center gap-1 cursor-pointer">
 							<input
 								type="checkbox"
 								checked={inputLanguage === "es"}
 								onchange={() => handleInputLanguageChange("es")}
-								class="w-3 h-3 cursor-pointer"
+								class="w-3 h-3 cursor-pointer {showFocus ? 'opacity-50':'opacity-80'}"
 							/>
 							<span class="text-[10px]">in</span>
 						</label>
@@ -377,7 +405,7 @@
 								onchange={() =>
 									handleOutputLanguageChange("es")}
 								disabled={inputLanguage === "en"}
-								class="w-3 h-3"
+								class="w-3 h-3 {showFocus ? 'opacity-50':'opacity-80'}"
 								class:cursor-pointer={inputLanguage !== "en"}
 								class:cursor-not-allowed={inputLanguage ===
 									"en"}
@@ -411,7 +439,12 @@
 						{:else if recordingStatus === "Processing"}
 							⏳
 						{:else}
+							{#if showFocus}
+							<span class="opacity-30">▶️</span>
+							{/if}
+							{#if !showFocus}
 							▶️
+							{/if}
 						{/if}
 					</button>
 
@@ -420,14 +453,15 @@
 						onclick={stopRecordingAndTranscribe}
 						disabled={recordingStatus === "Idle" ||
 							recordingStatus === "Processing"}
-						class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+						class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl 
+						transition-all disabled:opacity-30 disabled:cursor-not-allowed"
 					>
 						⏹️
 					</button>
 
 					<!-- Status Text -->
 					<div class="ml-2 flex-1">
-						<p class="text-white font-semibold text-sm">
+						<p class="font-semibold text-sm {showFocus ? 'text-white/30' : 'text-white'}">
 							{#if recordingStatus === "Recording"}
 								Recording...
 							{:else if recordingStatus === "Paused"}

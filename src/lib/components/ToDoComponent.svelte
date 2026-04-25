@@ -169,8 +169,6 @@
       {#each items as item (item.id)}
         <div
           role="listitem"
-          draggable="true"
-          ondragstart={(e) => onDragStart(e, item.id)}
           ondragover={(e) => {
             e.preventDefault();
             if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
@@ -186,12 +184,13 @@
             : 'border-transparent hover:border-white/20'} 
            mb-0"
         >
-          <div
-            class="flex items-center gap-4 p-4 {draggingId
-              ? 'pointer-events-none'
-              : ''}"
-          >
+          <div class="flex items-center gap-4 p-4">
             <div
+              draggable="true"
+              ondragstart={(e) => {
+                e.stopPropagation();
+                onDragStart(e, item.id);
+              }}
               class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
             >
               ⠿
@@ -212,7 +211,7 @@
             >
 
             <input
-              class="flex-1 font-mono bg-transparent border-b border-transparent focus:border-blue-500 px-2 py-1 text-white text-3xl outline-none"
+              class="todoTitle flex-1 font-mono bg-transparent border-b border-transparent focus:border-blue-500 px-2 py-1 text-white text-3xl outline-none"
               value={item.title}
               onclick={(e) => e.stopPropagation()}
               oninput={(e) => {

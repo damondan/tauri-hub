@@ -3,6 +3,6 @@
 	import HowToComponent from '$lib/components/HowToComponent.svelte';
 </script>
 
-<div class="tab-content">
+<div class="tab-content font-mono">
 	<HowToComponent />
 </div>

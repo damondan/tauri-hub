@@ -39,8 +39,7 @@
 </script>
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-4xl font-bold text-white">Status</h1>
+<div class="mb-10">
 </div>
 
 <!-- Empty state -->
@@ -59,13 +58,13 @@
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
         <span class="text-white text-3xl w-6">{$projectExpandedProjects[project.name] ? '▼' : '▶'}</span>
-          <span class="text-white text-3xl font-semibold">{project.name}</span>
+          <span class="text-gray-500 text-3xl font-semibold tracking-wide">{project.name}</span>
         </div>
         <button 
-          class="bg-purple-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+          class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
           on:click|stopPropagation={() => deleteProject(project.name)}
         >
-          D
+          Del
         </button>
       </div>
     </div>

@@ -3,6 +3,6 @@
 	import FinanceComponent from '$lib/components/FinanceComponent.svelte';
 </script>
 
-<div class="tab-content">
+<div class="tab-content font-mono">
 	<FinanceComponent />
 </div>

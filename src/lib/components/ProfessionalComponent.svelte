@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { autoResize } from "$lib/utils/textareaResize";
   import { getMonthName } from "$lib/stores/general";
+  import { borderNTextNBg,buttonStyles } from "$lib/styles";
   import {
     profGoalData,
     generateProfGoalStructureToDate,
@@ -102,11 +103,6 @@
   }
 </script>
 
-<!-- Header -->
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-3xl font-bold text-white">Professional</h1>
-</div>
-
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
   <div class="text-white/70 italic">Loading...</div>
@@ -125,14 +121,14 @@
           {$profGoalExpandedYears[year.id] ? "▼" : "▶"}
         </button>
 
-        <div class="text-white text-3xl font-semibold">
+        <div class="text-white/80 text-3xl font-semibold">
           {year.year}
         </div>
 
         <!-- Yrly Prof. Goal -->
     
         <textarea
-          class="flex-1 bg-transparent border-0 px-20 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
+         class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
           placeholder="Professional ..."
           rows="1"
           readonly
@@ -166,11 +162,12 @@
               </div>
               <!--Monthly Professional Goals -->
               <textarea
-                class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {month.proGoalCompleted
-                  ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)] {month.proGoalCompleted
+                  ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                   : month.proGoalRejected
-                    ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]'
-                    : 'border border-purple-500'}"
+                    ? 'border-2 border-black shadow-[0_0_15px_rgba(0,0,0,0.8)]'
+                    : borderNTextNBg.lightBorder}"
                 placeholder=""
                 rows="1"
                 value={month.monthProfessionalGoals || ""}
@@ -187,11 +184,11 @@
                 }}
               ></textarea>
               <button
-                class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {month.proGoalCompleted
-                  ? 'shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                class="w-10 h-10 rounded-full border-2 flex items-center justify-center {month.proGoalCompleted
+                  ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                   : month.proGoalRejected
-                    ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]'
-                    : 'border-red-500'}"
+                    ? 'border-black shadow-[0_0_15px_rgba(0,0,0,0.8)]'
+                    : buttonStyles.circleLightHover}"
                 onclick={() => {
                   if (!month.proGoalCompleted && !month.proGoalRejected) {
                     pendingProfessionalMonthAction = {
@@ -205,12 +202,12 @@
                 }}
               >
                 {#if month.proGoalCompleted}
-                  <span class="text-yellow-500 text-3xl font-bold">🤴</span>
+                  <span class="text-white text-sm font-bold">⭐</span>
                 {:else if month.proGoalRejected}
-                  <span class="text-red-500 text-2xl font-bold">🤡</span>
+                  <span class="text-white text-2xl font-bold"></span>
                 {:else}
-                  <span class="w-4 h-4 rounded-full bg-red-500 inline-block"
-                  ></span>
+                  <span class="text-white"
+                  >?</span>
                 {/if}
               </button>
             </div>
@@ -221,7 +218,7 @@
             <div class="ml-12 mt-2 space-y-2 bg-white/10">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
-                <div class="rounded-xl p-3 border-1 border-red-600">
+                <div class="rounded-xl p-3">
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
@@ -230,18 +227,19 @@
                       {$profGoalExpandedWeeks[weekKey] ? "▼" : "▶"}
                     </button>
 
-                    <div class="text-white text-3xl font-semibold w-54">
-                      {week.weekNumber} Week {week.startDay}-{week.endDay}
+                    <div class="text-white text-3xl font-semibold w-25">
+                      {week.startDay}-{week.endDay}
                     </div>
 
                     <!-- Professional -->
               
                     <textarea
-                      class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {week.proGoalCompleted
-                        ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                      class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden 
+                      focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)] {week.proGoalCompleted
+                        ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                         : week.proGoalRejected
-                          ? ''
-                          : 'border border-blue-500'}"
+                          ? 'border-2 border-black shadow-[0_0_15px_rgba(0,0,0,0.8)]'
+                          : 'border border-white/30'}"
                       placeholder=""
                       rows="1"
                       value={week.weekProfessionalGoals || ""}
@@ -260,10 +258,10 @@
                     ></textarea>
                     <button
                       class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {week.proGoalCompleted
-                        ? 'shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                        ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                         : week.proGoalRejected
                           ? ''
-                          : 'border-red-500'}"
+                          : 'border-gray-500 hover:border-white'}"
                       onclick={() => {
                         if (!week.proGoalCompleted && !week.proGoalRejected) {
                           pendingProfessionalWeekAction = {
@@ -282,15 +280,13 @@
                       }}
                     >
                       {#if week.proGoalCompleted}
-                        <span class="text-yellow-500 text-3xl font-bold"
-                          >🤴</span
-                        >
+                        <span class="text-white text-sm font-bold">⭐</span>
                       {:else if week.proGoalRejected}
-                        <span class="text-red-500 text-2xl font-bold">🤡</span>
+                        <span class="text-black text-2xl font-bold"></span>
                       {:else}
                         <span
-                          class="w-4 h-4 rounded-full bg-red-500 inline-block"
-                        ></span>
+                          class="text-white"
+                        >?</span>
                       {/if}
                     </button>
                   </div>
@@ -313,11 +309,12 @@
                             <!-- Professional -->
                            
                             <textarea
-                              class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden {day.proGoalCompleted
-                                ? 'border-2 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.8)]'
+                              class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden 
+                              focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)] {day.proGoalCompleted
+                                ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                                 : day.proGoalRejected
-                                  ? 'border-2 border-red-500 shadow-[0_0_15px_rgba(236,72,153,0.8)]'
-                                  : 'border border-blue-500'}"
+                                  ? 'border-2 border-black shadow-[0_0_15px_rgba(0,0,0,0.8)]'
+                                  : 'border border-white/30'}"
                               placeholder=""
                               rows="1"
                               value={day.dayProfessionalGoals || ""}
@@ -340,10 +337,10 @@
                             ></textarea>
                             <button
                               class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.proGoalCompleted
-                                ? 'border-yellow-500 shadow-[0_0_25px_rgba(234,179,8,0.8)]'
+                                ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                                 : day.proGoalRejected
-                                  ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]'
-                                  : 'border-red-500'}"
+                                  ? 'border-black shadow-[0_0_15px_rgba(0,0,0,0.8)]'
+                                  : 'border border-white/30 hover:border-white'}"
                               onclick={() => {
                                 if (
                                   !day.proGoalCompleted &&
@@ -367,17 +364,15 @@
                               }}
                             >
                               {#if day.proGoalCompleted}
-                                <span class="text-yellow-500 text-3xl font-bold"
-                                  >🤴</span
-                                >
+                                <span class="text-white text-sm font-bold">⭐</span>
                               {:else if day.proGoalRejected}
-                                <span class="text-red-500 text-2xl font-bold"
-                                  >🤡</span
+                                <span class="text-black text-2xl font-bold"
+                                  ></span
                                 >
                               {:else}
                                 <span
-                                  class="w-4 h-4 rounded-full bg-red-500 inline-block"
-                                ></span>
+                                  class="text-white"
+                                >?</span>
                               {/if}
                             </button>
                           </div>
@@ -402,24 +397,13 @@
     onclick={() => (showProfessionalDayDialog = false)}
   >
     <div
-      class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
+      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
       onclick={(e) => e.stopPropagation()}
     >
-      <h3 class="text-white text-2xl font-semibold mb-4">
-        Professional Goal Check
-      </h3>
-      <p class="text-white/90 text-xl mb-6">
-        Did you honor your monthly and/or weekly Professional goal?
-      </p>
-      <div class="flex gap-3 justify-end">
+      <div class="flex flex-wrap gap-3 justify-center">
+        
         <button
-          class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showProfessionalDayDialog = false)}
-        >
-          Cancel
-        </button>
-        <button
-          class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xl font-semibold transition-colors"
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalDayAction) {
               toggleDayProfessionalCompleted(
@@ -434,10 +418,10 @@
             showProfessionalDayDialog = false;
           }}
         >
-          No
+          Convert
         </button>
         <button
-          class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xl font-semibold transition-colors"
+         class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalDayAction) {
               toggleDayProfessionalCompleted(
@@ -453,6 +437,12 @@
           }}
         >
           Yes
+        </button>
+        <button
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+          onclick={() => (showProfessionalDayDialog = false)}
+        >
+          Cancel
         </button>
       </div>
     </div>
@@ -466,24 +456,13 @@
     onclick={() => (showProfessionalWeekDialog = false)}
   >
     <div
-      class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
+      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
       onclick={(e) => e.stopPropagation()}
     >
-      <h3 class="text-white text-2xl font-semibold mb-4">
-        Professional Goal Check
-      </h3>
-      <p class="text-white/90 text-xl mb-6">
-        Did you fulfill your Professional goals for this week?
-      </p>
-      <div class="flex gap-3 justify-end">
+      <div class="flex flex-wrap gap-3 justify-center">
+       
         <button
-          class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showProfessionalWeekDialog = false)}
-        >
-          Cancel
-        </button>
-        <button
-          class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xl font-semibold transition-colors"
+           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalWeekAction) {
               toggleWeekProfessionalCompleted(
@@ -497,10 +476,10 @@
             showProfessionalWeekDialog = false;
           }}
         >
-          No
+          Convert
         </button>
         <button
-          class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xl font-semibold transition-colors"
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalWeekAction) {
               toggleWeekProfessionalCompleted(
@@ -514,7 +493,13 @@
             showProfessionalWeekDialog = false;
           }}
         >
-          Yes
+          Fight
+        </button>
+         <button
+           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+          onclick={() => (showProfessionalWeekDialog = false)}
+        >
+          Cancel
         </button>
       </div>
     </div>

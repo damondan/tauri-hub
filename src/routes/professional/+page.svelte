@@ -3,6 +3,6 @@
 	import ProfessionalComponent from '$lib/components/ProfessionalComponent.svelte';
 </script>
 
-<div class="tab-content">
+<div class="tab-content font-mono">
 	<ProfessionalComponent />
 </div>

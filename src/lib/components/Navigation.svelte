@@ -17,14 +17,14 @@
 	];
 </script>
 
-<nav class="flex gap-2 mb-6 border-b border-white/20 pb-2">
+<nav class="flex gap-2 mb-6 border-b border-white/20 pb-2 font-mono">
 	{#each tabs as tab}
 		<a
 			href={tab.path}
 			class="px-4 py-3 rounded-t-lg font-semibold transition-all
            {$page.url.pathname === tab.path
 				? 'bg-white/20 border-b-2 border-blue-500 text-white'
-				: 'bg-white/5 hover:bg-white/10 text-white/70'}"
+				: 'bg-white/5 hover:bg-white/10 text-white/30'}"
 		>
 			{tab.label}
 		</a>

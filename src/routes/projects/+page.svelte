@@ -3,6 +3,6 @@
 	import ProjectsComponent from '$lib/components/ProjectsComponent.svelte';
 </script>
 
-<div class="tab-content">
+<div class="tab-content font-mono">
 	<ProjectsComponent />
 </div>

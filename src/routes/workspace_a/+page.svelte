@@ -3,7 +3,7 @@
 	import { workspaceContentA } from '$lib/stores/workspace';
 </script>
 
-<div class="tab-content w-full min-h-screen flex flex-col">
+<div class="tab-content w-full min-h-screen flex flex-col font-mono">
   <h1 class="text-4xl font-bold text-green-500 mb-6">Workspace A</h1>
 
   <textarea

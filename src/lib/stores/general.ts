@@ -20,7 +20,7 @@ const MONTH_NAMES = [
 	'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_NAMES = ['Sund', 'Mond', 'Tues', 'Wedn', 'Thur', 'Frid', 'Satu'];
 
 // getMonthName(monthNumber: number): string
 export function getMonthName(monthNumber: number): string {
