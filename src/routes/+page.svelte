@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import type { TauriApp } from "$lib/types";
+	import { borderNTextNBg, buttonStyles } from "$lib/styles"
 
 	let apps = $state<TauriApp[]>([]);
 	let loading = $state(false);
@@ -590,7 +591,7 @@
 			<div class="flex flex-wrap gap-6">
 				{#each apps as app (app.id)}
 					<div
-						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 w-64 h-44 flex flex-col"
+						class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 hover:scale-105 w-94 h-44 flex flex-col"
 						oncontextmenu={(e) => showContextMenu(e, app.id)}
 					>
 						<div class="flex items-start justify-between mb-4">
@@ -616,14 +617,14 @@
 							{#if app.status === "Running"}
 								<button
 									onclick={() => stopApp(app.id)}
-									class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+									class="flex-1 mb-5 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
 								>
 									⏹️ Stop
 								</button>
 							{:else}
 								<button
 									onclick={() => launchApp(app.id)}
-									class="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+									class="flex-1 border-transparent border bg-black/20 hover:border-white text-white px-4 py-2 rounded-lg font-medium transition-colors"
 								>
 									▶️ Launch
 								</button>

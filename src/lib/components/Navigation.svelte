@@ -23,7 +23,7 @@
 			href={tab.path}
 			class="px-4 py-3 rounded-t-lg font-semibold transition-all
            {$page.url.pathname === tab.path
-				? 'bg-white/20 border-b-2 border-blue-500 text-white'
+				? 'bg-white/20 border-b-2 border-white text-white'
 				: 'bg-white/5 hover:bg-white/10 text-white/30'}"
 		>
 			{tab.label}
