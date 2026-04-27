@@ -11,20 +11,28 @@ export interface PersGoalEntry {
     description: string;
 }
 
+type PersImage = {
+  id: string;
+  dataUrl: string;
+};
+
 export interface PersGoalDay {
     id: string;
     dayNumber: number; 
     dayOfWeek: string; 
-    dayPrivateGoals: string;
-    priGoalCompleted: boolean; 
-    priGoalRejected: boolean; 
-    sleepTime: string;
-    sleepWake: string;
-    sleepTimeBack: string;
-    sleepWakeAgain: string;
-    sleepTotal: string;
-    screenGoal: string;
-    screenFollowed: boolean;
+    dayPrivateGoals?: string;
+    priGoalCompleted?: boolean; 
+    priGoalRejected?: boolean; 
+    sleepTime?: string;
+    sleepWake?: string;
+    sleepTimeBack?: string;
+    sleepWakeAgain?: string;
+    sleepTotal?: string;
+    screenGoal?: string;
+    screenFollowed?: boolean;
+    dayImage?: PersImage;
+    isDream?: boolean;
+    highlight?: boolean;
     entries: PersGoalEntry[];
 }
 
@@ -33,28 +41,31 @@ export interface PersGoalWeek {
     weekNumber: number; // 1, 2, 3, 4, 5
     startDay: number; // First day number in week (e.g., 1, 8, 15)
     endDay: number; // Last day number in week (e.g., 7, 14, 21)
-    weekPrivateGoals: string; // TV-related goals
-    priGoalCompleted: boolean; // Week private goal completed
-    priGoalRejected: boolean; // Week private goal rejected
+    weekPrivateGoals?: string; // TV-related goals
+    priGoalCompleted?: boolean; // Week private goal completed
+    priGoalRejected?: boolean; // Week private goal rejected
+    weekImage?: PersImage;
     days: PersGoalDay[];
 }
 
 export interface PersGoalMonth {
     id: string;
     monthNumber: number; // 1-12 (1=January, 2=February, etc.)
-    monthGoals: string; // Month- Goals
-    monthPrivateGoals: string; // TV-related goals
-    priGoalCompleted: boolean; // Month private goal completed
-    priGoalRejected: boolean; // Month private goal rejected
+    monthGoals?: string; // Month- Goals
+    monthPrivateGoals?: string; // TV-related goals
+    priGoalCompleted?: boolean; // Month private goal completed
+    priGoalRejected?: boolean; // Month private goal rejected
+    monthImage?: PersImage;
     weeks: PersGoalWeek[];
 }
 
 export interface PersGoalYear {
     id: string;
     year: number; // 2026, 2027, etc.
-    yearHealthGoal: string; // Year-level goals
-    yearPrivateGoal: string; // Yearly private goal
+    yearHealthGoal?: string; // Year-level goals
+    yearPrivateGoal?: string; // Yearly private goal
     yearPrivateGoalChangeCount: number; // Count of private goal changes
+    yearImage?: PersImage;
     months: PersGoalMonth[];
 }
 
@@ -74,9 +85,7 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
             yearEntry = {
                 id: makeId(),
                 year: targetYear,
-                yearHealthGoal: '',
-                yearPrivateGoal: '',
-                yearPrivateGoalChangeCount: 0,
+                 yearPrivateGoalChangeCount: 0,
                 months: []
             };
             updatedYears.push(yearEntry);
@@ -89,10 +98,6 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
                 monthEntry = {
                     id: makeId(),
                     monthNumber: monthNum,
-                    monthGoals: '',
-                    monthPrivateGoals: '',
-                    priGoalCompleted: false,
-                    priGoalRejected: false,
                     weeks: []
                 };
                 yearEntry.months.push(monthEntry);
@@ -117,9 +122,6 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
                         weekNumber: weekNum,
                         startDay,
                         endDay,
-                        weekPrivateGoals: '',
-                        priGoalCompleted: false,
-                        priGoalRejected: false,
                         days: []
                     };
                     monthEntry.weeks.push(weekEntry);
@@ -134,19 +136,9 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
                         id: makeId(),
                         dayNumber: dayNum,
                         dayOfWeek,
-                        dayPrivateGoals: '',
-                        priGoalCompleted: false,
-                        priGoalRejected: false,
-                        sleepTime: '',
-                        sleepWake: '',
-                        sleepTimeBack: '',
-                        sleepWakeAgain: '',
-                        sleepTotal: '',
-                        screenGoal: '',
-                        screenFollowed: false,
                         entries: [{
                             id: makeId(),
-                            description: ''
+                            description:""
                         }]
                     };
                     weekEntry.days.push(dayEntry);
@@ -372,8 +364,121 @@ export function updateWeekPrivateGoals(
     );
 }
 
-// Update day private goals
-// updateDayPrivateGoals(yearId: string, monthId: string, weekId: string, dayId: string, value: string): void
+export function updateDayImage(dataUrl: string, year: string, month: string, week:string, day:string): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === month) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === week) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === day) {
+                                                    return { ...d, 
+                                                        dayImage: {
+                                                            id:makeId(),
+                                                            dataUrl
+                                                        } 
+                                                    };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function updateWeekImage(dataUrl: string, year: string, month: string, week:string): void {
+persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === month) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === week) {
+                                        return {
+                                            ...w,
+                                           weekImage : {
+                                            id:makeId(),
+                                            dataUrl
+                                           }
+                                            };
+                                        }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function updateMonthImage(dataUrl: string, year: string, month: string): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === month) {
+                            return {
+                                ...m,
+                               monthImage: {
+                                id: makeId(),
+                                dataUrl
+                               }
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function updateYearImage(dataUrl: string, year: string): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                   yearImage:{
+                    id:makeId(),
+                    dataUrl
+                   }
+                };
+            }
+            return y;
+        })
+    );
+}
+
 export function updateDayPrivateGoals(
     yearId: string,
     monthId: string,
@@ -414,6 +519,177 @@ export function updateDayPrivateGoals(
         })
     );
 }
+
+export function removeDayImage(year: string, month: string, week:string, day:string): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === month) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === week) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === day) {
+                                                    return { ...d, 
+                                                        dayImage: undefined
+                                                    };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function removeWeekImage(year: string, month: string, week:string): void {
+persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === month) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === week) {
+                                        return {
+                                            ...w,
+                                           weekImage : undefined
+                                            };
+                                        }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function removeMonthImage(year: string, month: string): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === month) {
+                            return {
+                                ...m,
+                               monthImage: undefined
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function removeYearImage(year: string): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === year) {
+                return {
+                    ...y,
+                   yearImage: undefined
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function updateDayIsDream(year:string,month:string,week:string,day:string, value:boolean):void {
+    persGoalData.update(years =>
+    years.map(y =>
+      y.id === year
+        ? {
+            ...y,
+            months: y.months.map(m =>
+              m.id === month
+                ? {
+                    ...m,
+                    weeks: m.weeks.map(w =>
+                      w.id === week
+                        ? {
+                            ...w,
+                            days: w.days.map(d =>
+                              d.id === day
+                                ? { ...d, isDream: value }
+                                : d
+                            )
+                          }
+                        : w
+                    )
+                  }
+                : m
+            )
+          }
+        : y
+    )
+  );
+}
+
+export function  updateHighlight(
+                                  yearid:string,
+                                  monthid: string,
+                                  weekid: string,
+                                  dayid:string,
+                                  value:boolean
+                                ):void{
+     persGoalData.update(years =>
+    years.map(y =>
+      y.id === yearid
+        ? {
+            ...y,
+            months: y.months.map(m =>
+              m.id === monthid
+                ? {
+                    ...m,
+                    weeks: m.weeks.map(w =>
+                      w.id === weekid
+                        ? {
+                            ...w,
+                            days: w.days.map(d =>
+                              d.id === dayid
+                                ? { ...d, highlight: value }
+                                : d
+                            )
+                          }
+                        : w
+                    )
+                  }
+                : m
+            )
+          }
+        : y
+    )
+  );
+                                }
 
 // updateDaySleepScreen(yearId: string, monthId: string, weekId: string, dayId: string, field: 'sleepTime' | 'sleepWake' | 'sleepTimeBack' | 'sleepWakeAgain' | 'sleepTotal' | 'screenGoal', value: string): void
 export function updateDaySleepScreen(
@@ -665,50 +941,3 @@ export function toggleMonthPrivateCompleted(
     );
 }
 
-// Update entry field
-// updateHealthEntry(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string, field: 'description', value: string): void
-export function updateHealthEntry(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string,
-    entryId: string,
-    field: 'description',
-    value: string
-): void {
-    persGoalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    return {
-                                                        ...d,
-                                                        entries: d.entries.map(e => e.id === entryId ? { ...e, [field]: value } : e)
-                                                    };
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}

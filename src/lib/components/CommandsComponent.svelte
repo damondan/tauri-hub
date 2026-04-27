@@ -38,11 +38,10 @@
 </script>
 
 <!-- Header with Add button -->
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-4xl font-bold text-white">Commands</h1>
+<div class="flex items-center justify-end mb-6">
   <button 
     on:click={() => addCommandCategory()}
-    class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
+    class="bg-green-500/30 hover:bg-green-600/50 text-white w-10 h-10 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
   >
     +
   </button>
@@ -63,7 +62,7 @@
           class="text-white text-3xl w-6"
           on:click={() => toggleCategory(category.id)}
         >
-          {$commandExpandedCategories[category.id] ? '▼' : '▶'}
+          {$commandExpandedCategories[category.id] ? '▼' : '▷'}
         </button>
         
         <input
@@ -75,24 +74,24 @@
         />
         
         <button 
-          class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+          class="bg-green-600/50 hover:bg-green-600 text-white px-2 py-1 rounded"
           on:click={() => addCommandSubcategory(category.id)}
         >
           +
         </button>
         
         <button 
-          class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+          class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
           on:click={() => deleteCommandCategory(category.id)}
         >
-          Delete
+          Del
         </button>
       </div>
     </div>
 
     <!-- Level 2: Subcategories (only show when category expanded) -->
     {#if $commandExpandedCategories[category.id]}
-      <div class="ml-12 mt-2 space-y-2">
+      <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each category.subcategories as subcategory (subcategory.id)}
           {@const subKey = `${category.id}-${subcategory.id}`}
           <div class="bg-white/10 rounded-xl p-3">
@@ -101,7 +100,7 @@
                 class="text-white text-3xl w-6"
                 on:click={() => toggleSubcategory(subKey)}
               >
-                {$commandExpandedSubcategories[subKey] ? '▼' : '▶'}
+                {$commandExpandedSubcategories[subKey] ? '▼' : '▷'}
               </button>
               
               <input
@@ -113,14 +112,14 @@
               />
               
               <button 
-                class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+                class="bg-green-600/50 hover:bg-green-700 text-white px-2 py-1 rounded"
                 on:click={() => addCommandTask(category.id, subcategory.id)}
               >
                 +
               </button>
               
               <button 
-                class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+                class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
                 on:click={() => deleteCommandSubcategory(category.id, subcategory.id)}
               >
                 Del
@@ -155,7 +154,7 @@
                     </button>
                     
                     <button 
-                      class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+                      class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
                       on:click={() => deleteCommandTask(category.id, subcategory.id, task.id)}
                     >
                       Del

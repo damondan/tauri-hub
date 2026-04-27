@@ -125,7 +125,7 @@
           class="text-white text-3xl w-6"
           on:click={() => toggleYear(year.id)}
         >
-          {$financeExpandedYears[year.id] ? "▼" : "▶"}
+          {$financeExpandedYears[year.id] ? "▼" : "▷"}
         </button>
 
         <div class="flex-1 text-white text-3xl font-semibold">
@@ -140,7 +140,7 @@
 
     <!-- Level 2: Months (only show when year expanded) -->
     {#if $financeExpandedYears[year.id]}
-      <div class="ml-12 mt-2 space-y-2">
+      <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each year.months as month (month.id)}
          {@const presentMonth = new Date().getMonth()}
           {@const monthKey = `${year.id}-${month.id}`}
@@ -152,7 +152,7 @@
                   class="text-white text-3xl w-6"
                   on:click={() => toggleMonth(monthKey)}
                 >
-                  {$financeExpandedMonths[monthKey] ? "▼" : "▶"}
+                  {$financeExpandedMonths[monthKey] ? "▼" : "▷"}
                 </button>
                 <div class="text-white text-3xl">
                   {getMonthName(month.monthNumber)}
@@ -276,7 +276,7 @@
 
           <!-- Level 3: Weeks (only show when month expanded) -->
           {#if $financeExpandedMonths[monthKey]}
-            <div class="ml-12 mt-2 space-y-2">
+            <div class="ml-10 mr-10 mt-2 space-y-2">
               {#each month.weeks as week (week.id)}
                 <!--Going through weeks of month-->
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
@@ -286,7 +286,7 @@
                       class="text-white text-3xl w-6"
                       on:click={() => toggleWeek(weekKey)}
                     >
-                      {$financeExpandedWeeks[weekKey] ? "▼" : "▶"}
+                      {$financeExpandedWeeks[weekKey] ? "▼" : "▷"}
                     </button>
 
                     <div class="text-white text-3xl font-semibold">

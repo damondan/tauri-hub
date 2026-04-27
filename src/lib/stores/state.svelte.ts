@@ -6,6 +6,7 @@ export const appPersState = $state<AppSessionPersState>({
     showOnlyLast: false,
 });
 
+
 interface AppSessionProfState {
 	showOnlyLast: boolean;
 }

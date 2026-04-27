@@ -4,6 +4,7 @@
   import { autoResize } from "$lib/utils/textareaResize";
   import { getMonthName } from "$lib/stores/general";
   import { borderNTextNBg,buttonStyles } from "$lib/styles";
+  import { appProfState } from "$lib/stores/state.svelte"
   import {
     profGoalData,
     generateProfGoalStructureToDate,
@@ -22,6 +23,11 @@
   let currentDay = new Date().getDate();
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
+
+    let lastRow = $derived(
+    ($profGoalData.find((y) => y.year === currentYear)?.months?.length ?? 0) -
+      1,
+  );
 
   let showProfessionalDayDialog = $state(false);
   let pendingProfessionalDayAction = $state<{
@@ -103,6 +109,16 @@
   }
 </script>
 
+<div class="flex items-center justify-between mb-6">
+  <!--Focus button-takes out earlier months to focus on present-->
+  <button
+    class="text-sm rounded p-1 bg-white/10 text-white/30 hover:bg-black/70 hover:text-white/80 float-right transition-all"
+    onclick={() => (appProfState.showOnlyLast = !appProfState.showOnlyLast)}
+  >
+    Focus
+  </button>
+</div>
+
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
   <div class="text-white/70 italic">Loading...</div>
@@ -118,7 +134,7 @@
           class="text-white text-3xl w-6"
           onclick={() => toggleYear(year.id)}
         >
-          {$profGoalExpandedYears[year.id] ? "▼" : "▶"}
+          {$profGoalExpandedYears[year.id] ? "▼" : "▷"}
         </button>
 
         <div class="text-white/80 text-3xl font-semibold">
@@ -145,16 +161,23 @@
 
     <!-- Level 2: Months (only show when year expanded) -->
     {#if $profGoalExpandedYears[year.id]}
-      <div class="ml-12 mt-2 space-y-2">
-        {#each year.months as month (month.id)}
+      <div class="ml-10 mr-10 mt-2 space-y-2">
+        {#each year.months as month, i (month.id)}
           {@const monthKey = `${year.id}-${month.id}`}
-          <div class="bg-white/10 rounded-xl p-3">
+          <div class="bg-white/10 rounded-xl p-3
+           {appProfState.showOnlyLast && i !== lastRow
+              ? 'h-0 min-h-0 max-h-0 p-0 m-0 opacity-0 overflow-hidden border-0 flex-none scale-y-0 origin-top'
+              : 'h-auto'}
+          {!appProfState.showOnlyLast && i !== lastRow
+              ? borderNTextNBg.lightText
+              : 'text-white'}"
+              >
             <div class="flex items-center gap-3">
               <button
                 class="text-white text-3xl w-6 shrink-0"
                 onclick={() => toggleMonth(monthKey)}
               >
-                {$profGoalExpandedMonths[monthKey] ? "▼" : "▶"}
+                {$profGoalExpandedMonths[monthKey] ? "▼" : "▷"}
               </button>
 
               <div class="text-white text-3xl font-semibold w-48 shrink-0">
@@ -215,7 +238,7 @@
 
           <!-- Level 3: Weeks (only show when month expanded) -->
           {#if $profGoalExpandedMonths[monthKey]}
-            <div class="ml-12 mt-2 space-y-2 bg-white/10">
+            <div class="ml-10 mr-10 mt-2 space-y-2 bg-white/10">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
                 <div class="rounded-xl p-3">
@@ -224,7 +247,7 @@
                       class="text-white text-3xl w-6"
                       onclick={() => toggleWeek(weekKey)}
                     >
-                      {$profGoalExpandedWeeks[weekKey] ? "▼" : "▶"}
+                      {$profGoalExpandedWeeks[weekKey] ? "▼" : "▷"}
                     </button>
 
                     <div class="text-white text-3xl font-semibold w-25">
@@ -293,7 +316,7 @@
 
                   <!-- Days (only show when week expanded) -->
                   {#if $profGoalExpandedWeeks[weekKey] && week.days}
-                    <div class="ml-12 mt-3 space-y-3">
+                    <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
                         <div class="rounded-lg p-3">
                           <!-- Day entry -->
@@ -436,7 +459,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Yes
+          Fight
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"

@@ -52,11 +52,10 @@
 </script>
 
 <!-- Header with Add button -->
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-4xl font-bold text-white">HowTo</h1>
+<div class="flex items-center justify-end mb-6">
   <button
     onclick={() => addHowToCategory()}
-    class="bg-green-500 hover:bg-green-600 text-white w-12 h-12 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
+    class="bg-green-500/30 hover:bg-green-600/50 text-white w-10 h-10 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
   >
     +
   </button>
@@ -79,7 +78,7 @@
           class="text-white text-3xl w-6"
           onclick={() => toggleCategory(category.id)}
         >
-          {$howtoExpandedCategories[category.id] ? "▼" : "▶"}
+          {$howtoExpandedCategories[category.id] ? "▼" : "▷"}
         </button>
 
         <input
@@ -95,24 +94,24 @@
         />
 
         <button
-          class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+          class="bg-green-600/50 hover:bg-green-600 text-white px-2 py-1 rounded"
           onclick={() => addHowToSubcategory(category.id)}
         >
           +
         </button>
 
         <button
-          class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+          class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
           onclick={() => deleteHowToCategory(category.id)}
         >
-          Delete
+          Del
         </button>
       </div>
     </div>
 
     <!-- Level 2: Subcategories (only show when category expanded) -->
     {#if $howtoExpandedCategories[category.id]}
-      <div class="ml-12 mt-2 space-y-2">
+      <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each category.subcategories as subcategory (subcategory.id)}
           {@const subKey = `${category.id}-${subcategory.id}`}
           <div class="bg-white/10 rounded-xl p-3">
@@ -121,7 +120,7 @@
                 class="text-white text-3xl w-6"
                 onclick={() => toggleSubcategory(subKey)}
               >
-                {$howtoExpandedSubcategories[subKey] ? "▼" : "▶"}
+                {$howtoExpandedSubcategories[subKey] ? "▼" : "▷"}
               </button>
 
               <input
@@ -148,7 +147,7 @@
 
           <!-- Level 3: Topics (only show when subcategory expanded) -->
           {#if $howtoExpandedSubcategories[subKey]}
-            <div class="ml-12 mt-2 space-y-2">
+            <div class="ml-10 mr-10 mt-2 space-y-2">
               {#each subcategory.topics as topic (topic.id)}
                 {@const topicKey = `${category.id}-${subcategory.id}-${topic.id}`}
                 <div class="bg-white/10 rounded-xl p-3">
@@ -157,7 +156,7 @@
                       class="text-white text-3xl w-6"
                       onclick={() => toggleTopic(topicKey)}
                     >
-                      {$howtoExpandedTopics[topicKey] ? "▼" : "▶"}
+                      {$howtoExpandedTopics[topicKey] ? "▼" : "▷"}
                     </button>
 
                     <textarea
@@ -215,7 +214,7 @@
                             }}
                           ></textarea>
                           <button
-                            class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg"
+                            class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
                             onclick={() =>
                               deleteHowToTask(
                                 category.id,

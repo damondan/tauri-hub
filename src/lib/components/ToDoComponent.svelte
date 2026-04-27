@@ -184,7 +184,7 @@
             : 'border-transparent hover:border-white/20'} 
            mb-0"
         >
-          <div class="flex items-center gap-4 p-4">
+          <div class="ml-10 mr-10 flex items-center gap-4 p-4">
             <div
               draggable="true"
               ondragstart={(e) => {
@@ -246,7 +246,7 @@
 
           {#if $todoExpandedState[item.id]}
             <div
-              class=" p-2 pt- space-y-3 ml-12"
+              class="ml-10 mr-10 p-2 pt- space-y-3 ml-12"
               onclick={(e) => e.stopPropagation()}
             >
               {#each item.rows as row (row.id)}

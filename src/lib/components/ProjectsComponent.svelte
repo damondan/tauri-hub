@@ -52,12 +52,12 @@
   <div class="mb-3">
     <!-- Level 1: Project -->
     <div 
-      class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15"
+      class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15 "
       on:click={() => toggleProject(project.name)}
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-        <span class="text-white text-3xl w-6">{$projectExpandedProjects[project.name] ? '▼' : '▶'}</span>
+        <span class="text-white text-3xl w-6">{$projectExpandedProjects[project.name] ? '▼' : '▷'}</span>
           <span class="text-gray-500 text-3xl font-semibold tracking-wide">{project.name}</span>
         </div>
         <button 
@@ -71,7 +71,7 @@
 
     <!-- Level 2: Subprojects (only show when project expanded) -->
     {#if $projectExpandedProjects[project.name]}
-      <div class="ml-12 mt-2 space-y-2">
+      <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each Object.values(project.subprojects) as subproject (subproject.name)}
           {@const subKey = `${project.name}-${subproject.name}`}
           <div 
@@ -79,28 +79,28 @@
             on:click={() => toggleSubproject(subKey)}
           >
             <div class="flex items-center gap-3">
-              <span class="text-white text-3xl w-6">{$projectExpandedSubprojects[subKey] ? '▼' : '▶'}</span>
+              <span class="text-white text-3xl w-6">{$projectExpandedSubprojects[subKey] ? '▼' : '▷'}</span>
               <span class="text-white text-3xl">{subproject.name}</span>
             </div>
           </div>
 
           <!-- Level 3: Tasks (only show when subproject expanded) -->
           {#if $projectExpandedSubprojects[subKey]}
-            <div class="ml-12 mt-2 space-y-2">
+            <div class="ml-10 mr-10 mt-2 space-y-2">
               {#each subproject.tasks as task (task.id)}
                 {@const taskKey = `${project.name}-${subproject.name}-${task.id}`}
                 <div class="bg-white/10 rounded-xl p-3">
                   <div 
-                    class="flex items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2"
+                    class="flex w-full items-center gap-3 cursor-pointer hover:bg-white/5 rounded p-2 -m-2"
                     on:click={() => toggleTask(taskKey)}
                   >
-                    <span class="text-white text-3xl w-6">{$projectExpandedTasks[taskKey] ? '▼' : '▶'}</span>
-                    <span class="text-white text-3xl">{task.description} {formatDate(task.startDate)} - {formatDate(task.endDate)}</span>
+                    <span class="text-white text-3xl w-6">{$projectExpandedTasks[taskKey] ? '▼' : '▷'}</span>
+                    <span class="text-white text-3xl">{task.description} <span class="text-white/30 text-3xl">{formatDate(task.startDate)} - {formatDate(task.endDate)}</span></span>
                     <button 
-                      class="bg-purple-600 hover:bg-red-700 text-white px-3 py-1 rounded text-lg ml-auto"
+                      class="ml-auto bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
                       on:click|stopPropagation={() => deleteTask(project.name,subproject.name,task.id)}
                     >
-                      D
+                      Del
                     </button>
                   </div>
 
@@ -110,14 +110,7 @@
                       {#each task.rows as row (row.id)}
                         <div class="border rounded-lg p-2 flex items-start gap-3 {row.completed ? 'border-green-500' : 'border-red-500'}">
                           <!-- Completion indicator -->
-                          <div class="w-7 h-7 rounded-full border-2 flex items-center justify-center {row.completed ? 'border-green-500' : 'border-red-500'}">
-                            {#if row.completed}
-                              ✅
-                            {:else}
-                              <span class="w-4 h-4 rounded-full bg-red-500 inline-block"></span>
-                            {/if}
-                          </div>
-
+                          
                           <!-- Row text -->
                           <div class="flex-1 text-white text-3xl leading-tight break-words whitespace-normal">
                             {row.text}
