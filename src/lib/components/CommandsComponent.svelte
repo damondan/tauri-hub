@@ -1,7 +1,7 @@
 <!-- src/lib/components/CommandsComponent.svelte -->
 <!-- CommandsComponent.svelte -->
 <script lang="ts">
-  import { autoResize } from '$lib/utils/textareaResize';
+  import { autoResize, resizeTextarea } from '$lib/utils/textareaResize';
   import {
     commandData,
     addCommandCategory,
@@ -38,7 +38,7 @@
 </script>
 
 <!-- Header with Add button -->
-<div class="flex items-center justify-end mb-6">
+<div class="flex items-center justif>y-end mb-6">
   <button 
     on:click={() => addCommandCategory()}
     class="bg-green-500/30 hover:bg-green-600/50 text-white w-10 h-10 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
@@ -137,7 +137,7 @@
                       text-3xl placeholder-white/40 resize-none overflow-hidden leading-tight"
                       placeholder="Command..."
                       value={task.text}
-                      use:autoResize
+                      use:autoResize={task.text}
                       on:input={(e) => {
                         const target = e.target as HTMLTextAreaElement;
                         target.style.height = 'auto';

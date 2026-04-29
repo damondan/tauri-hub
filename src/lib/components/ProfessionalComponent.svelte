@@ -3,8 +3,8 @@
   import { onMount } from "svelte";
   import { autoResize } from "$lib/utils/textareaResize";
   import { getMonthName } from "$lib/stores/general";
-  import { borderNTextNBg,buttonStyles } from "$lib/styles";
-  import { appProfState } from "$lib/stores/state.svelte"
+  import { borderNTextNBg, buttonStyles } from "$lib/styles";
+  import { appProfState } from "$lib/stores/state.svelte";
   import {
     profGoalData,
     generateProfGoalStructureToDate,
@@ -21,10 +21,11 @@
   } from "$lib/stores/profgoal";
 
   let currentDay = new Date().getDate();
+  let currentWeekOfMonth = Math.ceil(new Date().getDate() / 7);
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
 
-    let lastRow = $derived(
+  let lastRow = $derived(
     ($profGoalData.find((y) => y.year === currentYear)?.months?.length ?? 0) -
       1,
   );
@@ -36,7 +37,7 @@
     weekId: string;
     dayId: string;
   } | null>(null);
- 
+
   let showProfessionalWeekDialog = $state(false);
   let pendingProfessionalWeekAction = $state<{
     yearId: string;
@@ -86,12 +87,26 @@
 
   // toggleMonth(key: string): void
   function toggleMonth(key: string) {
-    profGoalExpandedMonths.update((state) => ({ ...state, [key]: !state[key] }));
+    profGoalExpandedMonths.update((state) => ({
+      ...state,
+      [key]: !state[key],
+    }));
   }
 
   // toggleWeek(key: string): void
   function toggleWeek(key: string) {
     profGoalExpandedWeeks.update((state) => ({ ...state, [key]: !state[key] }));
+  }
+
+  function toggleExpand(dayId: string) {
+    const currentState = appProfState.expandedRowsProf[dayId] ?? false;
+
+    appProfState.expandedRowsProf = {
+      ...appProfState.expandedRowsProf,
+      [dayId]: !currentState,
+    };
+
+    console.log(`ID: ${dayId} is now:`, appProfState.expandedRowsProf[dayId]);
   }
 
   // handleProfessionalGoalClick(yearId: string, currentValue: string, changeCount: number): void
@@ -108,16 +123,6 @@
     showProfessionalGoalDialog = true;
   }
 </script>
-
-<div class="flex items-center justify-between mb-6">
-  <!--Focus button-takes out earlier months to focus on present-->
-  <button
-    class="text-sm rounded p-1 bg-white/10 text-white/30 hover:bg-black/70 hover:text-white/80 float-right transition-all"
-    onclick={() => (appProfState.showOnlyLast = !appProfState.showOnlyLast)}
-  >
-    Focus
-  </button>
-</div>
 
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
@@ -142,10 +147,10 @@
         </div>
 
         <!-- Yrly Prof. Goal -->
-    
+
         <textarea
-         class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
-          placeholder="Professional ..."
+          class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
+          placeholder="Professional "
           rows="1"
           readonly
           value={year.yearProfessionalGoal || ""}
@@ -164,14 +169,14 @@
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each year.months as month, i (month.id)}
           {@const monthKey = `${year.id}-${month.id}`}
-          <div class="bg-white/10 rounded-xl p-3
-           {appProfState.showOnlyLast && i !== lastRow
-              ? 'h-0 min-h-0 max-h-0 p-0 m-0 opacity-0 overflow-hidden border-0 flex-none scale-y-0 origin-top'
-              : 'h-auto'}
-          {!appProfState.showOnlyLast && i !== lastRow
-              ? borderNTextNBg.lightText
-              : 'text-white'}"
-              >
+          {@const isExpanded = month.monthProfessionalGoals != ""}
+          {@const isThisMonth = currentMonth}
+          {@const result = isExpanded || isThisMonth == month.monthNumber}
+          <div
+            class={result
+              ? "bg-white/10 rounded-xl p-3"
+              : borderNTextNBg.collapseRows}
+          >
             <div class="flex items-center gap-3">
               <button
                 class="text-white text-3xl w-6 shrink-0"
@@ -180,10 +185,17 @@
                 {$profGoalExpandedMonths[monthKey] ? "▼" : "▷"}
               </button>
 
-              <div class="text-white text-3xl font-semibold w-48 shrink-0">
+              <div class="text-white text-3xl font-semibold w-38 shrink-0">
                 {getMonthName(month.monthNumber)}
               </div>
               <!--Monthly Professional Goals -->
+              <button
+                onclick={() => toggleExpand(month.id)}
+                class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
+                title="Toggle Expand"
+              >
+                {appProfState.expandedRowsProf[month.id] ? "S" : "E"}
+              </button>
               <textarea
                 class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                 focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)] {month.proGoalCompleted
@@ -193,8 +205,11 @@
                     : borderNTextNBg.lightBorder}"
                 placeholder=""
                 rows="1"
+                use:autoResize={[
+                  month.monthProfessionalGoals,
+                  appProfState.expandedRowsProf[month.id],
+                ]}
                 value={month.monthProfessionalGoals || ""}
-                use:autoResize
                 oninput={(e) => {
                   const textarea = e.target as HTMLTextAreaElement;
                   textarea.style.height = "auto";
@@ -229,8 +244,7 @@
                 {:else if month.proGoalRejected}
                   <span class="text-white text-2xl font-bold"></span>
                 {:else}
-                  <span class="text-white"
-                  >?</span>
+                  <span class="text-white">?</span>
                 {/if}
               </button>
             </div>
@@ -241,7 +255,14 @@
             <div class="ml-10 mr-10 mt-2 space-y-2 bg-white/10">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
-                <div class="rounded-xl p-3">
+                {@const isCurrentWeek = currentWeekOfMonth === week.weekNumber}
+                {@const hasGoals = !!week.weekPrivateGoals}
+                {@const result = hasGoals || isCurrentWeek}
+                <div
+                  class={result
+                    ? "rounded-xl p-3"
+                    : borderNTextNBg.collapseRows}
+                >
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
@@ -255,9 +276,15 @@
                     </div>
 
                     <!-- Professional -->
-              
+                    <button
+                      onclick={() => toggleExpand(month.id)}
+                      class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
+                      title="Toggle Expand"
+                    >
+                      {appProfState.expandedRowsProf[week.id] ? "S" : "E"}
+                    </button>
                     <textarea
-                      class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden 
+                      class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                       focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)] {week.proGoalCompleted
                         ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                         : week.proGoalRejected
@@ -266,7 +293,10 @@
                       placeholder=""
                       rows="1"
                       value={week.weekProfessionalGoals || ""}
-                      use:autoResize
+                      use:autoResize={[
+                        week.weekProfessionalGoals,
+                        appProfState.expandedRowsProf[month.id],
+                      ]}
                       oninput={(e) => {
                         const textarea = e.target as HTMLTextAreaElement;
                         textarea.style.height = "auto";
@@ -307,9 +337,7 @@
                       {:else if week.proGoalRejected}
                         <span class="text-black text-2xl font-bold"></span>
                       {:else}
-                        <span
-                          class="text-white"
-                        >?</span>
+                        <span class="text-white">?</span>
                       {/if}
                     </button>
                   </div>
@@ -318,7 +346,14 @@
                   {#if $profGoalExpandedWeeks[weekKey] && week.days}
                     <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
-                        <div class="rounded-lg p-3">
+                        {@const isCurrentDay = currentDay === day.dayNumber}
+                        {@const hasGoals = !!day.dayProfessionalGoals}
+                        {@const result = hasGoals || isCurrentDay}
+                        <div
+                          class={result
+                            ? "rounded-lg p-3"
+                            : borderNTextNBg.collapseRows}
+                        >
                           <!-- Day entry -->
                           <div class="flex items-center gap-3">
                             <!-- Day label -->
@@ -330,9 +365,17 @@
                             </div>
 
                             <!-- Professional -->
-                           
+                            <button
+                              onclick={() => toggleExpand(day.id)}
+                              class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
+                              title="Toggle Expand"
+                            >
+                              {appProfState.expandedRowsProf[day.id]
+                                ? "S"
+                                : "E"}
+                            </button>
                             <textarea
-                              class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden 
+                              class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                               focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)] {day.proGoalCompleted
                                 ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                                 : day.proGoalRejected
@@ -341,14 +384,16 @@
                               placeholder=""
                               rows="1"
                               value={day.dayProfessionalGoals || ""}
-                              use:autoResize
+                              use:autoResize={[
+                                day.dayProfessionalGoals,
+                                appProfState.expandedRowsProf[day.id],
+                              ]}
                               oninput={(e) => {
                                 const textarea =
                                   e.target as HTMLTextAreaElement;
                                 textarea.style.height = "auto";
                                 textarea.style.height =
                                   textarea.scrollHeight + "px";
-                                autoResize(textarea);
                                 updateDayProfessionalGoals(
                                   year.id,
                                   month.id,
@@ -387,15 +432,14 @@
                               }}
                             >
                               {#if day.proGoalCompleted}
-                                <span class="text-white text-sm font-bold">⭐</span>
+                                <span class="text-white text-sm font-bold"
+                                  >⭐</span
+                                >
                               {:else if day.proGoalRejected}
                                 <span class="text-black text-2xl font-bold"
-                                  ></span
-                                >
+                                ></span>
                               {:else}
-                                <span
-                                  class="text-white"
-                                >?</span>
+                                <span class="text-white">?</span>
                               {/if}
                             </button>
                           </div>
@@ -424,7 +468,6 @@
       onclick={(e) => e.stopPropagation()}
     >
       <div class="flex flex-wrap gap-3 justify-center">
-        
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
@@ -444,7 +487,7 @@
           Convert
         </button>
         <button
-         class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalDayAction) {
               toggleDayProfessionalCompleted(
@@ -483,9 +526,8 @@
       onclick={(e) => e.stopPropagation()}
     >
       <div class="flex flex-wrap gap-3 justify-center">
-       
         <button
-           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalWeekAction) {
               toggleWeekProfessionalCompleted(
@@ -518,8 +560,8 @@
         >
           Fight
         </button>
-         <button
-           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+        <button
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => (showProfessionalWeekDialog = false)}
         >
           Cancel

@@ -5,29 +5,49 @@
  * Auto-resize a single textarea to fit its content
  */
 export function resizeTextarea(textarea: HTMLTextAreaElement): void {
-	textarea.style.height = 'auto';
-	textarea.style.height = textarea.scrollHeight + 'px';
+    // 1. Record current scroll position to "lock" the camera
+    const scrollPos = window.scrollY;
+
+    // 2. Perform the resize
+    textarea.style.height = 'auto'; // This is necessary to shrink if text is deleted
+    textarea.style.height = `${textarea.scrollHeight}px`;
+
+    // 3. Immediately restore scroll position to prevent the "jump"
+    // This happens before the next paint, making it invisible to the user
+    window.scrollTo(window.scrollX, scrollPos);
 }
 
 /**
  * autoResize(textarea: HTMLTextAreaElement): { update: () => void; destroy: () => void }
  * Svelte action that auto-resizes textarea on mount and input
  */
-export function autoResize(textarea: HTMLTextAreaElement) {
-	// Resize immediately on mount
-	resizeTextarea(textarea);
+// Define the array shape: [string, boolean]
+export function autoResize(textarea: HTMLTextAreaElement, [text, isExpanded]: [string | undefined, boolean]) {
+    const resize = () => {
+        if (isExpanded) {
+            const scrollPos = window.scrollY;
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+            window.scrollTo(window.scrollX, scrollPos);
+        } else {
+            // Clear the manual height so Tailwind CSS can take over
+            textarea.style.height = ''; 
+        }
+    };
 
-	return {
-		update() {
-			// Re-resize when the value binding changes
-			resizeTextarea(textarea);
-		},
-		destroy() {
-			// Cleanup if needed
-		}
-	};
+    // Initial run
+    requestAnimationFrame(resize);
+
+    return {
+        // The update method MUST also match this array structure
+        update([newText, newIsExpanded]: [string | undefined, boolean]) {
+            isExpanded = newIsExpanded;
+            // Note: 'newText' is passed here so Svelte knows to trigger 
+            // the update when the text changes, even if we don't use it directly.
+            resize();
+        }
+    };
 }
-
 /**
  * Auto-resize all textareas in the document
  */
