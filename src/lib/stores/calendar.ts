@@ -46,8 +46,9 @@ export interface CalendarYear {
 export const calendarData = writable<CalendarYear[]>([]);
 
 export function generateCalendarStructureToDate(targetDate: Date): void {
+    //Getting year of
     const targetYear = targetDate.getFullYear();
-
+    //record is providing number of months in a year and number of days in each month
     const record: Record<number, number> = createMonthDaysMap(targetYear);
 
     calendarData.update((years) => {
@@ -87,27 +88,18 @@ export function generateCalendarStructureToDate(targetDate: Date): void {
 
             const numDays = record[monthNum];
 
-            // ✅ Only initialize days if empty
-            if (!month.days || month.days.length === 0) {
-                month.days = Array.from({ length: numDays }, (_, i) => ({
-                    id: makeId(),
-                    dayNumber: i + 1,
-                    calEntries: [] // unique per day
-                }));
-            }
-
-            // ✅ Optional: handle month length changes (leap years, etc.)
-            if (month.days.length !== numDays) {
-                const existingDays = month.days;
-
-                month.days = Array.from({ length: numDays }, (_, i) => {
-                    return existingDays[i] ?? {
+            month.days = Array.from({ length: numDays }, (_, i) => {
+                const existing = month.days?.[i];
+            console.log(`Existing month.days?.[] is ${existing}`);
+                return existing?.id
+                    ? existing
+                    : {
                         id: makeId(),
                         dayNumber: i + 1,
                         calEntries: []
                     };
-                });
-            }
+            });
+
         }
 
         return years
@@ -126,9 +118,9 @@ export function addOrUpdateFinancial(
     entry: CalendarFinanceDayEntry
 ): void {
     console.log("addOrUpdateFinancial", { payType, name, amount, datePaid, day, month, year, note, entry });
-
+    console.log(`In addOrUpdateFinancial and entry.id is ${entry.id}`);
     const entryId = entry?.id || makeId();
-
+    console.log(`after - entry?.id || makeId(); entryId is ${entryId}`);
     calendarData.update((years) => {
         const updatedYears = years.map((y) =>
             y.yearNumber !== year
@@ -190,6 +182,9 @@ export function removeFinancialEntry(
     year: number
 ): void {
     const entryId: string = entry?.id;
+    console.log(`In removeFinanceEntry and entryId is ${entryId}`);
+    console.log(`In removeFinanceEntry and month is ${month}`);
+    console.log(`In removeFinanceEntry and year is ${year}`);
     calendarData.update((years) => {
         const removeFinEntry = years.map((y) => {
             return y.yearNumber !== year

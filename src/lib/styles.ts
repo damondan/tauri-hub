@@ -11,4 +11,7 @@ export const borderNTextNBg = {
 
 export const buttonStyles = {
     circleLightHover: 'border-2 border-gray-500 hover:border-white',
+    deleteButton: 'bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors',
+    plusButton: 'bg-green-600/20 hover:bg-green-500 text-green-500 hover:text-white px-4 py-1 rounded-lg font-bold',
+    largePlusButton: 'bg-green-500/20 hover:bg-green-500 float-right text-green-500 hover:text-white w-10 h-10 mt-0 mr-6 rounded-lg font-bold text-2xl transition-colors'
 } as const;

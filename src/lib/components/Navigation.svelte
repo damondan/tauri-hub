@@ -4,11 +4,12 @@
 
 	const tabs = [
 		{ path: "/", label: "Services" },
+		{ path: "/finances", label: "Finance" },
 		{ path: "/todo", label: "ToDo" },
 		{ path: "/projects", label: "Logs" },
 		{ path: "/personal", label: "Pers" },
 		{ path: "/professional", label: "Prof" },
-		{ path: "/finances", label: "Finance" },
+		{ path: "/thegoals", label: "Goals" },
 		{ path: "/commands", label: "Commands" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/notifications", label: "Notifs" },

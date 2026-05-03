@@ -10,6 +10,7 @@ import { calendarData } from '$lib/stores/calendar';
 import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks } from '$lib/stores/persgoal';
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
+import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
 import { get } from 'svelte/store';
 
 interface UserData {

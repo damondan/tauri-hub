@@ -20,6 +20,7 @@
     resizeAllTextareas,
     setupTextareaResizeListener,
   } from "$lib/utils/textareaResize";
+    import { buttonStyles } from "$lib/styles";
 
   // --- Reactive State ---
   let draggingId = $state<string | null>(null);
@@ -154,7 +155,7 @@
 </div>
 <button
   onclick={handleAddTopLevel}
-  class="bg-green-500 hover:bg-green-600 float-right text-white w-10 h-10 mt-0 mr-6 rounded-lg font-bold text-2xl transition-colors"
+  class="{buttonStyles.largePlusButton}"
 >
   +
 </button>
@@ -238,7 +239,7 @@
                 onclick={() => removeTodoItem(date, item.id)}>Del</button
               >
               <button
-                class="bg-green-600 hover:bg-green-500 text-white px-4 py-1 rounded-lg font-bold"
+                class="{buttonStyles.plusButton}"
                 onclick={() => handleAddRow(date, item.id)}>+</button
               >
             </div>

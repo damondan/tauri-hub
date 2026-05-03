@@ -77,6 +77,14 @@
     );
   }
 
+  let editingDay = $state<{
+    yearId: string;
+    monthId: string;
+    weekId: string;
+    dayId: string;
+    text: string;
+  } | null>(null);
+
   // toggleYear(yearId: string): void
   function toggleYear(yearId: string) {
     profGoalExpandedYears.update((state) => ({
@@ -169,9 +177,20 @@
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each year.months as month, i (month.id)}
           {@const monthKey = `${year.id}-${month.id}`}
-          {@const isExpanded = month.monthProfessionalGoals != ""}
-          {@const isThisMonth = currentMonth}
-          {@const result = isExpanded || isThisMonth == month.monthNumber}
+         {@const hasMonthGoals = !!month.monthProfessionalGoals?.trim()}
+
+          {@const isThisMonth = currentMonth === month.monthNumber}
+
+          {@const hasDayGoals = month.weeks.some((week) =>
+            week.days.some((day) => day.dayProfessionalGoals?.trim()),
+          )}
+
+          {@const hasWeekGoals = month.weeks.some((week) =>
+            week.weekProfessionalGoals?.trim(),
+          )}
+
+          {@const result =
+            hasMonthGoals || isThisMonth || hasDayGoals || hasWeekGoals}
           <div
             class={result
               ? "bg-white/10 rounded-xl p-3"
@@ -255,9 +274,13 @@
             <div class="ml-10 mr-10 mt-2 space-y-2 bg-white/10">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
-                {@const isCurrentWeek = currentWeekOfMonth === week.weekNumber}
-                {@const hasGoals = !!week.weekPrivateGoals}
-                {@const result = hasGoals || isCurrentWeek}
+                {@const hasWeekGoals = !!week.weekProfessionalGoals?.trim()}
+                {@const isThisWeek = currentWeekOfMonth === week.weekNumber && currentMonth == month.monthNumber}
+                {@const hasDayGoals = week.days.some((day) =>
+                  day.dayProfessionalGoals?.trim(),
+                )}
+                {@const result =
+                  hasWeekGoals || isThisWeek || hasDayGoals}
                 <div
                   class={result
                     ? "rounded-xl p-3"
@@ -346,9 +369,11 @@
                   {#if $profGoalExpandedWeeks[weekKey] && week.days}
                     <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
-                        {@const isCurrentDay = currentDay === day.dayNumber}
-                        {@const hasGoals = !!day.dayProfessionalGoals}
-                        {@const result = hasGoals || isCurrentDay}
+                        {@const hasDayGoals = day.dayProfessionalGoals?.trim()}
+                        {@const isCurrDay = currentDay == day.dayNumber && currentMonth == month.monthNumber}
+                        {@const result =
+                          hasDayGoals ||
+                          isCurrDay}
                         <div
                           class={result
                             ? "rounded-lg p-3"
@@ -358,7 +383,7 @@
                           <div class="flex items-center gap-3">
                             <!-- Day label -->
                             <div
-                              class="text-white text-2xl font-semibold whitespace-nowrap w-58"
+                              class="text-white text-2xl font-semibold whitespace-nowrap w-38"
                             >
                               {day.dayNumber}
                               {day.dayOfWeek}
@@ -388,12 +413,16 @@
                                 day.dayProfessionalGoals,
                                 appProfState.expandedRowsProf[day.id],
                               ]}
+                              ondblclick={() => {
+                                editingDay = {
+                                  yearId: year.id,
+                                  monthId: month.id,
+                                  weekId: week.id,
+                                  dayId: day.id,
+                                  text: day.dayProfessionalGoals || "",
+                                };
+                              }}
                               oninput={(e) => {
-                                const textarea =
-                                  e.target as HTMLTextAreaElement;
-                                textarea.style.height = "auto";
-                                textarea.style.height =
-                                  textarea.scrollHeight + "px";
                                 updateDayProfessionalGoals(
                                   year.id,
                                   month.id,
@@ -457,6 +486,63 @@
   </div>
 {/each}
 
+{#if editingDay}
+  <div class="fixed inset-0 z-[100] flex items-center justify-center">
+    <div
+      class="absolute inset-0 bg-black/80 backdrop-blur-md"
+      onclick={() => (editingDay = null)}
+    ></div>
+
+    <div
+      class="relative w-[95vw] md:w-[90vw] lg:w-[85vw] h-[80vh] bg-[#1a1a1a] border border-white/20 rounded-3xl flex flex-col shadow-2xl"
+    >
+      <div
+        class="p-4 border-b border-white/10 flex justify-between items-center text-white/50 font-mono"
+      >
+        <span>EDITOR</span>
+        <span class="text-xs">Through Perseverance We Conquer</span>
+      </div>
+
+      <textarea
+        class="flex-1 bg-transparent p-4 text-white text-2xl font-mono outline-none resize-none overflow-y-auto"
+        style="padding-top: 5vh; padding-bottom: 5vh;"
+        bind:value={editingDay.text}
+        autofocus
+      ></textarea>
+
+      <div class="p-6 border-t border-white/10 flex justify-end">
+        <button
+          onclick={() => {
+            const current = editingDay;
+            if (!current) return;
+            updateDayProfessionalGoals(
+              current.yearId,
+              current.monthId,
+              current.weekId,
+              current.dayId,
+              current.text,
+            );
+
+            // 2. Close modal
+            editingDay = null;
+          }}
+          class="bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+        >
+          Save
+        </button>
+        <button
+          onclick={() => {
+            editingDay = null;
+          }}
+          class="bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
 <!-- Custom Professional Day Dialog -->
 {#if showProfessionalDayDialog}
   <div
@@ -484,7 +570,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Convert
+          Fail
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
@@ -502,7 +588,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Fight
+          Succeed
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"

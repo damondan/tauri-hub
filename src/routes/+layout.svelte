@@ -62,10 +62,10 @@
 		const diskInterval = setInterval(updateDiskUsage, 1000);
 
 		// Play background audio
-		audio = new Audio("/jorelToSuperman.mp3");
-		audio
-			.play()
-			.catch((err) => console.log("Audio autoplay blocked:", err));
+		// audio = new Audio("/jorelToSuperman.mp3");
+		// audio
+		// 	.play()
+		// 	.catch((err) => console.log("Audio autoplay blocked:", err));
 
 		return () => {
 			clearInterval(ramInterval);

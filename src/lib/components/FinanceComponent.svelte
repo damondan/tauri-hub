@@ -3,6 +3,7 @@
   import { onMount } from "svelte";
   import { getMonthName } from "$lib/stores/general";
   import FinanceCalendar from "$lib/components/FinanceCalendar.svelte";
+  import { buttonStyles } from "$lib/styles";
   import {
     financeData,
     generateFinanceStructureToDate,
@@ -123,7 +124,7 @@
       <div class="flex items-center gap-3">
         <button
           class="text-white text-3xl w-6"
-          on:click={() => toggleYear(year.id)}
+          onclick={() => toggleYear(year.id)}
         >
           {$financeExpandedYears[year.id] ? "▼" : "▷"}
         </button>
@@ -150,7 +151,7 @@
               <div class="absolute left-0 flex items-center gap-3">
                 <button
                   class="text-white text-3xl w-6"
-                  on:click={() => toggleMonth(monthKey)}
+                  onclick={() => toggleMonth(monthKey)}
                 >
                   {$financeExpandedMonths[monthKey] ? "▼" : "▷"}
                 </button>
@@ -169,7 +170,7 @@
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
                     maxlength="14"
                     value={month.discAmount || ""}
-                    on:input={(e) =>
+                    oninput={(e) =>
                       updateFinanceMonthAmount(
                         year.id,
                         month.id,
@@ -187,7 +188,7 @@
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
                     maxlength="6"
                     value={month.discIntAmount || ""}
-                    on:input={(e) =>
+                    oninput={(e) =>
                       updateFinanceMonthAmount(
                         year.id,
                         month.id,
@@ -205,7 +206,7 @@
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
                     maxlength="14"
                     value={month.amerXAmount || ""}
-                    on:input={(e) =>
+                    oninput={(e) =>
                       updateFinanceMonthAmount(
                         year.id,
                         month.id,
@@ -223,7 +224,7 @@
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
                     maxlength="6"
                     value={month.amerXIntAmount || ""}
-                    on:input={(e) =>
+                    oninput={(e) =>
                       updateFinanceMonthAmount(
                         year.id,
                         month.id,
@@ -284,7 +285,7 @@
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
-                      on:click={() => toggleWeek(weekKey)}
+                      onclick={() => toggleWeek(weekKey)}
                     >
                       {$financeExpandedWeeks[weekKey] ? "▼" : "▷"}
                     </button>
@@ -334,7 +335,7 @@
                                 class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-24"
                                 placeholder="0"
                                 value={entry.addAmount}
-                                on:input={(e) =>
+                                oninput={(e) =>
                                   updateFinanceEntry(
                                     year.id,
                                     month.id,
@@ -355,7 +356,7 @@
                                 class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-24"
                                 placeholder="0"
                                 value={entry.subAmount}
-                                on:input={(e) =>
+                                oninput={(e) =>
                                   updateFinanceEntry(
                                     year.id,
                                     month.id,
@@ -380,7 +381,7 @@
                                       name="card-{entry.id}"
                                       class="w-3 h-3"
                                       checked={entry.isHB || false}
-                                      on:change={() =>
+                                      onchange={() =>
                                         handleRadioChange(
                                           year.id,
                                           month.id,
@@ -400,7 +401,7 @@
                                       name="card-{entry.id}"
                                       class="w-3 h-3"
                                       checked={entry.isDisc || false}
-                                      on:change={() =>
+                                      onchange={() =>
                                         handleRadioChange(
                                           year.id,
                                           month.id,
@@ -420,7 +421,7 @@
                                       name="card-{entry.id}"
                                       class="w-3 h-3"
                                       checked={entry.isAmerX || false}
-                                      on:change={() =>
+                                      onchange={() =>
                                         handleRadioChange(
                                           year.id,
                                           month.id,
@@ -444,7 +445,7 @@
                                       name="category-{entry.id}"
                                       class="w-3 h-3"
                                       checked={entry.isGas || false}
-                                      on:change={() =>
+                                      onchange={() =>
                                         handleRadioChange(
                                           year.id,
                                           month.id,
@@ -464,7 +465,7 @@
                                       name="category-{entry.id}"
                                       class="w-3 h-3"
                                       checked={entry.isFood || false}
-                                      on:change={() =>
+                                      onchange={() =>
                                         handleRadioChange(
                                           year.id,
                                           month.id,
@@ -484,7 +485,7 @@
                                       name="category-{entry.id}"
                                       class="w-3 h-3"
                                       checked={entry.isOther || false}
-                                      on:change={() =>
+                                      onchange={() =>
                                         handleRadioChange(
                                           year.id,
                                           month.id,
@@ -504,7 +505,7 @@
                                 class="flex-1 bg-white/10 border border-white/20 rounded px-3 py-1 text-white text-xl"
                                 placeholder="Description..."
                                 value={entry.description}
-                                on:input={(e) =>
+                                oninput={(e) =>
                                   updateFinanceEntry(
                                     year.id,
                                     month.id,
@@ -519,8 +520,8 @@
                               <!-- + button (first entry) or Delete button (additional entries) -->
                               {#if entryIndex === 0}
                                 <button
-                                  class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-lg"
-                                  on:click={() =>
+                                  class="{buttonStyles.plusButton}"
+                                  onclick={() =>
                                     addFinanceEntry(
                                       year.id,
                                       month.id,
@@ -532,8 +533,8 @@
                                 </button>
                               {:else}
                                 <button
-                                  class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-sm"
-                                  on:click={() =>
+                                  class="{buttonStyles.deleteButton}"
+                                  onclick={() =>
                                     deleteFinanceEntry(
                                       year.id,
                                       month.id,

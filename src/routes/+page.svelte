@@ -633,26 +633,27 @@
 					</div>
 				{/each}
 			</div>
-
+ <!-- class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-semibold transition-colors flex justify-center gap-2 h-[52px] w-[100px]" -->
 			<!-- Controls -->
 			<div class="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mt-8">
 				<!-- Hub Controls Sub-Container -->
 				<div
-					class="inline-block align-top bg-stone-300 rounded-xl p-4 mb-4"
+					class="inline-block align-top bg-black/20 rounded-xl p-4 mb-4"
 				>
-					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+					<h2 class="text-xl font-semibold text-center {borderNTextNBg.lightText} mb-3">
 						Hub Controls
 					</h2>
 					<div class="flex flex-wrap gap-4 items-stretch h-[72px]">
 						<button
 							onclick={loadApps}
-							class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-lg font-semibold transition-colors flex justify-center gap-2 h-[52px] w-[100px]"
+							
+							class="border-white/20 border bg-black/20 hover:border-white {borderNTextNBg.lightText} px-6 py-2 rounded-lg font-mono flex justify-center gap-2 h-[62px] w-[150px] transition-colors"
 						>
-							🔄 RefApps
+							🔄 Refresh Apps
 						</button>
 						<button
 							onclick={() => (showAddDialog = true)}
-							class="bg-green-500 hover:bg-green-600 text-white px-6 rounded-lg font-semibold transition-colors flex justify-center gap-2 h-[52px] w-[100px]"
+							class="bg-black/20 border-white/20 border hover:border-white {borderNTextNBg.lightText} px-6 rounded-lg font-semibold transition-colors flex justify-center items-center gap-2 h-[62px] w-[150px]"
 						>
 							➕ AddApps
 						</button>
@@ -661,19 +662,16 @@
 
 				<!-- Prog Services Sub-Container -->
 				<div
-					class="inline-block align-top rounded-xl p-4 mb-4"
-					style="background-color: #44ff44;"
+					class="inline-block align-top rounded-xl p-4 mb-4 bg-black/20 "
 				>
-					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+					<h2 class="text-xl font-semibold text-center {borderNTextNBg.lightText} mb-3">
 						Prog Services
 					</h2>
-					<div class="flex flex-wrap gap-4 items-stretch">
+					<div class="flex flex-col gap-4 items-stretch">
 						<!-- Docker Controls -->
-						<div
-							class="bg-white/50 backdrop-blur-sm rounded-2xl p-3 h-[72px]"
-						>
+						
 							<div
-								class="text-black text-center font-semibold text-base mb-1"
+								class="{borderNTextNBg.lightText} text-center font-semibold text-base mb-1"
 							>
 								Docker
 							</div>
@@ -684,8 +682,8 @@
 								<button
 									onclick={toggleDockerEnable}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerEnabled
-										? 'bg-green-500 hover:bg-green-600'
-										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[4rem] h-10 whitespace-nowrap"
+										? 'bg-green-600/20 hover:bg-green-500 text-green-500 hover:text-white px-4 py-1 rounded-lg font-bold'
+										: 'bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors'} min-w-[4rem] h-10 whitespace-nowrap"
 								>
 									{dockerEnabled ? "Enabled" : "Disabled"}
 								</button>
@@ -696,8 +694,8 @@
 									disabled={!dockerEnabled}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerActive &&
 									dockerEnabled
-										? 'bg-green-500 hover:bg-green-600'
-										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[3rem] h-10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+										? 'bg-green-600/20 hover:bg-green-500 text-green-500 hover:text-white px-4 py-1 rounded-lg font-bold'
+										: 'bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors'} min-w-[3rem] h-10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
 								>
 									{dockerActive ? "On" : "Off"}
 								</button>
@@ -706,8 +704,8 @@
 								<button
 									onclick={toggleDockerDesktopEnable}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerDesktopEnabled
-										? 'bg-green-500 hover:bg-green-600'
-										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[4rem] h-10 whitespace-nowrap"
+										? 'bg-green-600/20 hover:bg-green-500 text-green-500 hover:text-white px-4 py-1 rounded-lg font-bold'
+										: 'bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors'} min-w-[4rem] h-10 whitespace-nowrap"
 								>
 									{dockerDesktopEnabled
 										? "DEnabled"
@@ -720,13 +718,13 @@
 									disabled={!dockerDesktopEnabled}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {dockerDesktopActive &&
 									dockerDesktopEnabled
-										? 'bg-green-500 hover:bg-green-600'
-										: 'bg-red-500 hover:bg-red-600'} text-white min-w-[3rem] h-10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+										? 'bg-green-600/20 hover:bg-green-500 text-green-500 hover:text-white px-4 py-1 rounded-lg font-bol'
+										: 'bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors'} min-w-[3rem] h-10 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
 								>
 									{dockerDesktopActive ? "DOn" : "DOff"}
 								</button>
 							</div>
-						</div>
+						
 					</div>
 				</div>
 
@@ -735,7 +733,7 @@
 					class="inline-block align-top rounded-xl p-4 mb-4"
 					style="background-color: #bb44ff;"
 				>
-					<h2 class="text-xl font-semibold text-gray-800 mb-3">
+					<h2 class="text-xl font-semibold text-gray-800 mb-3 {borderNTextNBg.lightText}">
 						AI Services
 					</h2>
 					<div class="flex flex-wrap gap-4 items-stretch">

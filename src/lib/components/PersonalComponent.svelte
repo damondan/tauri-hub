@@ -228,9 +228,17 @@
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each year.months as month, i (month.id)}
           {@const monthKey = `${year.id}-${month.id}`}
-          {@const isExpanded = month.monthPrivateGoals != ""}
-          {@const isThisMonth = currentMonth}
-          {@const result = isExpanded || isThisMonth == month.monthNumber}
+          {@const hasMonthGoals = !!month.monthPrivateGoals?.trim()}
+          {@const isThisMonth = currentMonth === month.monthNumber}
+          {@const hasDayGoals = month.weeks.some((week) =>
+            week.days.some((day) => day.dayPrivateGoals?.trim()),
+          )}
+          {@const hasWeekGoals = month.weeks.some((week) =>
+            week.weekPrivateGoals?.trim(),
+          )}
+          {@const result =
+            hasMonthGoals || isThisMonth || hasDayGoals || hasWeekGoals}
+
           <div
             class={result
               ? "bg-white/10 rounded-xl p-3 text-white"
@@ -304,14 +312,24 @@
             <div class="ml-10 mr-10 mt-2 space-y-2 bg-white/10">
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
-                {@const isCurrentWeek = currentWeekOfMonth === week.weekNumber}
-                {@const hasGoals = !!week.weekPrivateGoals}
-                {@const result = hasGoals || isCurrentWeek}
+                {@const hasWeekGoals = !!week.weekPrivateGoals?.trim()}
+                {@const isThisWeek = currentWeekOfMonth === week.weekNumber && currentMonth == month.monthNumber}
+                {@const hasDayGoals = week.days.some((day) =>
+                  day.dayPrivateGoals?.trim(),
+                )}
+                {@const result = hasWeekGoals || isThisWeek || hasDayGoals}
+                 {@const debug = console.log({
+                          month,
+                          hasWeekGoals,
+                          isThisWeek,
+                          hasDayGoals,
+                          result,
+                        })}
                 <div
                   class={result
                     ? "rounded-xl p-3"
                     : borderNTextNBg.collapseRows}
-                >
+                >{debug}
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
@@ -383,9 +401,16 @@
                     {@const dayNum = d.getDate()}
                     <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
-                        {@const isToday = day.dayNumber === dayNum}
-                        {@const hasGoals = day.dayPrivateGoals != ""}
-                        {@const result = hasGoals || isToday}
+                        {@const hasDayGoals = day.dayPrivateGoals?.trim()}
+                        {@const isCurrDay = currentDay == day.dayNumber && currentMonth == month.monthNumber}
+                        {@const result = hasDayGoals || isCurrDay}
+                        {@const debug = console.log({
+                          month,
+                          day,
+                          hasDayGoals,
+                          isCurrDay,
+                          result,
+                        })}
                         <div
                           class={result
                             ? "rounded-lg p-3 bg-white/5"
@@ -395,7 +420,7 @@
                           <div class="flex items-center gap-3">
                             <!-- Day label -->
                             <div
-                              class="text-white text-2xl font-semibold whitespace-nowrap w-48"
+                              class="text-white text-2xl font-semibold whitespace-nowrap w-38"
                             >
                               {day.dayNumber}
                               {day.dayOfWeek}
@@ -413,12 +438,12 @@
                             <textarea
                               class="flex-1 bg-white/10 rounded-2xl ml-4 px-3 py-1 text-white text-xl resize-none overflow-hidden
                               focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)]
-                                 {isToday
-                                ? 'border-2 border-white'
+                                 {isCurrDay
+                                ? 'border-2 border-green-500/70'
                                 : day.isDream
-                                  ? 'border border-blue-700'
+                                  ? 'border-2 border-blue-700'
                                   : day.highlight
-                                    ? 'border border-yellow-400'
+                                    ? 'border-2 border-yellow-400'
                                     : 'border border-white/30'}"
                               placeholder=""
                               rows="1"

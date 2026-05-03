@@ -143,7 +143,7 @@
 </script>
 
 <button
-  class="text-white bg-black text-xl bg-purple-600"
+  class="text-white/50 rounded-2xl bg-black text-lg border p-1 bg-black/30 hover:border-white"
   onclick={showStatusDialogFunction}>Status</button
 >
 <div class="flex justify-center">
@@ -209,7 +209,7 @@
                 year: displayYear,
                 calEntries: day?.calEntries,
               };
-          
+
               payType = "expense";
               payName = "";
               payAmount = "";
@@ -220,7 +220,7 @@
             {day.dayNumber}
             {#if day.calEntries.length > 0}
               {#each day.calEntries as cal (cal.id)}
-                 {#if cal.isPaycheck}
+                {#if cal.isPaycheck}
                   <!-- Other paycheck -->
                   <button
                     class="w-auto h-auto mb-1 ml-1.5 mr-1.5 text-black font-bold bg-orange-400 hover:bg-orange-500 cursor-crosshair"
@@ -268,7 +268,6 @@
                     {cal.name}
                     {cal.amount}
                   </button>
-                
                 {:else if !cal.isPaycheck && !["Gas", "Food"].includes(cal.name)}
                   {@const isExpPaid = cal.datePaid != ""}
                   <!-- Other expense -->
@@ -374,7 +373,7 @@
         <button
           class="w-20 h-10 rounded-2xl text-white bg-green-400 hover:bg-green-900"
           onclick={() => {
-            console.log("selectedEntry:", selectedEntry);
+            console.log("onclick selectedEntry:", selectedEntry);
             addOrUpdateFinancial(
               payType,
               payName,
@@ -391,7 +390,15 @@
             payName = "";
             payAmount = "";
             note = "";
+            selectedEntry.id = "";
+            selectedEntry.name = "";
+            selectedEntry.amount = "";
+            selectedEntry.datePaid = "";
+            selectedEntry.dateDue = "";
+            selectedEntry.isPaycheck = false;
+            selectedEntry.note = "";
             showDayCalendarDialog = false;
+            
           }}>Add</button
         >
         <button
@@ -401,6 +408,11 @@
             const entry = selectedDayMonthYear.calEntries[0];
             if (!entry) return;
             if (!selectedEntry) return;
+            console.log(`In Delete onclick and entry is ${entry}`);
+            console.log(
+              `In Delete onclick and selectedEntry is ${selectedDayMonthYear.calEntries}`,
+            );
+            console.log(`In Delete onclick and entry is ${entry}`);
             removeFinancialEntry(
               selectedEntry,
               selectedDayMonthYear.dayNum,
@@ -411,12 +423,14 @@
             payName = "";
             payAmount = "";
             note = "";
-            selectedEntry.datePaid = "";
+            selectedEntry.id = "";
+            selectedEntry.name = "";
             selectedEntry.amount = "";
+            selectedEntry.datePaid = "";
             selectedEntry.dateDue = "";
             selectedEntry.isPaycheck = false;
             selectedEntry.note = "";
-
+            showDayCalendarDialog = false;
           }}>Del</button
         >
         {#if selectedEntry != null}
@@ -438,6 +452,13 @@
               payName = "";
               payAmount = "";
               note = "";
+              selectedEntry.id = "";
+              selectedEntry.name = "";
+              selectedEntry.amount = "";
+              selectedEntry.datePaid = "";
+              selectedEntry.dateDue = "";
+              selectedEntry.isPaycheck = false;
+              selectedEntry.note = "";
               showDayCalendarDialog = false;
             }}>Update</button
           >
@@ -448,6 +469,13 @@
             payType = "expense";
             payName = "";
             payAmount = "";
+            selectedEntry.id = "";
+            selectedEntry.name = "";
+            selectedEntry.amount = "";
+            selectedEntry.datePaid = "";
+            selectedEntry.dateDue = "";
+            selectedEntry.isPaycheck = false;
+            selectedEntry.note = "";
             showDayCalendarDialog = false;
           }}>Cancel</button
         >
