@@ -13,8 +13,8 @@
 		{ path: "/commands", label: "Commands" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/notifications", label: "Notifs" },
-		{ path: "/workspace_a", label: "WorkspaceA" },
-		{ path: "/workspace_b", label: "WorkspaceB" },
+		{ path: "/workspace_a", label: "XSpaceA" },
+		{ path: "/workspace_b", label: "XSpaceB" },
 	];
 </script>
 

@@ -18,6 +18,10 @@
     profGoalExpandedYears,
     profGoalExpandedMonths,
     profGoalExpandedWeeks,
+    addHighlightItem,
+    removeHighlight,
+    profGoalHighlights,
+    updateProfHighlight
   } from "$lib/stores/profgoal";
 
   let currentDay = new Date().getDate();
@@ -29,6 +33,8 @@
     ($profGoalData.find((y) => y.year === currentYear)?.months?.length ?? 0) -
       1,
   );
+
+    let showTop = $state(false);
 
   let showProfessionalDayDialog = $state(false);
   let pendingProfessionalDayAction = $state<{
@@ -130,8 +136,61 @@
     };
     showProfessionalGoalDialog = true;
   }
+
+   function showTopToggle(){
+    showTop = !showTop;
+  }
+
+  function addPersGoalHighlight(){
+    addHighlightItem();
+  }
+
+  function removePersGoalHighlight(){
+    removeHighlight();
+  }
 </script>
 
+<div>
+<button
+  class="float-right rounded text-sm bg-white/10 text-white/30 
+  hover:bg-black/70 hover:text-white/80"
+  onclick={() => showTopToggle()}
+>
+  Top
+</button>
+
+<button
+  class="bg-white/2 text-white/30 
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-md w-6"
+  onclick={()=> addPersGoalHighlight()}
+>
+  +
+</button>
+<button
+  class="bg-white/2 text-white/30 
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-md w-6"
+  onclick={()=> removePersGoalHighlight()}
+>
+  -
+</button>
+</div>
+
+{#each Object.entries($profGoalHighlights) as [id, highlight]}
+<div class="{showTop ? 'bg-white/10 rounded-xl mb-3 text-3xl p-2 flex' : borderNTextNBg.collapseRows}">
+    <textarea
+          class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
+          placeholder="Personal ... "
+          rows="1"
+          value={highlight}
+           oninput={(e) => {
+                  updateProfHighlight(
+                    id,
+                    (e.target as HTMLTextAreaElement).value,
+                  );
+                }}
+        ></textarea>
+</div>
+{/each}
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
   <div class="text-white/70 italic">Loading...</div>

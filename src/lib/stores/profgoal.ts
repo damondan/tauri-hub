@@ -6,6 +6,8 @@ export const profGoalExpandedYears = writable<Record<string, boolean>>({});
 export const profGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const profGoalExpandedWeeks = writable<Record<string, boolean>>({});
 
+export const profGoalHighlights = writable<Record<string,string>>({});
+
 export interface ProfGoalEntry {
     id: string;
     description: string;
@@ -13,11 +15,11 @@ export interface ProfGoalEntry {
 
 export interface ProfGoalDay {
     id: string;
-    dayNumber: number; 
-    dayOfWeek: string; 
-    dayProfessionalGoals: string; 
-    proGoalCompleted: boolean; 
-    proGoalRejected: boolean; 
+    dayNumber: number;
+    dayOfWeek: string;
+    dayProfessionalGoals: string;
+    proGoalCompleted: boolean;
+    proGoalRejected: boolean;
     entries: ProfGoalEntry[];
 }
 
@@ -60,7 +62,7 @@ export function generateProfGoalStructureToDate(targetDate: Date): void {
 
     profGoalData.update((years) => {
         const updatedYears = [...years];
-        
+
         // Find or create year
         let yearEntry = updatedYears.find(y => y.year === targetYear);
         if (!yearEntry) {
@@ -73,7 +75,7 @@ export function generateProfGoalStructureToDate(targetDate: Date): void {
             };
             updatedYears.push(yearEntry);
         }
-        
+
         // Generate months up to target month
         for (let monthNum = 1; monthNum <= targetMonth; monthNum++) {
             let monthEntry = yearEntry.months.find(m => m.monthNumber === monthNum);
@@ -90,17 +92,17 @@ export function generateProfGoalStructureToDate(targetDate: Date): void {
                 yearEntry.months.push(monthEntry);
                 yearEntry.months.sort((a, b) => a.monthNumber - b.monthNumber);
             }
-            
+
             // Determine how many days to generate for this month
             const daysInMonth = getDaysInMonth(targetYear, monthNum);
             const lastDayToGenerate = monthNum === targetMonth ? targetDay : daysInMonth;
-            
+
             // Generate weeks and days
             for (let dayNum = 1; dayNum <= lastDayToGenerate; dayNum++) {
                 const weekNum = Math.ceil(dayNum / 7);
                 const startDay = (weekNum - 1) * 7 + 1;
                 const endDay = Math.min(weekNum * 7, daysInMonth);
-                
+
                 // Find or create week
                 let weekEntry = monthEntry.weeks.find(w => w.weekNumber === weekNum);
                 if (!weekEntry) {
@@ -118,7 +120,7 @@ export function generateProfGoalStructureToDate(targetDate: Date): void {
                     monthEntry.weeks.push(weekEntry);
                     monthEntry.weeks.sort((a, b) => a.weekNumber - b.weekNumber);
                 }
-                
+
                 // Check if day already exists
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
                 if (!dayExists) {
@@ -140,7 +142,7 @@ export function generateProfGoalStructureToDate(targetDate: Date): void {
                 }
             }
         }
-        
+
         return updatedYears;
     });
 }
@@ -154,8 +156,8 @@ export function updateYearProfessionalGoal(
     profGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
-                return { 
-                    ...y, 
+                return {
+                    ...y,
                     yearProfessionalGoal: value,
                     yearProfessionalGoalChangeCount: y.yearProfessionalGoalChangeCount + 1
                 };
@@ -294,23 +296,23 @@ export function toggleDayProfessionalCompleted(
                                                 if (d.id === dayId) {
                                                     if (completed === true) {
                                                         // User clicked Yes
-                                                        return { 
-                                                            ...d, 
-                                                            proGoalCompleted: true, 
+                                                        return {
+                                                            ...d,
+                                                            proGoalCompleted: true,
                                                             proGoalRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
-                                                        return { 
-                                                            ...d, 
-                                                            proGoalCompleted: false, 
-                                                            proGoalRejected: true 
+                                                        return {
+                                                            ...d,
+                                                            proGoalCompleted: false,
+                                                            proGoalRejected: true
                                                         };
                                                     } else {
                                                         // Toggle (reset)
-                                                        return { 
-                                                            ...d, 
-                                                            proGoalCompleted: false, 
+                                                        return {
+                                                            ...d,
+                                                            proGoalCompleted: false,
                                                             proGoalRejected: false
                                                         };
                                                     }
@@ -352,21 +354,21 @@ export function toggleWeekProfessionalCompleted(
                                 weeks: m.weeks.map((w) => {
                                     if (w.id === weekId) {
                                         if (completed === true) {
-                                            return { 
-                                                ...w, 
-                                                proGoalCompleted: true, 
+                                            return {
+                                                ...w,
+                                                proGoalCompleted: true,
                                                 proGoalRejected: false
                                             };
                                         } else if (completed === false) {
-                                            return { 
-                                                ...w, 
-                                                proGoalCompleted: false, 
-                                                proGoalRejected: true 
+                                            return {
+                                                ...w,
+                                                proGoalCompleted: false,
+                                                proGoalRejected: true
                                             };
                                         } else {
-                                            return { 
-                                                ...w, 
-                                                proGoalCompleted: false, 
+                                            return {
+                                                ...w,
+                                                proGoalCompleted: false,
                                                 proGoalRejected: false
                                             };
                                         }
@@ -399,21 +401,21 @@ export function toggleMonthProfessionalCompleted(
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
                             if (completed === true) {
-                                return { 
-                                    ...m, 
-                                    proGoalCompleted: true, 
+                                return {
+                                    ...m,
+                                    proGoalCompleted: true,
                                     proGoalRejected: false
                                 };
                             } else if (completed === false) {
-                                return { 
-                                    ...m, 
-                                    proGoalCompleted: false, 
-                                    proGoalRejected: true 
+                                return {
+                                    ...m,
+                                    proGoalCompleted: false,
+                                    proGoalRejected: true
                                 };
                             } else {
-                                return { 
-                                    ...m, 
-                                    proGoalCompleted: false, 
+                                return {
+                                    ...m,
+                                    proGoalCompleted: false,
                                     proGoalRejected: false
                                 };
                             }
@@ -425,4 +427,39 @@ export function toggleMonthProfessionalCompleted(
             return y;
         })
     );
+}
+
+//PersGoalHighlight functions
+export function addHighlightItem() {
+    const id = makeId();
+
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [id]: ""
+    }));
+}
+
+export function removeHighlight() {
+    profGoalHighlights.update((highlights) => {
+        const updated = { ...highlights };
+
+        const keys = Object.keys(updated);
+
+        if (keys.length > 0) {
+            const lastKey = keys[keys.length - 1];
+            delete updated[lastKey];
+        }
+
+        return updated;
+    });
+}
+
+export function updateProfHighlight(
+    id: string,
+    value: string
+) {
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [id]: value
+    }));
 }

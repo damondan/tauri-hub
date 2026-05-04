@@ -5,6 +5,23 @@ import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 export const persGoalExpandedYears = writable<Record<string, boolean>>({});
 export const persGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const persGoalExpandedWeeks = writable<Record<string, boolean>>({});
+//persGoalHighlights.set(data.persGoalHighlights ?? []);
+
+interface HighlightLevel3 {
+    text: string;
+}
+
+interface HighlightLevel2 {
+    text: string;
+    children: Record<string, HighlightLevel3>;
+}
+
+export interface HighlightLevel1 {
+    text: string;
+    children: Record<string, HighlightLevel2>;
+}
+
+export const persGoalHighlights = writable<Record<string, HighlightLevel1>>({});
 
 export interface PersGoalEntry {
     id: string;
@@ -941,3 +958,170 @@ export function toggleMonthPrivateCompleted(
     );
 }
 
+//PersGoalHighlight functions
+export function addHighlightItem() {
+    const id = makeId();
+
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [id]: {
+            text: "",
+            children: {}
+        }
+    }));
+}
+
+export function addSubHighlight(
+    parentId: string
+) {
+    const id = makeId();
+
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [id]: {
+                    text: "",
+                    children: {}
+                }
+            }
+        }
+    }));
+}
+
+export function addDetailHighlight(
+    parentId: string,
+    childId: string
+) {
+    const id = makeId();
+
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [id]: {
+                            text: ""
+                        }
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function removeHighlight(
+    id: string
+) {
+    persGoalHighlights.update((highlights) => {
+        const updated = { ...highlights };
+        delete updated[id];
+        return updated;
+    });
+}
+
+export function removeSubHighlight(
+    parentId: string,
+    childId: string
+) {
+    persGoalHighlights.update((highlights) => {
+        const updated = { ...highlights };
+
+        delete updated[parentId]
+            .children?.[childId];
+
+        return updated;
+    });
+}
+
+export function removeDetailHighlight(
+    parentId: string,
+    childId: string,
+    detailId: string
+) {
+    persGoalHighlights.update((highlights) => {
+        const updated = { ...highlights };
+
+        delete updated[parentId]
+            .children?.[childId]
+            .children?.[detailId];
+
+        return updated;
+    });
+}
+
+export function updateTopHighlight(
+    id: string,
+    value: string
+) {
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [id]: {
+            ...highlights[id],
+            text: value
+        }
+    }));
+}
+
+export function updateSubHighlight(
+    parentId: string,
+    childId: string,
+    value: string
+) {
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    text: value
+                }
+            }
+        }
+    }));
+}
+
+export function updateDetailHighlight(
+    parentId: string,
+    childId: string,
+    detailId: string,
+    value: string
+) {
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [detailId]: {
+                            ...highlights[parentId]
+                                .children![childId]
+                                .children![detailId],
+                            text: value
+                        }
+                    }
+                }
+            }
+        }
+    }));
+}

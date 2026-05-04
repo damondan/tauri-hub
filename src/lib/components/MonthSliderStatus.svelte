@@ -38,7 +38,7 @@
     let expensesPaid: string = $state("");
     let expensesLeft: string = $state("");
 
-    let updatedPayVar: string = $state("");
+    let lastLoadedMonthKey: string = $state("");
 
     //Getting data from financeData
     const currentYearFromFin = $derived(
@@ -97,26 +97,28 @@
     }
 
     $effect(() => {
-        const presentMonth = getFinanceMonthCal(
-            $calendarData,
-            displayYear,
-            displayMonth,
-        );
-        if (!presentMonth) {
-            console.log(`presnt month is ${presentMonth}`);
-            console.log("present Month is false");
-            return;
-        }
+        console.log("effect reran");
+        const monthKey = `${displayYear}-${displayMonth}`;
 
-        //Initialize monthBalLimit, gas, and food
-        projectedEarnings = presentMonth.projectedEarnings ?? "";
-        monthIncomeLimit = presentMonth.monthBalLimit ?? "";
-        gasSpendLimit = presentMonth.gasLimit ?? "";
-        foodSpendLimit = presentMonth.foodLimit ?? "";
-        persSpendLimit = presentMonth.otherLimit ?? "";
+    if (monthKey === lastLoadedMonthKey) return;
 
-        console.log(monthIncomeLimit + gasSpendLimit + foodSpendLimit);
-    });
+    lastLoadedMonthKey = monthKey;
+
+    const presentMonth = getFinanceMonthCal(
+        $calendarData,
+        displayYear,
+        displayMonth
+    );
+
+    if (!presentMonth) return;
+
+    projectedEarnings = presentMonth.projectedEarnings ?? "";
+    monthIncomeLimit = presentMonth.monthBalLimit ?? "";
+    gasSpendLimit = presentMonth.gasLimit ?? "";
+    foodSpendLimit = presentMonth.foodLimit ?? "";
+    persSpendLimit = presentMonth.otherLimit ?? "";
+});
+
 </script>
 
 <div class="w-[320px] mr-2">
@@ -160,8 +162,8 @@
 
         <div class="text-white text-2xl">Get Status</div>
         <button
-            class="text-2xl bg-blue-400 rounded px-2 py-1 h-9"
-            onclick={getMonthStatus}>Go</button
+            class="text-2xl bg-blue-400/30 hover:bg-blue-500 rounded px-2 py-1 h-9"
+            onclick={getMonthStatus}>Update</button
         >
 
         {#if showMonthStatus == true}

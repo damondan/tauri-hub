@@ -4,6 +4,7 @@
   import { getMonthName, fileToDataUrl } from "$lib/stores/general";
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import { appPersState } from "$lib/stores/state.svelte";
+  import PersHighlights from "$lib/components/PersHighlights.svelte";
   import {
     persGoalData,
     generatePersGoalStructureToDate,
@@ -24,6 +25,16 @@
     removeYearImage,
     updateDayIsDream,
     updateHighlight,
+    persGoalHighlights,
+    addHighlightItem,
+    addSubHighlight,
+    addDetailHighlight,
+    removeHighlight,
+    removeSubHighlight,
+    updateTopHighlight,
+    updateSubHighlight,
+    removeDetailHighlight,
+    updateDetailHighlight,
   } from "$lib/stores/persgoal";
   import { app } from "@tauri-apps/api";
 
@@ -46,6 +57,8 @@
     ($persGoalData.find((y) => y.year === currentYear)?.months?.length ?? 0) -
       1,
   );
+
+  let showTop = $state(false);
 
   let activeTarget = $state<{
     yearId: string;
@@ -156,8 +169,36 @@
     pendingPrivateGoalChange = { yearId, value: currentValue, changeCount };
     showPrivateGoalDialog = true;
   }
+
+  function showTopToggle() {
+    showTop = !showTop;
+  }
+
+  function addPersGoalHighlight() {
+    addHighlightItem();
+  }
+
+  function removePersGoalHighlight() {
+    removeHighlight("");
+  }
 </script>
 
+<div>
+  <button
+    class="float-right rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30"
+    onclick={() => showTopToggle()}
+  >
+    Top
+  </button>
+</div>
+<div
+  class="{showTop
+    ? 'bg-white/10 rounded-xl mb-2 ml-2'
+    : borderNTextNBg.collapseRows} "
+>
+  <PersHighlights />
+</div>
 <!-- Empty state -->
 {#if $persGoalData.length === 0}
   <div class="text-white/70 italic">Loading...</div>
@@ -313,23 +354,26 @@
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
                 {@const hasWeekGoals = !!week.weekPrivateGoals?.trim()}
-                {@const isThisWeek = currentWeekOfMonth === week.weekNumber && currentMonth == month.monthNumber}
+                {@const isThisWeek =
+                  currentWeekOfMonth === week.weekNumber &&
+                  currentMonth == month.monthNumber}
                 {@const hasDayGoals = week.days.some((day) =>
                   day.dayPrivateGoals?.trim(),
                 )}
                 {@const result = hasWeekGoals || isThisWeek || hasDayGoals}
-                 {@const debug = console.log({
-                          month,
-                          hasWeekGoals,
-                          isThisWeek,
-                          hasDayGoals,
-                          result,
-                        })}
+                {@const debug = console.log({
+                  month,
+                  hasWeekGoals,
+                  isThisWeek,
+                  hasDayGoals,
+                  result,
+                })}
                 <div
                   class={result
                     ? "rounded-xl p-3"
                     : borderNTextNBg.collapseRows}
-                >{debug}
+                >
+                  {debug}
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
@@ -402,7 +446,9 @@
                     <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
                         {@const hasDayGoals = day.dayPrivateGoals?.trim()}
-                        {@const isCurrDay = currentDay == day.dayNumber && currentMonth == month.monthNumber}
+                        {@const isCurrDay =
+                          currentDay == day.dayNumber &&
+                          currentMonth == month.monthNumber}
                         {@const result = hasDayGoals || isCurrDay}
                         {@const debug = console.log({
                           month,

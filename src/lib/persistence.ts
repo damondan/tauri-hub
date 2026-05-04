@@ -7,7 +7,7 @@ import { projectsData, projectExpandedProjects, projectExpandedSubprojects, proj
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
-import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks } from '$lib/stores/persgoal';
+import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights, type HighlightLevel1 } from '$lib/stores/persgoal';
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
@@ -23,6 +23,7 @@ interface UserData {
 	calendar?: any[]; // Top-level expenses management list
 	persgoal?: any[];
 	profgoal?: any[],
+	persgoalhighlights?: Record<string,HighlightLevel1>,
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -44,7 +45,7 @@ interface UserData {
 	profGoalExpandedMonths?: Record<string, boolean>;
 	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
-	commandExpandedSubcategories?: Record<string, boolean>;
+	commandExpandedSubcategories?: Record<string, boolean>; 
 }
 
 let saveTimeout: number | null = null;
@@ -73,6 +74,7 @@ export async function saveUserData(): Promise<void> {
 		calendar: get(calendarData),
 		persgoal: get(persGoalData),
 		profgoal: get(profGoalData),
+		persgoalhighlights: get(persGoalHighlights),
 		workspaceA: get(workspaceContentA),
 		workspaceB: get(workspaceContentB),
 		field1: get(todoField1),
@@ -178,6 +180,9 @@ export async function loadUserData(): Promise<void> {
 	}
 	if (data.persGoalExpandedWeeks) {
 		persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
+	}
+	if (data.persgoalhighlights){
+		persGoalHighlights.set(data.persgoalhighlights);
 	}
 	if (data.profgoal) {
 		profGoalData.set(data.profgoal);
@@ -308,6 +313,10 @@ export function initPersistence() {
 	persGoalExpandedWeeks.subscribe(() => {
 		scheduleSave();
 	});
+
+	persGoalHighlights.subscribe(() => {
+		scheduleSave();
+	})
 
 	// Subscribe to goal changes
 	profGoalData.subscribe(() => {
