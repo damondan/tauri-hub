@@ -763,8 +763,8 @@
 							<button
 								onclick={toggleOpenWebUI}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+									? buttonStyles.greenButton
+									: buttonStyles.deleteButton}"
 							>
 								{openwebuiRunning ? "On" : "Off"}
 							</button>
@@ -786,8 +786,8 @@
 							<button
 								onclick={toggleLMStudio}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {lmstudioRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+									? buttonStyles.greenButton
+									: buttonStyles.deleteButton}"
 							>
 								{lmstudioRunning ? "On" : "Off"}
 							</button>
@@ -809,8 +809,8 @@
 							<button
 								onclick={toggleOllama}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {ollamaRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+									? buttonStyles.greenButton
+									: buttonStyles.deleteButton}"
 							>
 								{ollamaRunning ? "On" : "Off"}
 							</button>
@@ -832,8 +832,8 @@
 							<button
 								onclick={toggleWarp}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {warpRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+									? buttonStyles.greenButton
+									: buttonStyles.deleteButton}"
 							>
 								{warpRunning ? "On" : "Off"}
 							</button>

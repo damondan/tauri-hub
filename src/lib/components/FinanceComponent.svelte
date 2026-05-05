@@ -520,7 +520,7 @@
                               <!-- + button (first entry) or Delete button (additional entries) -->
                               {#if entryIndex === 0}
                                 <button
-                                  class="{buttonStyles.plusButton}"
+                                  class="{buttonStyles.greenButton}"
                                   onclick={() =>
                                     addFinanceEntry(
                                       year.id,

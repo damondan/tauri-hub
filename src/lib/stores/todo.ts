@@ -13,6 +13,7 @@ export interface TodoRow {
 	completed: boolean;
 	startTime?: string; // ISO 8601 timestamp
 	finishTime?: string; // ISO 8601 timestamp
+	activeToDo?: boolean;
 }
 
 export interface TodoItem {
@@ -54,6 +55,34 @@ export function updateTodoTitle(date: string, itemId: string, title: string): vo
 		return { ...map, [date]: nextList };
 	});
 }
+
+export function updateActiveTodo(
+    date: string,
+    itemId: string,
+    rowId: string,
+    activeTodo: boolean
+): void {
+    todosByDate.update((map) => {
+        const nextList = (map[date] ?? []).map((item) =>
+            item.id === itemId
+                ? {
+                      ...item,
+                      rows: item.rows.map((row) =>
+                          row.id === rowId
+                              ? { ...row, activeToDo: activeTodo }
+                              : row
+                      )
+                  }
+                : item
+        );
+
+        return {
+            ...map,
+            [date]: nextList
+        };
+    });
+}
+
 
 // Add a new TodoRow under a TodoItem
 // addTodoRow(date: string, itemId: string): string

@@ -14,16 +14,18 @@
     todoField2,
     sendTodoToProjects,
     todoExpandedState,
+    updateActiveTodo,
   } from "$lib/stores/todo";
   import {
     resizeTextarea,
     resizeAllTextareas,
     setupTextareaResizeListener,
   } from "$lib/utils/textareaResize";
-    import { buttonStyles } from "$lib/styles";
+    import { borderNTextNBg, buttonStyles } from "$lib/styles";
 
   // --- Reactive State ---
   let draggingId = $state<string | null>(null);
+  let activeTodo = $state(false);
 
   // --- Drag and Drop Handlers ---
   function onDragStart(e: DragEvent, id: string) {
@@ -120,6 +122,11 @@
     return item.rows.length > 0 && item.rows.every((row: any) => row.completed);
   }
 
+  function activeTodoFunction(date:string, item:string, row:string){
+    activeTodo = !activeTodo;
+    updateActiveTodo(date,item,row,activeTodo);
+  }
+
   // --- Lifecycles & Effects ---
   onMount(() => {
     resizeAllTextareas();
@@ -155,7 +162,7 @@
 </div>
 <button
   onclick={handleAddTopLevel}
-  class="{buttonStyles.largePlusButton}"
+  class="{buttonStyles.largeGreenButton}"
 >
   +
 </button>
@@ -239,13 +246,14 @@
                 onclick={() => removeTodoItem(date, item.id)}>Del</button
               >
               <button
-                class="{buttonStyles.plusButton}"
+                class="{buttonStyles.greenButton}"
                 onclick={() => handleAddRow(date, item.id)}>+</button
               >
             </div>
           </div>
 
           {#if $todoExpandedState[item.id]}
+
             <div
               class="ml-10 mr-10 p-2 pt- space-y-3 ml-12"
               onclick={(e) => e.stopPropagation()}
@@ -268,13 +276,15 @@
                   </button>
 
                   <textarea
-                    class=" flex-1 font-mono bg-transparent text-white ml-6 text-xl outline-none resize-none overflow-hidden py-1 leading-tight"
+                    class="pl-4 flex-1 font-mono bg-transparent text-white ml-6 text-xl outline-none resize-none 
+                    overflow-hidden py-1 leading-tight {row.activeToDo ? borderNTextNBg.whiteBorderShadow : ""}"
                     value={row.text}
                     oninput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
                       updateTodoRowText(date, item.id, row.id, target.value);
                       resizeTextarea(target);
                     }}
+                    ondblclick={() => activeTodoFunction(date,item.id, row.id)}
                   ></textarea>
 
                   <div class="flex gap-2">
@@ -289,6 +299,7 @@
                     >
                   </div>
                 </div>
+
               {/each}
             </div>
           {/if}
