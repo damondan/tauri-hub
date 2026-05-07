@@ -138,13 +138,13 @@
     const _trigger = [$todoField1, $todoField2, $todosByDate];
     resizeAllTextareas();
   });
-  $effect(() => {
-    console.group("--- Full Todo List Update ---");
-    Object.entries($todosByDate).forEach(([date, items]) => {
-      const titles = items.map((t) => t.title || "Untitled");
-      console.log(`Date [${date}]:`, titles);
-    });
-  });
+  // $effect(() => {
+  //   console.group("--- Full Todo List Update ---");
+  //   Object.entries($todosByDate).forEach(([date, items]) => {
+  //     const titles = items.map((t) => t.title || "Untitled");
+  //     console.log(`Date [${date}]:`, titles);
+  //   });
+  // });
 </script>
 
 <div class="flex items-start gap-2 mb-0 p-4 w-full">

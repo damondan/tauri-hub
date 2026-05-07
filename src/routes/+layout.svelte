@@ -4,7 +4,7 @@
 	import { onMount, onDestroy } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import Navigation from "$lib/components/Navigation.svelte";
-	import { loadUserData, initPersistence } from "$lib/persistence";
+	import { loadUserData, initPersistence, setHydrated } from "$lib/persistence";
 
 	let backupStatus = $state<"idle" | "saving" | "done">("idle");
 
@@ -51,8 +51,9 @@
 		loadUserData().then(() => {
 			// Initialize auto-save after loading
 			initPersistence();
+			setHydrated(true);
 		});
-
+		
 		updateRamUsage();
 		updateGpuUsage();
 		updateDiskUsage();

@@ -5,7 +5,9 @@ import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 export const persGoalExpandedYears = writable<Record<string, boolean>>({});
 export const persGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const persGoalExpandedWeeks = writable<Record<string, boolean>>({});
-//persGoalHighlights.set(data.persGoalHighlights ?? []);
+
+export const persGoalEncryptedCache = writable<string | null>(null);
+export const persGoalHighlightEncryptedCache = writable<string | null>(null);
 
 interface HighlightLevel3 {
     text: string;
@@ -1133,4 +1135,13 @@ export function migratePersGoalHighlights(
   // This exists to support future schema changes.
 
   return data as Record<string, HighlightLevel1>;
+}
+
+export function migratePersGoal(
+  data: any
+): PersGoalYear[] {
+  // No migration needed yet.
+  // This exists to support future schema changes.
+
+  return data as PersGoalYear[];
 }

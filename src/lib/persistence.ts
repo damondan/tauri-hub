@@ -7,13 +7,49 @@ import { projectsData, projectExpandedProjects, projectExpandedSubprojects, proj
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
-import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights, migratePersGoalHighlights, type HighlightLevel1 } from '$lib/stores/persgoal';
+import {
+	persGoalData, persGoalEncryptedCache, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights,
+	migratePersGoalHighlights, persGoalHighlightEncryptedCache, migratePersGoal, type HighlightLevel1, type PersGoalYear
+} from '$lib/stores/persgoal';
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
+import { pass, isUnlocked } from "$lib/stores/auth";
 import { get } from 'svelte/store';
 
-const highlightPassword = "test123";
+let isHydrated = false;
+
+isUnlocked.subscribe(async (value) => {
+	if (!value) return;
+	console.log("in isUnlocked after checking value");
+	const password = get(pass);
+
+	// decrypt persGoal
+	if (persGoalEncryptedCache) {
+		console.log(`In isUnlocked.subscrive - persGoalEncryptedCache is true`);
+		const decrypted = await invoke<string>("decrypt_highlights", {
+			password,
+			encrypted: get(persGoalEncryptedCache) ?? ""
+		});
+		const parsed = JSON.parse(decrypted);
+		const migrated = migratePersGoal(parsed);
+		persGoalData.set(migrated);
+	}
+	if (persGoalHighlightEncryptedCache) {
+		console.log(`In isUnlocked.subscrive - persGoalHighlightEncryptedCache is true`);
+		const decrypted = await invoke<string>("decrypt_highlights", {
+			password,
+			encrypted: persGoalHighlightEncryptedCache
+		});
+		const parsed = JSON.parse(decrypted);
+		const migrated = migratePersGoalHighlights(parsed);
+		persGoalHighlights.set(migrated);
+	}
+});
+
+export function setHydrated(value: boolean) {
+	isHydrated = value;
+}
 
 interface UserData {
 	todos: Record<string, any>;
@@ -23,9 +59,8 @@ interface UserData {
 	howto?: any[];
 	finance?: any[];
 	calendar?: any[]; // Top-level expenses management list
-	persgoal?: any[];
+	persgoalencryption?: string;
 	profgoal?: any[],
-	persgoalhighlights?: Record<string, HighlightLevel1>,
 	persGoalHighlightsEncrypted?: string,
 	workspaceA?: string;
 	workspaceB?: string;
@@ -53,19 +88,41 @@ interface UserData {
 
 let saveTimeout: number | null = null;
 
+export async function encryptPersGoals() {
+	const password = get(pass);
+
+	if (!password) return;
+
+	const encrypted = await invoke<string>(
+		"encrypt_highlights",
+		{
+			password,
+			data: JSON.stringify(get(persGoalData))
+		}
+	);
+
+	persGoalEncryptedCache.set(encrypted);
+}
+
 // Auto-save with debounce (500ms after last change)
 export function scheduleSave() {
 	if (saveTimeout !== null) {
 		clearTimeout(saveTimeout);
 	}
 	saveTimeout = window.setTimeout(async () => {
+		await encryptPersGoals();
 		await saveUserData();
-	}, 500);
+	}, 1000);
 }
 
 // Save todos and commands to disk
 export async function saveUserData(): Promise<void> {
 	try {
+		console.log(`In saveUserData`);
+		const password = get(pass);
+		const unlocked = get(isUnlocked);
+		const canEncrypt = !!password && unlocked;
+
 		const data: UserData = {
 			todos: get(todosByDate),
 			commands: get(commandData),
@@ -75,15 +132,22 @@ export async function saveUserData(): Promise<void> {
 			howto: get(howtoData),
 			finance: get(financeData),
 			calendar: get(calendarData),
-			persgoal: get(persGoalData),
+			persgoalencryption: get(persGoalEncryptedCache) ?? "",
+			persGoalHighlightsEncrypted: get(persGoalHighlightEncryptedCache) ?? "",
+			// persgoalencryption: canEncrypt
+			// 	? await invoke<string>("encrypt_highlights", {
+			// 		password,
+			// 		data: JSON.stringify(get(persGoalData))
+			// 	})
+			// 	: "",
+
+			// persGoalHighlightsEncrypted: canEncrypt
+			// 	? await invoke<string>("encrypt_highlights", {
+			// 		password,
+			// 		data: JSON.stringify(get(persGoalHighlights))
+			// 	})
+			// 	: "",
 			profgoal: get(profGoalData),
-			persGoalHighlightsEncrypted: await invoke<string>(
-				"encrypt_highlights",
-				{
-					password: highlightPassword,
-					data: JSON.stringify(get(persGoalHighlights))
-				}
-			),
 			workspaceA: get(workspaceContentA),
 			workspaceB: get(workspaceContentB),
 			field1: get(todoField1),
@@ -114,6 +178,7 @@ export async function saveUserData(): Promise<void> {
 
 // Load todos and commands from disk
 export async function loadUserData(): Promise<void> {
+	console.log(`In loadUserData`);
 	try {
 		const dataStr = await invoke<string>('load_user_data');
 		const data: UserData = JSON.parse(dataStr);
@@ -178,9 +243,6 @@ export async function loadUserData(): Promise<void> {
 		if (data.financeExpandedWeeks) {
 			financeExpandedWeeks.set(data.financeExpandedWeeks);
 		}
-		if (data.persgoal) {
-			persGoalData.set(data.persgoal);
-		}
 		if (data.persGoalExpandedYears) {
 			persGoalExpandedYears.set(data.persGoalExpandedYears);
 		}
@@ -190,24 +252,34 @@ export async function loadUserData(): Promise<void> {
 		if (data.persGoalExpandedWeeks) {
 			persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
 		}
-		// if (data.persgoalhighlights) {
-		// 	persGoalHighlights.set(
-		// 		migratePersGoalHighlights(data.persgoalhighlights)
+		persGoalEncryptedCache.set(data.persgoalencryption ?? null);
+		persGoalHighlightEncryptedCache.set(data.persGoalHighlightsEncrypted ?? null);
+		// if (data.persgoalencryption) {
+		// 	const decrypted = await invoke<string>(
+		// 		"decrypt_highlights",
+		// 		{
+		// 			password: highlightPassword,
+		// 			encrypted: data.persgoalencryption
+		// 		}
+		// 	);
+
+		// 	persGoalData.set(
+		// 		migratePersGoal(JSON.parse(decrypted))
 		// 	);
 		// }
-		if (data.persGoalHighlightsEncrypted) {
-			const decrypted = await invoke<string>(
-				"decrypt_highlights",
-				{
-					password: highlightPassword,
-					encrypted: data.persGoalHighlightsEncrypted
-				}
-			);
+		// if (data.persGoalHighlightsEncrypted) {
+		// 	const decrypted = await invoke<string>(
+		// 		"decrypt_highlights",
+		// 		{
+		// 			password: highlightPassword,
+		// 			encrypted: data.persGoalHighlightsEncrypted
+		// 		}
+		// 	);
 
-			persGoalHighlights.set(
-				migratePersGoalHighlights(JSON.parse(decrypted))
-			);
-		}
+		// 	persGoalHighlights.set(
+		// 		migratePersGoalHighlights(JSON.parse(decrypted))
+		// 	);
+		// }
 		if (data.profgoal) {
 			profGoalData.set(data.profgoal);
 		}
@@ -234,6 +306,7 @@ export async function loadUserData(): Promise<void> {
 
 // Subscribe to store changes and auto-save
 export function initPersistence() {
+
 	// Subscribe to todos changes
 	todosByDate.subscribe(() => {
 		scheduleSave();
@@ -321,11 +394,6 @@ export function initPersistence() {
 		scheduleSave();
 	});
 
-	// Subscribe to goal changes
-	persGoalData.subscribe(() => {
-		scheduleSave();
-	});
-
 	persGoalExpandedYears.subscribe(() => {
 		scheduleSave();
 	});
@@ -338,9 +406,20 @@ export function initPersistence() {
 		scheduleSave();
 	});
 
-	persGoalHighlights.subscribe(() => {
+	// Subscribe to goal changes
+	persGoalData.subscribe(() => {
+		if (!isHydrated) return;
+
+		console.log("In ScheduleSave for persGoalData");
 		scheduleSave();
-	})
+	});
+
+	persGoalHighlights.subscribe(() => {
+		if (!isHydrated) return;
+
+		console.log("In ScheduleSave for persGoalHighlights");
+		scheduleSave();
+	});
 
 	// Subscribe to goal changes
 	profGoalData.subscribe(() => {

@@ -25,16 +25,8 @@
     removeYearImage,
     updateDayIsDream,
     updateHighlight,
-    persGoalHighlights,
     addHighlightItem,
-    addSubHighlight,
-    addDetailHighlight,
     removeHighlight,
-    removeSubHighlight,
-    updateTopHighlight,
-    updateSubHighlight,
-    removeDetailHighlight,
-    updateDetailHighlight,
   } from "$lib/stores/persgoal";
   import { app } from "@tauri-apps/api";
 
