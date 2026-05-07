@@ -40,6 +40,7 @@
       </button>
       <textarea
         class="w-full text-4xl bg-transparent text-white border border-white/20 rounded px-8 pt-8 ml-3 mr-3"
+        placeholder="Standards Questions Dialog Vocabulary ..."
         bind:value={levelOne.text}
       />
       <button

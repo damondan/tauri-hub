@@ -186,7 +186,7 @@
             onDrop(date, item.id);
           }}
           ondragend={() => (draggingId = null)}
-          class="group relative flex flex-col bg-white/5 rounded-xl border-2 transition-all duration-200
+          class="group relative flex flex-col bg-white/7.5 rounded-xl border-2 transition-all duration-200
            {draggingId === item.id
             ? 'opacity-20 border-blue-500'
             : 'border-transparent hover:border-white/20'} 

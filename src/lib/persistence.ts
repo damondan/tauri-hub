@@ -7,11 +7,13 @@ import { projectsData, projectExpandedProjects, projectExpandedSubprojects, proj
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
-import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights, type HighlightLevel1 } from '$lib/stores/persgoal';
+import { persGoalData, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights, migratePersGoalHighlights, type HighlightLevel1 } from '$lib/stores/persgoal';
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
 import { get } from 'svelte/store';
+
+const highlightPassword = "test123";
 
 interface UserData {
 	todos: Record<string, any>;
@@ -23,7 +25,8 @@ interface UserData {
 	calendar?: any[]; // Top-level expenses management list
 	persgoal?: any[];
 	profgoal?: any[],
-	persgoalhighlights?: Record<string,HighlightLevel1>,
+	persgoalhighlights?: Record<string, HighlightLevel1>,
+	persGoalHighlightsEncrypted?: string,
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -45,7 +48,7 @@ interface UserData {
 	profGoalExpandedMonths?: Record<string, boolean>;
 	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
-	commandExpandedSubcategories?: Record<string, boolean>; 
+	commandExpandedSubcategories?: Record<string, boolean>;
 }
 
 let saveTimeout: number | null = null;
@@ -63,39 +66,45 @@ export function scheduleSave() {
 // Save todos and commands to disk
 export async function saveUserData(): Promise<void> {
 	try {
-	const data: UserData = {
-		todos: get(todosByDate),
-		commands: get(commandData),
-		commandExpandedCategories: get(commandExpandedCategories),
-		commandExpandedSubcategories: get(commandExpandedSubcategories),
-		projects: get(projectsData),
-		howto: get(howtoData),
-		finance: get(financeData),
-		calendar: get(calendarData),
-		persgoal: get(persGoalData),
-		profgoal: get(profGoalData),
-		persgoalhighlights: get(persGoalHighlights),
-		workspaceA: get(workspaceContentA),
-		workspaceB: get(workspaceContentB),
-		field1: get(todoField1),
-		field2: get(todoField2),
-		todoExpandedState: get(todoExpandedState),
-		projectExpandedProjects: get(projectExpandedProjects),
-		projectExpandedSubprojects: get(projectExpandedSubprojects),
-		projectExpandedTasks: get(projectExpandedTasks),
-		howtoExpandedCategories: get(howtoExpandedCategories),
-		howtoExpandedSubcategories: get(howtoExpandedSubcategories),
-		howtoExpandedTopics: get(howtoExpandedTopics),
-		financeExpandedYears: get(financeExpandedYears),
-		financeExpandedMonths: get(financeExpandedMonths),
-		financeExpandedWeeks: get(financeExpandedWeeks),
-		persGoalExpandedYears:  get(persGoalExpandedYears),
-		persGoalExpandedMonths: get(persGoalExpandedMonths),
-		persGoalExpandedWeeks:  get(persGoalExpandedWeeks),
-		profGoalExpandedYears:  get(profGoalExpandedYears),
-		profGoalExpandedMonths: get(profGoalExpandedMonths),
-		profGoalExpandedWeeks:  get(profGoalExpandedWeeks)
-	};
+		const data: UserData = {
+			todos: get(todosByDate),
+			commands: get(commandData),
+			commandExpandedCategories: get(commandExpandedCategories),
+			commandExpandedSubcategories: get(commandExpandedSubcategories),
+			projects: get(projectsData),
+			howto: get(howtoData),
+			finance: get(financeData),
+			calendar: get(calendarData),
+			persgoal: get(persGoalData),
+			profgoal: get(profGoalData),
+			persGoalHighlightsEncrypted: await invoke<string>(
+				"encrypt_highlights",
+				{
+					password: highlightPassword,
+					data: JSON.stringify(get(persGoalHighlights))
+				}
+			),
+			workspaceA: get(workspaceContentA),
+			workspaceB: get(workspaceContentB),
+			field1: get(todoField1),
+			field2: get(todoField2),
+			todoExpandedState: get(todoExpandedState),
+			projectExpandedProjects: get(projectExpandedProjects),
+			projectExpandedSubprojects: get(projectExpandedSubprojects),
+			projectExpandedTasks: get(projectExpandedTasks),
+			howtoExpandedCategories: get(howtoExpandedCategories),
+			howtoExpandedSubcategories: get(howtoExpandedSubcategories),
+			howtoExpandedTopics: get(howtoExpandedTopics),
+			financeExpandedYears: get(financeExpandedYears),
+			financeExpandedMonths: get(financeExpandedMonths),
+			financeExpandedWeeks: get(financeExpandedWeeks),
+			persGoalExpandedYears: get(persGoalExpandedYears),
+			persGoalExpandedMonths: get(persGoalExpandedMonths),
+			persGoalExpandedWeeks: get(persGoalExpandedWeeks),
+			profGoalExpandedYears: get(profGoalExpandedYears),
+			profGoalExpandedMonths: get(profGoalExpandedMonths),
+			profGoalExpandedWeeks: get(profGoalExpandedWeeks)
+		};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
 	} catch (error) {
@@ -108,7 +117,7 @@ export async function loadUserData(): Promise<void> {
 	try {
 		const dataStr = await invoke<string>('load_user_data');
 		const data: UserData = JSON.parse(dataStr);
-		
+
 		if (data.todos) {
 			todosByDate.set(data.todos);
 		}
@@ -127,9 +136,9 @@ export async function loadUserData(): Promise<void> {
 		if (data.howto) {
 			howtoData.set(data.howto);
 		}
-	if (data.field1 !== undefined) {
-		todoField1.set(data.field1);
-	}
+		if (data.field1 !== undefined) {
+			todoField1.set(data.field1);
+		}
 		if (data.field2 !== undefined) {
 			todoField2.set(data.field2);
 		}
@@ -151,58 +160,73 @@ export async function loadUserData(): Promise<void> {
 		if (data.howtoExpandedSubcategories) {
 			howtoExpandedSubcategories.set(data.howtoExpandedSubcategories);
 		}
-	if (data.howtoExpandedTopics) {
-		howtoExpandedTopics.set(data.howtoExpandedTopics);
-	}
-	if (data.finance) {
-		financeData.set(data.finance);
-	}
-	if (data.calendar) {
-		calendarData.set(data.calendar);
-	}
-	if (data.financeExpandedYears) {
-		financeExpandedYears.set(data.financeExpandedYears);
-	}
-	if (data.financeExpandedMonths) {
-		financeExpandedMonths.set(data.financeExpandedMonths);
-	}
-	if (data.financeExpandedWeeks) {
-		financeExpandedWeeks.set(data.financeExpandedWeeks);
-	}
-	if (data.persgoal) {
-		persGoalData.set(data.persgoal);
-	}
-	if (data.persGoalExpandedYears) {
-		persGoalExpandedYears.set(data.persGoalExpandedYears);
-	}
-	if (data.persGoalExpandedMonths) {
-		persGoalExpandedMonths.set(data.persGoalExpandedMonths);
-	}
-	if (data.persGoalExpandedWeeks) {
-		persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
-	}
-	if (data.persgoalhighlights){
-		persGoalHighlights.set(data.persgoalhighlights);
-	}
-	if (data.profgoal) {
-		profGoalData.set(data.profgoal);
-	}
-	if (data.profGoalExpandedYears) {
-		profGoalExpandedYears.set(data.profGoalExpandedYears);
-	}
-	if (data.profGoalExpandedMonths) {
-		profGoalExpandedMonths.set(data.profGoalExpandedMonths);
-	}
-	if (data.profGoalExpandedWeeks) {
-		persGoalExpandedWeeks.set(data.profGoalExpandedWeeks);
-	}
-	if (data.workspaceA !== undefined) {
-		workspaceContentA.set(data.workspaceA);
-	}
-	if (data.workspaceB !== undefined) {
-		workspaceContentB.set(data.workspaceB);
-	}
-	console.log('User data loaded');
+		if (data.howtoExpandedTopics) {
+			howtoExpandedTopics.set(data.howtoExpandedTopics);
+		}
+		if (data.finance) {
+			financeData.set(data.finance);
+		}
+		if (data.calendar) {
+			calendarData.set(data.calendar);
+		}
+		if (data.financeExpandedYears) {
+			financeExpandedYears.set(data.financeExpandedYears);
+		}
+		if (data.financeExpandedMonths) {
+			financeExpandedMonths.set(data.financeExpandedMonths);
+		}
+		if (data.financeExpandedWeeks) {
+			financeExpandedWeeks.set(data.financeExpandedWeeks);
+		}
+		if (data.persgoal) {
+			persGoalData.set(data.persgoal);
+		}
+		if (data.persGoalExpandedYears) {
+			persGoalExpandedYears.set(data.persGoalExpandedYears);
+		}
+		if (data.persGoalExpandedMonths) {
+			persGoalExpandedMonths.set(data.persGoalExpandedMonths);
+		}
+		if (data.persGoalExpandedWeeks) {
+			persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
+		}
+		// if (data.persgoalhighlights) {
+		// 	persGoalHighlights.set(
+		// 		migratePersGoalHighlights(data.persgoalhighlights)
+		// 	);
+		// }
+		if (data.persGoalHighlightsEncrypted) {
+			const decrypted = await invoke<string>(
+				"decrypt_highlights",
+				{
+					password: highlightPassword,
+					encrypted: data.persGoalHighlightsEncrypted
+				}
+			);
+
+			persGoalHighlights.set(
+				migratePersGoalHighlights(JSON.parse(decrypted))
+			);
+		}
+		if (data.profgoal) {
+			profGoalData.set(data.profgoal);
+		}
+		if (data.profGoalExpandedYears) {
+			profGoalExpandedYears.set(data.profGoalExpandedYears);
+		}
+		if (data.profGoalExpandedMonths) {
+			profGoalExpandedMonths.set(data.profGoalExpandedMonths);
+		}
+		if (data.profGoalExpandedWeeks) {
+			persGoalExpandedWeeks.set(data.profGoalExpandedWeeks);
+		}
+		if (data.workspaceA !== undefined) {
+			workspaceContentA.set(data.workspaceA);
+		}
+		if (data.workspaceB !== undefined) {
+			workspaceContentB.set(data.workspaceB);
+		}
+		console.log('User data loaded');
 	} catch (error) {
 		console.error('Failed to load user data:', error);
 	}

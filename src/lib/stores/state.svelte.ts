@@ -1,3 +1,4 @@
+//Personal
 interface AppSessionPersState {
 	showOnlyLast: boolean;
     expandedRows: Record<string, boolean>;
@@ -8,7 +9,7 @@ export const appPersState = $state<AppSessionPersState>({
     expandedRows: {} as Record<string,boolean>,
 });
 
-
+//Professional
 interface AppSessionProfState {
 	showOnlyLast: boolean;
     expandedRowsProf: Record<string, boolean>;

@@ -1125,3 +1125,12 @@ export function updateDetailHighlight(
         }
     }));
 }
+
+export function migratePersGoalHighlights(
+  data: any
+): Record<string, HighlightLevel1> {
+  // No migration needed yet.
+  // This exists to support future schema changes.
+
+  return data as Record<string, HighlightLevel1>;
+}

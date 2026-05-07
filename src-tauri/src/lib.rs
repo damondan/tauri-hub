@@ -14,6 +14,81 @@ use std::sync::mpsc::channel;
 use std::thread;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use tauri_plugin_notification::NotificationExt;
+use aes_gcm::{
+    aead::{Aead, KeyInit},
+    Aes256Gcm, Nonce
+};
+
+use argon2::Argon2;
+use rand::RngCore;
+use base64::{engine::general_purpose, Engine as _};
+
+fn derive_key(password: &str, salt: &[u8]) -> [u8; 32] {
+    let mut key = [0u8; 32];
+
+    Argon2::default()
+        .hash_password_into(password.as_bytes(), salt, &mut key)
+        .unwrap();
+
+    key
+}
+
+fn encrypt_data(password: &str, plaintext: &str) -> Result<String, String> {
+    let mut salt = [0u8; 16];
+    let mut nonce_bytes = [0u8; 12];
+
+    rand::thread_rng().fill_bytes(&mut salt);
+    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+
+    let key = derive_key(password, &salt);
+
+    let cipher = Aes256Gcm::new((&key).into());
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let ciphertext = cipher
+        .encrypt(nonce, plaintext.as_bytes())
+        .map_err(|e| e.to_string())?;
+
+    Ok(format!(
+        "{}:{}:{}",
+        general_purpose::STANDARD.encode(salt),
+        general_purpose::STANDARD.encode(nonce_bytes),
+        general_purpose::STANDARD.encode(ciphertext)
+    ))
+}
+
+fn decrypt_data(password: &str, encrypted: &str) -> Result<String, String> {
+    let parts: Vec<&str> = encrypted.split(':').collect();
+
+    if parts.len() != 3 {
+        return Err("Invalid encrypted format".to_string());
+    }
+
+    let salt = general_purpose::STANDARD.decode(parts[0]).map_err(|e| e.to_string())?;
+    let nonce_bytes = general_purpose::STANDARD.decode(parts[1]).map_err(|e| e.to_string())?;
+    let ciphertext = general_purpose::STANDARD.decode(parts[2]).map_err(|e| e.to_string())?;
+
+    let key = derive_key(password, &salt);
+
+    let cipher = Aes256Gcm::new((&key).into());
+    let nonce = Nonce::from_slice(&nonce_bytes);
+
+    let plaintext = cipher
+        .decrypt(nonce, ciphertext.as_ref())
+        .map_err(|_| "Decryption failed (wrong password or corrupted data)".to_string())?;
+
+    String::from_utf8(plaintext).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn encrypt_highlights(password: String, data: String) -> Result<String, String> {
+    encrypt_data(&password, &data)
+}
+
+#[tauri::command]
+fn decrypt_highlights(password: String, encrypted: String) -> Result<String, String> {
+    decrypt_data(&password, &encrypted)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TauriApp {
@@ -1318,7 +1393,9 @@ pub fn run() {
             get_disk_usage,
             load_user_data,
             save_user_data,
-            backup_user_data
+            backup_user_data,
+            encrypt_highlights,
+            decrypt_highlights
         ])
         .setup(|app| {
             // Load registry from disk

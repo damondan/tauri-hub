@@ -865,9 +865,9 @@
 							<!-- Toggle OSSEC Button (1st) -->
 							<button
 								onclick={toggleOssec}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {ossecRunning
-									? 'bg-green-500 hover:bg-green-600'
-									: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+								class="px-2 py-1 text-md flex items-center justify-center {ossecRunning
+									? buttonStyles.greenButton
+									: buttonStyles.deleteButton} w-16 h-10"
 							>
 								{ossecRunning ? "On" : "Off"}
 							</button>
@@ -876,7 +876,7 @@
 							<button
 								onclick={toggleOssecNotifications}
 								class="px-2 py-1 rounded-lg font-semibold text-xl transition-colors flex items-center justify-center {ossecNotificationsEnabled
-									? 'bg-purple-500 hover:bg-purple-600'
+									? 'bg-purple-500/20 hover:bg-purple-500'
 									: 'bg-gray-600 hover:bg-gray-700'} text-white w-12 h-10"
 								title={ossecNotificationsEnabled
 									? "Notifications enabled"
@@ -889,8 +889,8 @@
 							<button
 								onclick={openAlertsLog}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {alertsLogModified
-									? 'bg-blue-500 hover:bg-blue-600'
-									: 'bg-green-500 hover:bg-green-600'} text-white w-16 h-10"
+									? 'bg-blue-500/20 hover:bg-blue-500'
+									: buttonStyles.greenButton} w-16 h-10"
 							>
 								<span class="text-center leading-tight"
 									>View Log</span
@@ -903,7 +903,8 @@
 									onclick={openOssecConfig}
 									onmouseenter={handleOssecTooltipEnter}
 									onmouseleave={handleOssecTooltipLeave}
-									class="bg-white hover:bg-gray-100 text-black px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
+									class="bg-white/30 hover:bg-gray-100 text-black px-2 py-1 rounded-lg font-semibold 
+									text-md transition-colors flex items-center justify-center w-16 h-10"
 								>
 									<span class="text-center leading-tight"
 										>View Config</span
@@ -968,11 +969,10 @@
 									onclick={openAideLog}
 									onmouseenter={handleAideTooltipEnter}
 									onmouseleave={handleAideTooltipLeave}
-									class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
+									class="bg-green-500/20 hover:bg-green-500 text-green-500 hover:text-white px-2 py-1 rounded-lg font-semibold 
+									text-md transition-colors flex items-center justify-center w-16 h-10"
 								>
-									<span class="text-center leading-tight"
-										>View Log</span
-									>
+									View Log
 								</button>
 
 								<!-- Tooltip -->
@@ -1021,7 +1021,7 @@
 							<!-- Check Button -->
 							<button
 								onclick={runAideCheck}
-								class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
+								class="bg-yellow-500/20 hover:bg-yellow-500 text-yellow-500 hover:text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
 							>
 								<span class="text-center leading-tight"
 									>Check</span
@@ -1034,7 +1034,7 @@
 									onclick={runAideUpdate}
 									onmouseenter={handleAideUpdateTooltipEnter}
 									onmouseleave={handleAideUpdateTooltipLeave}
-									class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
+									class="bg-blue-500/20 hover:bg-blue-500 text-blue-500 hover:text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
 								>
 									<span class="text-center leading-tight"
 										>Update</span
@@ -1090,8 +1090,8 @@
 									onmouseenter={handleOpenSnitchTooltipEnter}
 									onmouseleave={handleOpenSnitchTooltipLeave}
 									class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {opensnitchRunning
-										? 'bg-green-500 hover:bg-green-600'
-										: 'bg-red-500 hover:bg-red-600'} text-white w-16 h-10"
+										? buttonStyles.greenButton
+										: buttonStyles.deleteButton}  w-16 h-10"
 								>
 									{opensnitchRunning ? "On" : "Off"}
 								</button>
