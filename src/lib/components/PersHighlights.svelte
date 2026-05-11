@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { borderNTextNBg } from "$lib/styles";
+  import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import { autoResize } from "$lib/utils/textareaResize";
   import { appPersState } from "$lib/stores/state.svelte";
   import {
@@ -17,6 +17,7 @@
   // let { showTop } = $props();
 
   let selectedGoalId: string | null = null;
+
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRows[dayId] ?? false;
 
@@ -27,6 +28,14 @@
 
     console.log(`ID: ${dayId} is now:`, appPersState.expandedRows[dayId]);
   }
+
+ function togglesublevel(id:string){
+    appPersState.expandedRows[id] =!appPersState.expandedRows[id];
+ }
+
+ function togglethirdlevel(childid: string){
+   appPersState.expandedRows[childid] =!appPersState.expandedRows[childid];
+ }
 </script>
 
 <div class="m-0 p-0">
@@ -46,11 +55,17 @@
     <div class="flex">
       <button
         class="bg-white/10 text-white/30
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
+      hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => addSubHighlight(id)}
       >
         +
       </button>
+       <button
+          class="text-white text-3xl w-6"
+          onclick={() => togglesublevel(id)}
+        >
+          {appPersState.expandedRows[id] ? "▼" : "▷"}
+        </button>
       <textarea
         class="w-full text-4xl bg-transparent text-white border border-white/20 rounded px-8 pb-5 pt-8 ml-3 mr-3"
         placeholder="Standards Questions Dialog Vocabulary ..."
@@ -72,7 +87,7 @@
     <!--Middle Level-->
     {#if levelOne.children && Object.keys(levelOne.children).length > 0}
       {#each Object.entries(levelOne.children ?? {}) as [childid, levelTwo]}
-        <div class="px-6 flex w-full gap-3 mt-2">
+        <div class="{appPersState.expandedRows[id] ? "px-6 flex w-full gap-3 mt-2" : borderNTextNBg.collapseRows}}">
           <button
             class="bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
@@ -87,8 +102,14 @@
           >
             {appPersState.expandedRows[childid] ? "S" : "E"}
           </button>
+          <button
+          class="text-white text-3xl w-6"
+          onclick={() => togglethirdlevel(childid)}
+        >
+          {appPersState.expandedRows[childid] ? "▼" : "▷"}
+        </button>
           <textarea
-            class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+            class="flex-1 mb-2 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                 focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
             use:autoResize={[levelTwo.text, appPersState.expandedRows[childid]]}
             rows="1"
@@ -112,7 +133,7 @@
         {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
           <!--Lower Level-->
           {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree]}
-            <div class="ml-15 flex items-center px-16 w-[95%] flex mt-2">
+            <div class="{appPersState.expandedRows[childid] ? "ml-15 flex items-center px-16 w-[95%] flex mt-2" : borderNTextNBg.collapseRows}">
               <button
                 onclick={() => toggleExpand(childid)}
                 class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
@@ -121,7 +142,7 @@
                 {appPersState.expandedRows[detailid] ? "S" : "E"}
               </button>
               <textarea
-                class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                class="flex-1 ml-8 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                 focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 use:autoResize={[
                   levelTwo.text,
