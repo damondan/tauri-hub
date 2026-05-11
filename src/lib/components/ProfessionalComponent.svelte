@@ -21,7 +21,7 @@
     addHighlightItem,
     removeHighlight,
     profGoalHighlights,
-    updateProfHighlight
+    updateProfHighlight,
   } from "$lib/stores/profgoal";
 
   let currentDay = new Date().getDate();
@@ -34,7 +34,7 @@
       1,
   );
 
-    let showTop = $state(false);
+  let showTop = $state(false);
 
   let showProfessionalDayDialog = $state(false);
   let pendingProfessionalDayAction = $state<{
@@ -137,59 +137,60 @@
     showProfessionalGoalDialog = true;
   }
 
-   function showTopToggle(){
+  function showTopToggle() {
     showTop = !showTop;
   }
 
-  function addPersGoalHighlight(){
+  function addPersGoalHighlight() {
     addHighlightItem();
   }
 
-  function removePersGoalHighlight(){
+  function removePersGoalHighlight() {
     removeHighlight();
   }
 </script>
 
 <div>
-<button
-  class="float-right rounded text-sm bg-white/10 text-white/30 
+  <button
+    class="float-right rounded text-sm bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80"
-  onclick={() => showTopToggle()}
->
-  Top
-</button>
+    onclick={() => showTopToggle()}
+  >
+    Top
+  </button>
 
-<button
-  class="bg-white/2 text-white/30 
+  <button
+    class="bg-white/2 text-white/30
   hover:bg-black/70 hover:text-white/80 float-left rounded text-md w-6"
-  onclick={()=> addPersGoalHighlight()}
->
-  +
-</button>
-<button
-  class="bg-white/2 text-white/30 
+    onclick={() => addPersGoalHighlight()}
+  >
+    +
+  </button>
+  <button
+    class="bg-white/2 text-white/30
   hover:bg-black/70 hover:text-white/80 float-left rounded text-md w-6"
-  onclick={()=> removePersGoalHighlight()}
->
-  -
-</button>
+    onclick={() => removePersGoalHighlight()}
+  >
+    -
+  </button>
 </div>
 
 {#each Object.entries($profGoalHighlights) as [id, highlight]}
-<div class="{showTop ? 'bg-white/10 rounded-xl mb-3 text-3xl p-2 flex' : borderNTextNBg.collapseRows}">
+  <div
+    class={showTop
+      ? "bg-white/10 rounded-xl mb-3 text-3xl p-2 flex"
+      : borderNTextNBg.collapseRows}
+  >
     <textarea
-          class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
-          placeholder="Personal ... "
-          rows="1"
-          value={highlight}
-           oninput={(e) => {
-                  updateProfHighlight(
-                    id,
-                    (e.target as HTMLTextAreaElement).value,
-                  );
-                }}
-        ></textarea>
-</div>
+      class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
+      placeholder="Personal ... "
+      rows="1"
+      value={highlight}
+      oninput={(e) => {
+        updateProfHighlight(id, (e.target as HTMLTextAreaElement).value);
+      }}
+    ></textarea>
+  </div>
 {/each}
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
@@ -236,14 +237,11 @@
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each year.months as month, i (month.id)}
           {@const monthKey = `${year.id}-${month.id}`}
-         {@const hasMonthGoals = !!month.monthProfessionalGoals?.trim()}
-
+          {@const hasMonthGoals = !!month.monthProfessionalGoals?.trim()}
           {@const isThisMonth = currentMonth === month.monthNumber}
-
           {@const hasDayGoals = month.weeks.some((week) =>
             week.days.some((day) => day.dayProfessionalGoals?.trim()),
           )}
-
           {@const hasWeekGoals = month.weeks.some((week) =>
             week.weekProfessionalGoals?.trim(),
           )}
@@ -334,12 +332,13 @@
               {#each month.weeks as week (week.id)}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
                 {@const hasWeekGoals = !!week.weekProfessionalGoals?.trim()}
-                {@const isThisWeek = currentWeekOfMonth === week.weekNumber && currentMonth == month.monthNumber}
+                {@const isThisWeek =
+                  currentWeekOfMonth === week.weekNumber &&
+                  currentMonth == month.monthNumber}
                 {@const hasDayGoals = week.days.some((day) =>
                   day.dayProfessionalGoals?.trim(),
                 )}
-                {@const result =
-                  hasWeekGoals || isThisWeek || hasDayGoals}
+                {@const result = hasWeekGoals || isThisWeek || hasDayGoals}
                 <div
                   class={result
                     ? "rounded-xl p-3"
@@ -366,7 +365,7 @@
                       {appProfState.expandedRowsProf[week.id] ? "S" : "E"}
                     </button>
                     <textarea
-                      class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                      class="flex-1 ml-15 mr-15 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                       focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)] {week.proGoalCompleted
                         ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                         : week.proGoalRejected
@@ -429,10 +428,10 @@
                     <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
                         {@const hasDayGoals = day.dayProfessionalGoals?.trim()}
-                        {@const isCurrDay = currentDay == day.dayNumber && currentMonth == month.monthNumber}
-                        {@const result =
-                          hasDayGoals ||
-                          isCurrDay}
+                        {@const isCurrDay =
+                          currentDay == day.dayNumber &&
+                          currentMonth == month.monthNumber}
+                        {@const result = hasDayGoals || isCurrDay}
                         <div
                           class={result
                             ? "rounded-lg p-3"
@@ -459,7 +458,7 @@
                                 : "E"}
                             </button>
                             <textarea
-                              class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                              class="flex-1 ml-20 mr-20 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                               focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)] {day.proGoalCompleted
                                 ? 'border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
                                 : day.proGoalRejected

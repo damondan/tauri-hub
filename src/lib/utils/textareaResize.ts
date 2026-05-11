@@ -1,5 +1,5 @@
 // src/lib/utils/textareaResize.ts
-
+  import { tick } from "svelte";
 /**
  * resizeTextarea(textarea: HTMLTextAreaElement): void
  * Auto-resize a single textarea to fit its content
@@ -21,33 +21,68 @@ export function resizeTextarea(textarea: HTMLTextAreaElement): void {
  * autoResize(textarea: HTMLTextAreaElement): { update: () => void; destroy: () => void }
  * Svelte action that auto-resizes textarea on mount and input
  */
-// Define the array shape: [string, boolean]
-export function autoResize(textarea: HTMLTextAreaElement, [text, isExpanded]: [string | undefined, boolean]) {
-    const resize = () => {
-        if (isExpanded) {
-            const scrollPos = window.scrollY;
-            textarea.style.height = 'auto';
-            textarea.style.height = `${textarea.scrollHeight}px`;
-            window.scrollTo(window.scrollX, scrollPos);
-        } else {
-            // Clear the manual height so Tailwind CSS can take over
-            textarea.style.height = ''; 
-        }
-    };
 
-    // Initial run
-    requestAnimationFrame(resize);
+export function autoResize(
+	textarea: HTMLTextAreaElement,
+	[text, isExpanded]: [string | undefined, boolean]
+) {
+	const resize = () => {
+		(async () => {
+			if (isExpanded) {
+				const scrollPos = window.scrollY;
 
-    return {
-        // The update method MUST also match this array structure
-        update([newText, newIsExpanded]: [string | undefined, boolean]) {
-            isExpanded = newIsExpanded;
-            // Note: 'newText' is passed here so Svelte knows to trigger 
-            // the update when the text changes, even if we don't use it directly.
-            resize();
-        }
-    };
+				await tick();
+
+				textarea.style.height = 'auto';
+				textarea.style.height = `${textarea.scrollHeight}px`;
+
+				window.scrollTo(window.scrollX, scrollPos);
+			} else {
+				textarea.style.height = '';
+			}
+		})();
+	};
+
+	requestAnimationFrame(resize);
+
+	return {
+		update([newText, newIsExpanded]: [
+			string | undefined,
+			boolean
+		]) {
+			isExpanded = newIsExpanded;
+			resize();
+		}
+	};
 }
+// Define the array shape: [string, boolean]
+// export async function autoResize(textarea: HTMLTextAreaElement, [text, isExpanded]: [string | undefined, boolean]) {
+//     const resize = async () => {
+//         if (isExpanded) {
+//             const scrollPos = window.scrollY;
+//             await tick();
+//             textarea.style.height = 'auto';
+//             textarea.style.height = `${textarea.scrollHeight}px`;
+//             window.scrollTo(window.scrollX, scrollPos);
+//         } else {
+//             // Clear the manual height so Tailwind CSS can take over
+//             textarea.style.height = ''; 
+//         }
+//     };
+
+//     // Initial run
+//     requestAnimationFrame(resize);
+
+//     return {
+//         // The update method MUST also match this array structure
+//         update([newText, newIsExpanded]: [string | undefined, boolean]) {
+//             isExpanded = newIsExpanded;
+//             // Note: 'newText' is passed here so Svelte knows to trigger 
+//             // the update when the text changes, even if we don't use it directly.
+//             resize();
+//         }
+//     };
+// }
 /**
  * Auto-resize all textareas in the document
  */
