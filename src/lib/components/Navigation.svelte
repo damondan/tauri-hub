@@ -8,22 +8,18 @@
 		authError,
 		authTargetTab,
 		showAuthModal,
-		persAuth,
 		unlockPers,
 		initLoginWithEncryption,
 	} from "$lib/stores/auth";
 	import {
-		persGoalEncryptedCache,
 		persLockState,
 		LockState,
+		persGoalData,
+		persGoalHighlights,
 	} from "$lib/stores/persgoal";
 	import AuthModalComponent from "./AuthModalComponent.svelte";
-	import { show } from "@tauri-apps/api/app";
-	import { appPersState } from "$lib/stores/state.svelte";
 
 	let passwordInput = $state("");
-	let initialLoginText = $state("");
-	let pendingRoute = $state("");
 
 	const tabs = [
 		{ path: "/", label: "Services" },
@@ -48,7 +44,7 @@
 
 	export async function submitAuth(password: string) {
 		console.log(`In submitAuth`);
-
+		passwordInput="";
 		let success: boolean = false;
 		pass.set(password);
 
@@ -82,8 +78,11 @@
 		}
 	}
 
-	function setlock(){
+	function setlock() {
 		persLockState.set(LockState.LOCKED);
+	
+		persGoalData.set([]);
+		persGoalHighlights.set({});
 	}
 </script>
 
@@ -93,8 +92,11 @@
 			onclick={() => {
 				console.log("tab:", tab.path);
 
-				if (($persLockState == LockState.LOCKED || $persLockState == LockState.NOT_SET) && tab.label == "Pers")
-				 {
+				if (
+					($persLockState == LockState.LOCKED ||
+						$persLockState == LockState.NOT_SET) &&
+					tab.label == "Pers"
+				) {
 					authTargetTab.set(tab.path);
 					showAuthModal.set(true);
 				}
@@ -115,38 +117,4 @@
 
 {#if $showAuthModal}
 	<AuthModalComponent bind:passwordInput {cancelAuth} {submitAuth} />
-
-	<!-- <div
-		class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-	>
-		<div class="bg-zinc-900 rounded-xl p-6 w-[400px] shadow-xl">
-			<h2 class="text-xl font-semibold text-white mb-4">
-				Enter Password
-			</h2>
-
-			<input
-				type="password"
-				bind:value={passwordInput}
-				placeholder="Password"
-				class="w-full px-4 py-2 rounded-lg bg-zinc-800 text-white outline-none border border-zinc-700 mb-4"
-			/>
-
-			<div class="flex justify-end gap-3">
-				<button
-					onclick={cancelAuth}
-					class="px-4 py-2 rounded-lg bg-zinc-700 text-white"
-				>
-					Cancel
-				</button>
-
-				<button
-					onclick={() =>
-						submitAuth(passwordInput, unlockPers)}
-					class="px-4 py-2 rounded-lg bg-blue-600 text-white"
-				>
-					Submit
-				</button>
-			</div>
-		</div>
-	</div> -->
 {/if}

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { borderNTextNBg } from "$lib/styles";
+  import { autoResize } from "$lib/utils/textareaResize";
   import {
     persGoalHighlights,
     updateTopHighlight,
@@ -9,6 +10,8 @@
     removeHighlight,
     removeSubHighlight,
     removeDetailHighlight,
+    updateSubHighlight,
+    updateDetailHighlight
   } from "$lib/stores/persgoal";
   // let { showTop } = $props();
 
@@ -28,7 +31,7 @@
 </div>
 <!--Top level-->
 {#each Object.entries($persGoalHighlights) as [id, levelOne]}
-  <div class="w-full flex flex-col gap-0 mb-20 font-mono">
+  <div class="w-full flex flex-col gap-0 mb-10 font-mono">
 
     <div class="flex">
       <button
@@ -39,9 +42,15 @@
         +
       </button>
       <textarea
-        class="w-full text-4xl bg-transparent text-white border border-white/20 rounded px-8 pt-8 ml-3 mr-3"
+        class="w-full text-4xl bg-transparent text-white border border-white/20 rounded px-8 pb-5 pt-8 ml-3 mr-3"
         placeholder="Standards Questions Dialog Vocabulary ..."
-        bind:value={levelOne.text}
+        rows="1"
+        value={levelOne.text || ""}
+        oninput={(e) => {
+                  updateTopHighlight(id,
+                    (e.target as HTMLTextAreaElement).value,
+                  );
+                }}
       />
       <button
         class="bg-white/10 text-white/30
@@ -65,9 +74,17 @@
             +
           </button>
           <textarea
-            class="text-2xl px-8 pt-8 w-full bg-transparent text-white border border-red-600 rounded-2xl"
-            bind:value={levelTwo.text}
-          />
+          
+            class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+            value={levelTwo.text}
+            rows="1"
+             oninput={(e) => {
+                  updateSubHighlight(id, childid,
+                    (e.target as HTMLTextAreaElement).value,
+                  );
+                }}
+      />
           <button
             class="bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
@@ -82,8 +99,15 @@
             {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree]}
               <div class="ml-4 px-16 w-full flex mt-2">
                 <textarea
-                  class="text-2xl w-full bg-transparent text-white border border-yellow-400 rounded-2xl px-8 pt-6 mr-4"
-                  bind:value={levelThree.text}
+                  class="flex-1 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                  value={levelThree.text}
+                  rows="1"
+                  oninput={(e) => {
+                  updateDetailHighlight(id, childid,detailid,
+                    (e.target as HTMLTextAreaElement).value,
+                  );
+                }}
                 />
                 <button
                   class="bg-white/10 text-white/30

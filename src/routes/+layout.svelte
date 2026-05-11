@@ -10,10 +10,8 @@
 		setHydrated,
 		saveUserData,
 	} from "$lib/persistence";
-	import AuthModalComponent from "$lib/components/AuthModalComponent.svelte";
 	import {
 		persLockState,
-		type PersLockState,
 		LockState,
 	} from "$lib/stores/persgoal";
 	import { get } from "svelte/store";
@@ -41,7 +39,6 @@
 
 	let showFocus = $state(false);
 	let hideTop = $state(false);
-	let showLogin = $state(false);
 
 	onMount(() => {
 		console.log(`in onMount`);

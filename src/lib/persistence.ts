@@ -22,37 +22,6 @@ import { get } from 'svelte/store';
 
 let isHydrated = false;
 
-// isUnlocked.subscribe(async (value) => {
-// 	console.log(`This needs to fire before saveSchedule runs`);
-// 	if (!value) return;
-// 	console.log("in isUnlocked after checking value");
-// 	const password = get(pass);
-
-// 	// decrypt persGoal
-// 	if (get(persGoalEncryptedCache)) {
-// 		console.log(`In isUnlocked.subscrive - persGoalEncryptedCache is true`);
-// 		const encrypted = get(persGoalEncryptedCache) ?? "";
-
-// 		const decrypted = await invoke<string>("decrypt_highlights", {
-// 			password,
-// 			encrypted
-// 		});
-// 		const parsed = JSON.parse(decrypted);
-// 		const migrated = migratePersGoal(parsed);
-// 		persGoalData.set(migrated);
-// 	}
-// 	if (persGoalHighlightEncryptedCache) {
-// 		console.log(`In isUnlocked.subscrive - persGoalHighlightEncryptedCache is true`);
-// 		const decrypted = await invoke<string>("decrypt_highlights", {
-// 			password,
-// 			encrypted: persGoalHighlightEncryptedCache
-// 		});
-// 		const parsed = JSON.parse(decrypted);
-// 		const migrated = migratePersGoalHighlights(parsed);
-// 		persGoalHighlights.set(migrated);
-// 	}
-// });
-
 export function setHydrated(value: boolean) {
 	isHydrated = value;
 }
@@ -65,9 +34,9 @@ interface UserData {
 	howto?: any[];
 	finance?: any[];
 	calendar?: any[];
-	persgoalencryption?: string;                   //UserData saving as persgoalencryption           
+	persgoalencryption?: string;                         
 	profgoal?: any[],
-	persGoalHighlightsEncrypted?: string,          //UserData saving as persGoalHighlightsEncrypted
+	persgoalhighlightsencrypted?: string,         
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -121,12 +90,17 @@ export async function encryptPersGoals() {
 
 	if (get(persLockState) == LockState.UNLOCKED && get(pass)) {
 		console.log(`LockState is unlocked and pass is true - before calling encryptPersGoals`);
-		const encrypted = await invoke<string>("encrypt_highlights", {
+		const persEncrypted = await invoke<string>("encrypt_highlights", {
 			password,
 			data: JSON.stringify(get(persGoalData))
 		});
+		const persHLEncrypted = await invoke<string>("encrypt_highlights", {
+			password,
+			data: JSON.stringify(get(persGoalHighlights))
+		});
 
-		persGoalEncryptedCache.set(encrypted);
+		persGoalEncryptedCache.set(persEncrypted);
+		persGoalHighlightEncryptedCache.set(persHLEncrypted);
 	}
 }
 
@@ -144,7 +118,7 @@ export async function saveUserData(): Promise<void> {
 			finance: get(financeData),
 			calendar: get(calendarData),
 			persgoalencryption: get(persGoalEncryptedCache) ?? "",
-			persGoalHighlightsEncrypted: get(persGoalHighlightEncryptedCache) ?? "",
+			persgoalhighlightsencrypted: get(persGoalHighlightEncryptedCache) ?? "",
 			profgoal: get(profGoalData),
 			workspaceA: get(workspaceContentA),
 			workspaceB: get(workspaceContentB),
@@ -253,7 +227,7 @@ export async function loadUserData(): Promise<void> {
 			persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
 		}
 		persGoalEncryptedCache.set(data.persgoalencryption ?? "");
-		persGoalHighlightEncryptedCache.set(data.persGoalHighlightsEncrypted ?? "");
+		persGoalHighlightEncryptedCache.set(data.persgoalhighlightsencrypted ?? "");
 		persLockState.set(data.perslockstate);
 		if (data.profgoal) {
 			profGoalData.set(data.profgoal);

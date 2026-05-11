@@ -332,6 +332,16 @@ export function updateYearByNumberPrivateGoal(
     );
 }
 
+export function initHighlightLevel1(initHighLevel:string): void{
+    persGoalHighlights.update((highlights) => ({
+		...highlights,
+		level1: {
+			text: initHighLevel,
+			children: {}
+		}
+	}));
+}
+
 // Update month goal
 // updateHealthMonthGoal(yearId: string, monthId: string, value: string): void
 export function updateHealthMonthGoal(

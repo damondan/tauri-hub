@@ -1,6 +1,9 @@
 import { writable, get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
-import { persGoalEncryptedCache, updateYearByNumberPrivateGoal, persGoalData, persLockState, LockState } from './persgoal';
+import { persGoalEncryptedCache, updateYearByNumberPrivateGoal, persGoalData, 
+	persLockState, LockState, initHighlightLevel1, 
+	persGoalHighlights,
+	persGoalHighlightEncryptedCache} from './persgoal';
 import { appPersState } from './state.svelte';
 import { saveUserData } from '$lib/persistence';
 
@@ -20,23 +23,26 @@ export function persAuth(route: string) {
 export async function unlockPers(password: string): Promise<boolean> {
 	console.log(`In unlock function`);
 	console.log(`Password is ${password}`);
-	console.log("CACHE:", get(persGoalEncryptedCache));
 
 	const encrypted = get(persGoalEncryptedCache);
+	const encryptedHL = get(persGoalHighlightEncryptedCache);
 	try {
 		console.log(`In unLockPers for decryption`);
 		const decrypted = await invoke<string>("decrypt_highlights", {
 			password,
 			encrypted
 		});
-
 		const parsed = JSON.parse(decrypted);
-
-		// 🔥 THIS is the missing step
 		persGoalData.set(parsed);
 
-		persLockState.set(LockState.UNLOCKED);
+		const decryptedHL = await invoke<string>("decrypt_highlights", {
+			password,
+			encrypted: encryptedHL
+		});
+		const parsedHL = JSON.parse(decryptedHL);
+		persGoalHighlights.set(parsedHL);
 
+		persLockState.set(LockState.UNLOCKED);
 		return true;
 	} catch (e) {
 		console.log(`decryption failed with ${e}`);
@@ -46,12 +52,14 @@ export async function unlockPers(password: string): Promise<boolean> {
 
 export async function initLoginWithEncryption(password: string): Promise<boolean> {
 	const presentYear = new Date().getFullYear();
-	let initialEncrypt: string = "";
+	let initialPersEncrypt: string = "";
+	let initialHighlightEncrypt: string = "";
+
 	console.log("FIRST RUN - NO ENCRYPTED DATA");
 	updateYearByNumberPrivateGoal(presentYear, "Initialize Encryption Text - Erase...");
-
+	initHighlightLevel1("Initialized");
 	try {
-		initialEncrypt = await invoke<string>("encrypt_highlights", {
+		initialPersEncrypt = await invoke<string>("encrypt_highlights", {
 			password,
 			data: JSON.stringify(get(persGoalData))
 		});
@@ -60,7 +68,18 @@ export async function initLoginWithEncryption(password: string): Promise<boolean
 		return false;
 	}
 
-	persGoalEncryptedCache.set(initialEncrypt);
+	try {
+		initialHighlightEncrypt = await invoke<string>("encrypt_highlights", {
+			password,
+			data: JSON.stringify(get(persGoalHighlights))
+		});
+	} catch (e) {
+		console.error('Failed Initial Encryption:', e);
+		return false;
+	}
+
+	persGoalEncryptedCache.set(initialPersEncrypt);
+	persGoalHighlightEncryptedCache.set(initialHighlightEncrypt);
 	persLockState.set(LockState.UNLOCKED);
 	console.log(`In initLoginWithEncryption and saving data`);
 	saveUserData();
