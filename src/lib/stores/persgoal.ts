@@ -1,6 +1,12 @@
-import { writable } from 'svelte/store';
+import { writable,get } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
+
+export const LockState = {
+	LOCKED: 'locked',
+	UNLOCKED: 'unlocked',
+	NOT_SET: 'not_set'
+} as const;
 
 export const persGoalExpandedYears = writable<Record<string, boolean>>({});
 export const persGoalExpandedMonths = writable<Record<string, boolean>>({});
@@ -8,6 +14,11 @@ export const persGoalExpandedWeeks = writable<Record<string, boolean>>({});
 
 export const persGoalEncryptedCache = writable<string | null>(null);
 export const persGoalHighlightEncryptedCache = writable<string | null>(null);
+
+export const persLockState = writable<PersLockState>(LockState.NOT_SET);
+
+type DirtyType = "year" | "month" | "week" | "day";
+export const dirtyNodes = writable<Set<string>>(new Set());
 
 interface HighlightLevel3 {
     text: string;
@@ -29,6 +40,10 @@ export interface PersGoalEntry {
     id: string;
     description: string;
 }
+
+//type PersLockState = 'locked' | 'unlocked' | 'not_set';
+
+export type PersLockState = typeof LockState[keyof typeof LockState];
 
 type PersImage = {
   id: string;
@@ -104,7 +119,7 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
             yearEntry = {
                 id: makeId(),
                 year: targetYear,
-                 yearPrivateGoalChangeCount: 0,
+                yearPrivateGoalChangeCount: 0,
                 months: []
             };
             updatedYears.push(yearEntry);
@@ -288,6 +303,24 @@ export function updateYearPrivateGoal(
     persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
+                return { 
+                    ...y, 
+                    yearPrivateGoal: value,
+                    yearPrivateGoalChangeCount: y.yearPrivateGoalChangeCount + 1
+                };
+            }
+            return y;
+        })
+    );
+}
+
+export function updateYearByNumberPrivateGoal(
+    yearNum: number,
+    value: string
+): void {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.year === yearNum) {
                 return { 
                     ...y, 
                     yearPrivateGoal: value,
@@ -963,7 +996,7 @@ export function toggleMonthPrivateCompleted(
 //PersGoalHighlight functions
 export function addHighlightItem() {
     const id = makeId();
-
+ 
     persGoalHighlights.update((highlights) => ({
         ...highlights,
         [id]: {
@@ -1145,3 +1178,4 @@ export function migratePersGoal(
 
   return data as PersGoalYear[];
 }
+

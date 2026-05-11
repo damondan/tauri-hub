@@ -4,25 +4,21 @@
 	import { onMount, onDestroy } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
 	import Navigation from "$lib/components/Navigation.svelte";
-	import { loadUserData, initPersistence, setHydrated } from "$lib/persistence";
+	import {
+		loadUserData,
+		initPersistence,
+		setHydrated,
+		saveUserData,
+	} from "$lib/persistence";
+	import AuthModalComponent from "$lib/components/AuthModalComponent.svelte";
+	import {
+		persLockState,
+		type PersLockState,
+		LockState,
+	} from "$lib/stores/persgoal";
+	import { get } from "svelte/store";
 
 	let backupStatus = $state<"idle" | "saving" | "done">("idle");
-
-	// backupData(): Promise<void>
-	// Invokes backup_user_data Rust command and shows brief status feedback
-	async function backupData() {
-		try {
-			backupStatus = "saving";
-			await invoke("backup_user_data");
-			backupStatus = "done";
-			setTimeout(() => {
-				backupStatus = "idle";
-			}, 2000);
-		} catch (error) {
-			console.error("Failed to backup:", error);
-			backupStatus = "idle";
-		}
-	}
 
 	let ramUsed = $state(0);
 	let ramTotal = $state(0);
@@ -45,15 +41,19 @@
 
 	let showFocus = $state(false);
 	let hideTop = $state(false);
+	let showLogin = $state(false);
 
 	onMount(() => {
-		// Load saved data first
+		console.log(`in onMount`);
+
 		loadUserData().then(() => {
-			// Initialize auto-save after loading
+			if (get(persLockState) == LockState.UNLOCKED) {
+				persLockState.set(LockState.LOCKED);
+			}
 			initPersistence();
 			setHydrated(true);
 		});
-		
+
 		updateRamUsage();
 		updateGpuUsage();
 		updateDiskUsage();
@@ -88,6 +88,23 @@
 			audio = null;
 		}
 	});
+
+	// backupData(): Promise<void>
+	// Invokes backup_user_data Rust command and shows brief status feedback
+	async function backupData() {
+		console.log(`IN back up data function`);
+		try {
+			backupStatus = "saving";
+			await invoke("backup_user_data");
+			backupStatus = "done";
+			setTimeout(() => {
+				backupStatus = "idle";
+			}, 2000);
+		} catch (error) {
+			console.error("Failed to backup:", error);
+			backupStatus = "idle";
+		}
+	}
 
 	async function updateRamUsage() {
 		try {
@@ -184,6 +201,12 @@
 			alert("Failed to transcribe: " + error);
 			recordingStatus = "Idle";
 		}
+	}
+
+	function handleBackup() {
+		console.log('✅ Backup button clicked');
+
+		backupData();           // or whatever your actual backup function is
 	}
 
 	// Language selection handlers
@@ -354,7 +377,7 @@
 			<div class="flex flex-wrap gap-4 mb-4 items-stretch">
 				<!-- Backup Button -->
 				<button
-					onclick={backupData}
+					onclick={handleBackup}
 					disabled={backupStatus === "saving"}
 					class="px-3 h-[52px] rounded-lg font-semibold text-sm transition-all
 						{showFocus

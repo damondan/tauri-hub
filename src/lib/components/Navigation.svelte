@@ -2,11 +2,27 @@
 <script lang="ts">
 	import { page } from "$app/state";
 	import { goto } from "$app/navigation";
-	import { isUnlocked,pass } from "$lib/stores/auth";
+	import { get } from "svelte/store";
+	import {
+		pass,
+		authError,
+		authTargetTab,
+		showAuthModal,
+		persAuth,
+		unlockPers,
+		initLoginWithEncryption,
+	} from "$lib/stores/auth";
+	import {
+		persGoalEncryptedCache,
+		persLockState,
+		LockState,
+	} from "$lib/stores/persgoal";
+	import AuthModalComponent from "./AuthModalComponent.svelte";
 	import { show } from "@tauri-apps/api/app";
+	import { appPersState } from "$lib/stores/state.svelte";
 
-	let showAuthModal = $state(false);
 	let passwordInput = $state("");
+	let initialLoginText = $state("");
 	let pendingRoute = $state("");
 
 	const tabs = [
@@ -24,35 +40,51 @@
 		{ path: "/workspace_b", label: "XSpaceB" },
 	];
 
-	function persAuth(path: string) {
-		console.log("auth required for:", path);
-	
-		pendingRoute = path;
-	
-		showAuthModal = true;
+	export function cancelAuth() {
+		showAuthModal.set(false);
+		authTargetTab.set(null);
+		authError.set(null);
 	}
 
-	function cancelAuth() {
-		showAuthModal = false;
-		passwordInput = "";
+	export async function submitAuth(password: string) {
+		console.log(`In submitAuth`);
+
+		let success: boolean = false;
+		pass.set(password);
+
+		if (get(persLockState) == LockState.NOT_SET) {
+			console.log(`initLoginWithEncryption`);
+			try {
+				success = await initLoginWithEncryption(password);
+			} catch (e) {
+				console.log(`in submitAuth and success is false`);
+				return false;
+			}
+		}
+		if (get(persLockState) == LockState.LOCKED) {
+			console.log(`unlockPers`);
+			try {
+				success = await unlockPers(password);
+			} catch (e) {
+				console.log(`in submitAuth and success is false`);
+				return false;
+			}
+		}
+		if (success) {
+			showAuthModal.set(false);
+			const target = get(authTargetTab);
+			if (target) goto(target);
+
+			authTargetTab.set(null);
+			authError.set(null);
+		} else {
+			authError.set("Incorrect password");
+		}
 	}
 
-	function submitAuth(password: string) {
-	// 1. set password
-	pass.set(password);
-
-	// 2. unlock app
-	isUnlocked.set(true);
-
-	// 3. close modal
-	showAuthModal = false;
-
-	// 4. resume navigation if it exists
-	if (pendingRoute) {
-		goto(pendingRoute);
-		pendingRoute = "";
+	function setlock(){
+		persLockState.set(LockState.LOCKED);
 	}
-}
 </script>
 
 <nav class="flex gap-2 mb-6 border-b border-white/20 pb-2 font-mono">
@@ -61,21 +93,16 @@
 			onclick={() => {
 				console.log("tab:", tab.path);
 
-				if (!$isUnlocked) {
-					console.log("isUnlocked is false");
-
-					if (tab.label === "Pers") {
-						console.log("Equals Pers");
-						persAuth(tab.path);
-						pendingRoute = tab.path;
-					}
-
-					
+				if (($persLockState == LockState.LOCKED || $persLockState == LockState.NOT_SET) && tab.label == "Pers")
+				 {
+					authTargetTab.set(tab.path);
+					showAuthModal.set(true);
 				}
 
 				console.log("about to go to goto");
 				goto(tab.path);
 			}}
+			ondblclick={() => setlock()}
 			class="px-4 py-3 rounded-t-lg font-semibold transition-all
 			{page.url.pathname === tab.path
 				? 'bg-white/20 border-b-2 border-white text-white'
@@ -86,8 +113,10 @@
 	{/each}
 </nav>
 
-{#if showAuthModal}
-	<div
+{#if $showAuthModal}
+	<AuthModalComponent bind:passwordInput {cancelAuth} {submitAuth} />
+
+	<!-- <div
 		class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
 	>
 		<div class="bg-zinc-900 rounded-xl p-6 w-[400px] shadow-xl">
@@ -111,12 +140,13 @@
 				</button>
 
 				<button
-					onclick={() => submitAuth(passwordInput)}
+					onclick={() =>
+						submitAuth(passwordInput, unlockPers)}
 					class="px-4 py-2 rounded-lg bg-blue-600 text-white"
 				>
 					Submit
 				</button>
 			</div>
 		</div>
-	</div>
+	</div> -->
 {/if}

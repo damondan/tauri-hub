@@ -3,7 +3,7 @@
   import { onMount } from "svelte";
   import { getMonthName } from "$lib/stores/general";
   import FinanceCalendar from "$lib/components/FinanceCalendar.svelte";
-  import { buttonStyles } from "$lib/styles";
+  import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import {
     financeData,
     generateFinanceStructureToDate,
@@ -31,13 +31,22 @@
   let currentYear = new Date().getFullYear();
 
   let selectedPresentYear: FinanceYear = $state({
-    id:'',
-    year:new Date().getFullYear(),
-    months:[]
+    id: "",
+    year: new Date().getFullYear(),
+    months: [],
   });
   let selectedPresentMonth: FinanceMonth = $state({
-    id : '',monthNumber : 0, discAmount : '', discIntAmount : '', amerXAmount : '', amerXIntAmount : '', foodAmount : '', gasAmount : '',balanceMonth : '',weeks:[],
-  })
+    id: "",
+    monthNumber: 0,
+    discAmount: "",
+    discIntAmount: "",
+    amerXAmount: "",
+    amerXIntAmount: "",
+    foodAmount: "",
+    gasAmount: "",
+    balanceMonth: "",
+    weeks: [],
+  });
 
   // onMount(): void
   onMount(() => {
@@ -54,7 +63,7 @@
     if (needsRegeneration) {
       financeData.set([]);
     }
-   
+
     generateFinanceStructureToDate(today);
   });
 
@@ -143,9 +152,16 @@
     {#if $financeExpandedYears[year.id]}
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each year.months as month (month.id)}
-         {@const presentMonth = new Date().getMonth()}
+          {@const isThisMonth = currentMonth === month.monthNumber}
+          {@const monthHasFood = !!calculateMonthFoodTotal(month)}
+          {@const collapseRowBool = !isThisMonth && !monthHasFood}
           {@const monthKey = `${year.id}-${month.id}`}
-          <div class="bg-white/10 rounded-xl p-1">
+          <div
+            class={collapseRowBool
+              ? borderNTextNBg.collapseRows
+              : "bg-white/10 rounded-xl p-1"}
+          >
+            <!-- <div class="bg-white/10 rounded-xl p-1"> -->
             <div class="relative flex items-center justify-center gap-4">
               <!-- Arrow + Month name pinned to the left -->
               <div class="absolute left-0 flex items-center gap-3">
@@ -259,7 +275,7 @@
               </div>
 
               <!-- HB Balance pinned to far right -->
-              {#if presentMonth == month.monthNumber-1}
+              {#if currentMonth == month.monthNumber}
                 <div
                   class="absolute right-0 text-green-600 text-3xl font-semibold pr-2"
                 >
@@ -280,8 +296,16 @@
             <div class="ml-10 mr-10 mt-2 space-y-2">
               {#each month.weeks as week (week.id)}
                 <!--Going through weeks of month-->
+                {@const isCurrentWeek =
+                  week.weekNumber == Math.ceil(new Date().getDate() / 7)}
+                {@const hasWeekTotal = !!calculateWeekTotal(week)}
+                {@const collapseRowBool = !isCurrentWeek && !hasWeekTotal}
                 {@const weekKey = `${year.id}-${month.id}-${week.id}`}
-                <div class="bg-white/10 rounded-xl p-3">
+                <div
+                  class={collapseRowBool
+                    ? borderNTextNBg.collapseRows
+                    : "bg-white/10 rounded-xl p-3"}
+                >
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
@@ -302,15 +326,22 @@
                   <!-- Days (only show when week expanded) -->
                   {#if $financeExpandedWeeks[weekKey] && week.days}
                     <div class="mt-3 space-y-3">
-                      {#each week.days as day (day.id)}
+                      {#each week.days as day, i (day.id)}
+                        {@const isCurrDay = isCurrentDay(
+                            year.year,
+                            month.monthNumber,
+                            day.dayNumber)}
+                        {@const hasEntries = !!day.entries[i]?.description.trim()}
+                        {@const collapseRowBool =
+                          !isCurrDay && !hasEntries}
                         <div
-                          class="bg-white/5 rounded-lg p-3 {isCurrentDay(
+                          class="{isCurrentDay(
                             year.year,
                             month.monthNumber,
                             day.dayNumber,
                           )
-                            ? 'border-2 border-green-500'
-                            : ''}"
+                            ? 'border-2 border-green-500 bg-white/5 rounded-lg p-3'
+                            : collapseRowBool ? borderNTextNBg.collapseRows : 'bg-white/5 rounded-lg p-3'}"
                         >
                           <!-- Day entries -->
                           {#each day.entries as entry, entryIndex (entry.id)}
@@ -520,7 +551,7 @@
                               <!-- + button (first entry) or Delete button (additional entries) -->
                               {#if entryIndex === 0}
                                 <button
-                                  class="{buttonStyles.greenButton}"
+                                  class={buttonStyles.greenButton}
                                   onclick={() =>
                                     addFinanceEntry(
                                       year.id,
@@ -533,7 +564,7 @@
                                 </button>
                               {:else}
                                 <button
-                                  class="{buttonStyles.deleteButton}"
+                                  class={buttonStyles.deleteButton}
                                   onclick={() =>
                                     deleteFinanceEntry(
                                       year.id,

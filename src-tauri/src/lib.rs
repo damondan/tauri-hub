@@ -1298,7 +1298,7 @@ async fn toggle_docker_desktop_active(start: bool) -> Result<(), String> {
     }
 }
 
-// Save/load user data (todos and commands)
+// Save/load user data
 fn get_user_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
     let app_dir = app_handle.path().app_data_dir()
         .map_err(|e| format!("Failed to get app data dir: {}", e))?;
@@ -1443,18 +1443,6 @@ pub fn run() {
                 )?;
             }
             Ok(())
-        })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
-                // Auto-backup on app close
-                let app_handle = window.app_handle();
-                if let Ok(data_path) = get_user_data_path(app_handle) {
-                    if data_path.exists() {
-                        let backup_path = data_path.with_file_name("user_data_backup.json");
-                        let _ = fs::copy(&data_path, &backup_path);
-                    }
-                }
-            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
