@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { saveUserData } from "$lib/persistence";
   import { autoResize } from "$lib/utils/textareaResize";
   import { getMonthName, fileToDataUrl } from "$lib/stores/general";
   import { borderNTextNBg, buttonStyles } from "$lib/styles";

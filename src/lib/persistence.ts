@@ -22,9 +22,46 @@ import { get } from 'svelte/store';
 import ProfHighlights from './components/ProfHighlights.svelte';
 
 let isHydrated = false;
+let persDirty = false;
+let lastSaveFingerprint = "";
 
 export function setHydrated(value: boolean) {
 	isHydrated = value;
+}
+
+function buildFingerprint() {
+	return JSON.stringify({
+		todos: get(todosByDate),
+			commands: get(commandData),
+			commandExpandedCategories: get(commandExpandedCategories),
+			commandExpandedSubcategories: get(commandExpandedSubcategories),
+			projects: get(projectsData),
+			howto: get(howtoData),
+			finance: get(financeData),
+			calendar: get(calendarData),
+			profgoal: get(profGoalData),
+			profhighlights: get(profGoalHighlights),
+			workspaceA: get(workspaceContentA),
+			workspaceB: get(workspaceContentB),
+			field1: get(todoField1),
+			field2: get(todoField2),
+			todoExpandedState: get(todoExpandedState),
+			projectExpandedProjects: get(projectExpandedProjects),
+			projectExpandedSubprojects: get(projectExpandedSubprojects),
+			projectExpandedTasks: get(projectExpandedTasks),
+			howtoExpandedCategories: get(howtoExpandedCategories),
+			howtoExpandedSubcategories: get(howtoExpandedSubcategories),
+			howtoExpandedTopics: get(howtoExpandedTopics),
+			financeExpandedYears: get(financeExpandedYears),
+			financeExpandedMonths: get(financeExpandedMonths),
+			financeExpandedWeeks: get(financeExpandedWeeks),
+			persGoalExpandedYears: get(persGoalExpandedYears),
+			persGoalExpandedMonths: get(persGoalExpandedMonths),
+			persGoalExpandedWeeks: get(persGoalExpandedWeeks),
+			profGoalExpandedYears: get(profGoalExpandedYears),
+			profGoalExpandedMonths: get(profGoalExpandedMonths),
+			profGoalExpandedWeeks: get(profGoalExpandedWeeks),
+	});
 }
 
 interface UserData {
@@ -69,16 +106,26 @@ let saveTimeout: number | null = null;
 // Every 1 second there is no activity on a scheduleSave for a data structure, scheduleSave is called.
 //This needs to add encryptPersHighlightGoals after encryptPersGoals.
 //This than calls the encryptPersGoals
-export function scheduleSave() {
-
+function scheduleSave() {
 	if (saveTimeout !== null) {
 		clearTimeout(saveTimeout);
 	}
-	saveTimeout = window.setTimeout(async () => {
 
-		await encryptPersGoals();
+	saveTimeout = window.setTimeout(async () => {
+		const fp = buildFingerprint();
+
+		// 🔥 KEY STEP: skip full save if nothing changed
+		if (fp === lastSaveFingerprint) {
+			console.log("Skip save (no changes)");
+			return;
+		}
+
+		lastSaveFingerprint = fp;
+		if(persDirty){
+			await encryptPersGoals();
+		}
 		await saveUserData();
-	}, 1000);
+	}, 500);
 }
 
 //This is called to ecrypt the PersGoal Data - takes in the persGoalData
@@ -86,23 +133,41 @@ export function scheduleSave() {
 //This encrypts and caches the encryption. It does not save it to backend yet.
 //GOOD DONE
 export async function encryptPersGoals() {
-	//Here I need to have the password and add initial text to this year.yearPrivateGoal
 	console.log(`encryptPersGoals in persistence.ts`);
+
 	const password = get(pass);
 
-	if (get(persLockState) == LockState.UNLOCKED && get(pass)) {
-		console.log(`LockState is unlocked and pass is true - before calling encryptPersGoals`);
-		const persEncrypted = await invoke<string>("encrypt_highlights", {
-			password,
-			data: JSON.stringify(get(persGoalData))
-		});
-		const persHLEncrypted = await invoke<string>("encrypt_highlights", {
-			password,
-			data: JSON.stringify(get(persGoalHighlights))
-		});
+	// 🔒 Only encrypt if allowed AND actually changed
+	if (
+		get(persLockState) === LockState.UNLOCKED &&
+		password &&
+		persDirty
+	) {
+		console.log(
+			`Encrypting Pers because persDirty = true`
+		);
+
+		const persEncrypted = await invoke<string>(
+			"encrypt_highlights",
+			{
+				password,
+				data: JSON.stringify(get(persGoalData))
+			}
+		);
+
+		const persHLEncrypted = await invoke<string>(
+			"encrypt_highlights",
+			{
+				password,
+				data: JSON.stringify(get(persGoalHighlights))
+			}
+		);
 
 		persGoalEncryptedCache.set(persEncrypted);
 		persGoalHighlightEncryptedCache.set(persHLEncrypted);
+
+		// ✅ reset dirty flag AFTER successful encryption
+		persDirty = false;
 	}
 }
 
@@ -389,13 +454,13 @@ export function initPersistence() {
 	persGoalData.subscribe(() => {
 		if (!isHydrated) return;
 		console.log("In ScheduleSave persGoalData");
-		scheduleSave();
+		persDirty = true;
 	});
 
 	persGoalHighlights.subscribe(() => {
 		if (!isHydrated) return;
 		console.log("In ScheduleSave persGoalHighlights");
-		scheduleSave();
+		persDirty = true;
 	});
 
 	persLockState.subscribe(() => {
