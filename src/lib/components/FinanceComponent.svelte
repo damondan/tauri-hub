@@ -315,7 +315,7 @@
                     </button>
 
                     <div class="text-white text-3xl font-semibold">
-                      {week.weekNumber} Week {week.startDay}-{week.endDay}
+                      {week.weekNumber} Wk {week.startDay}-{week.endDay}
                     </div>
 
                     <div class="ml-auto text-white text-2xl font-semibold">

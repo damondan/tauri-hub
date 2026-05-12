@@ -433,22 +433,12 @@
 
                   <!-- Days (only show when week expanded) -->
                   {#if $persGoalExpandedWeeks[weekKey] && week.days}
-                    {@const d = new Date()}
-                    {@const dayNum = d.getDate()}
                     <div class="ml-10 mr-10 mt-3 space-y-3">
                       {#each week.days as day (day.id)}
                         {@const hasDayGoals = day.dayPrivateGoals?.trim()}
-                        {@const isCurrDay =
-                          currentDay == day.dayNumber &&
-                          currentMonth == month.monthNumber}
+                        {@const isCurrDay = day.dayNumber == currentDay}
                         {@const result = hasDayGoals || isCurrDay}
-                        {@const debug = console.log({
-                          month,
-                          day,
-                          hasDayGoals,
-                          isCurrDay,
-                          result,
-                        })}
+
                         <div
                           class={result
                             ? "rounded-lg p-3 bg-white/5"
@@ -557,7 +547,7 @@
                                     day.id,
                                     (e.target as HTMLInputElement).checked,
                                   )}
-                                class="w-4 h-4 accent-blue-600 opacity-30"
+                                class="w-4 h-4 accent-blue-600 opacity-50"
                               />
                             </label>
                             <!--day.-->
@@ -576,50 +566,9 @@
                                     day.id,
                                     (e.target as HTMLInputElement).checked,
                                   )}
-                                class="w-4 h-4 accent-yellow-600 opacity-30"
+                                class="w-4 h-4 accent-yellow-600 opacity-50"
                               />
                             </label>
-
-                            <!--
-                            <button
-                              class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.priGoalCompleted
-                                ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
-                                : day.priGoalRejected
-                                  ? 'border-black shadow-[0_0_15px_rgba(0,0,0,0.8)]'
-                                  : 'border border-white/30 hover:border-white'}"
-                              onclick={() => {
-                                if (
-                                  !day.priGoalCompleted &&
-                                  !day.priGoalRejected
-                                ) {
-                                  pendingPrivateDayAction = {
-                                    yearId: year.id,
-                                    monthId: month.id,
-                                    weekId: week.id,
-                                    dayId: day.id,
-                                  };
-                                  showPrivateDayDialog = true;
-                                } else {
-                                  toggleDayPrivateCompleted(
-                                    year.id,
-                                    month.id,
-                                    week.id,
-                                    day.id,
-                                  );
-                                }
-                              }}
-                            >
-                              {#if day.priGoalCompleted}
-                                <span class="text-white text-sm font-bold"
-                                  >⭐</span
-                                >
-                              {:else if day.priGoalRejected}
-                                <span class="text-black text-2xl font-bold"
-                                ></span>
-                              {:else}
-                                <span class="text-white">?</span>
-                              {/if}
-                            </button> -->
                           </div>
                         </div>
                       {/each}
