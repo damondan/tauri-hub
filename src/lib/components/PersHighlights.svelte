@@ -19,14 +19,14 @@
   let selectedGoalId: string | null = null;
 
   function toggleExpand(dayId: string) {
-    const currentState = appPersState.expandedRows[dayId] ?? false;
+    const currentState = appPersState.expandedRowsTexArea[dayId] ?? false;
 
-    appPersState.expandedRows = {
-      ...appPersState.expandedRows,
+    appPersState.expandedRowsTexArea = {
+      ...appPersState.expandedRowsTexArea,
       [dayId]: !currentState,
     };
 
-    console.log(`ID: ${dayId} is now:`, appPersState.expandedRows[dayId]);
+    console.log(`ID: ${dayId} is now:`, appPersState.expandedRowsTexArea[dayId]);
   }
 
  function togglesublevel(id:string){
@@ -100,7 +100,7 @@
             class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
             title="Toggle Expand"
           >
-            {appPersState.expandedRows[childid] ? "S" : "E"}
+            {appPersState.expandedRowsTexArea[childid] ? "S" : "E"}
           </button>
           <button
           class="text-white text-3xl w-6"
@@ -111,7 +111,7 @@
           <textarea
             class="flex-1 mb-2 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                 focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-            use:autoResize={[levelTwo.text, appPersState.expandedRows[childid]]}
+            use:autoResize={[levelTwo.text, appPersState.expandedRowsTexArea[childid]]}
             rows="1"
             value={levelTwo.text}
             oninput={async (e) => {
@@ -139,14 +139,14 @@
                 class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
                 title="Toggle Expand"
               >
-                {appPersState.expandedRows[detailid] ? "S" : "E"}
+                {appPersState.expandedRowsTexArea[childid] ? "S" : "E"}
               </button>
               <textarea
                 class="flex-1 ml-8 bg-white/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
                 focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 use:autoResize={[
                   levelTwo.text,
-                  appPersState.expandedRows[detailid],
+                  appPersState.expandedRowsTexArea[detailid],
                 ]}
                 value={levelThree.text}
                 rows="1"

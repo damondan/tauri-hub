@@ -18,11 +18,10 @@
     profGoalExpandedYears,
     profGoalExpandedMonths,
     profGoalExpandedWeeks,
-    addHighlightItem,
     removeHighlight,
-    profGoalHighlights,
-    updateProfHighlight,
+    addHighlightItem
   } from "$lib/stores/profgoal";
+    import ProfHighlights from "$lib/components/ProfHighlights.svelte";
 
   let currentDay = new Date().getDate();
   let currentWeekOfMonth = Math.ceil(new Date().getDate() / 7);
@@ -141,57 +140,26 @@
     showTop = !showTop;
   }
 
-  function addPersGoalHighlight() {
-    addHighlightItem();
-  }
 
-  function removePersGoalHighlight() {
-    removeHighlight();
-  }
 </script>
 
 <div>
   <button
     class="float-right rounded text-sm bg-white/10 text-white/30
-  hover:bg-black/70 hover:text-white/80"
+  hover:bg-black/70 hover:text-white/80 border border-white/30"
     onclick={() => showTopToggle()}
   >
     Top
   </button>
-
-  <button
-    class="bg-white/2 text-white/30
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-md w-6"
-    onclick={() => addPersGoalHighlight()}
-  >
-    +
-  </button>
-  <button
-    class="bg-white/2 text-white/30
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-md w-6"
-    onclick={() => removePersGoalHighlight()}
-  >
-    -
-  </button>
+</div>
+<div
+  class="{showTop
+    ? 'bg-white/10 rounded-xl mb-2 ml-2'
+    : borderNTextNBg.collapseRows} "
+>
+  <ProfHighlights />
 </div>
 
-{#each Object.entries($profGoalHighlights) as [id, highlight]}
-  <div
-    class={showTop
-      ? "bg-white/10 rounded-xl mb-3 text-3xl p-2 flex"
-      : borderNTextNBg.collapseRows}
-  >
-    <textarea
-      class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
-      placeholder="Personal ... "
-      rows="1"
-      value={highlight}
-      oninput={(e) => {
-        updateProfHighlight(id, (e.target as HTMLTextAreaElement).value);
-      }}
-    ></textarea>
-  </div>
-{/each}
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
   <div class="text-white/70 italic">Loading...</div>

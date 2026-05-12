@@ -14,11 +14,12 @@ import {
 	LockState,
 	type PersLockState
 } from '$lib/stores/persgoal';
-import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks } from '$lib/stores/profgoal';
+import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, profGoalHighlights } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
 import { get } from 'svelte/store';
+import ProfHighlights from './components/ProfHighlights.svelte';
 
 let isHydrated = false;
 
@@ -36,6 +37,7 @@ interface UserData {
 	calendar?: any[];
 	persgoalencryption?: string;                         
 	profgoal?: any[],
+	profhighlights?: Record<string, HighlightLevel1>;
 	persgoalhighlightsencrypted?: string,         
 	workspaceA?: string;
 	workspaceB?: string;
@@ -120,6 +122,7 @@ export async function saveUserData(): Promise<void> {
 			persgoalencryption: get(persGoalEncryptedCache) ?? "",
 			persgoalhighlightsencrypted: get(persGoalHighlightEncryptedCache) ?? "",
 			profgoal: get(profGoalData),
+			profhighlights: get(profGoalHighlights),
 			workspaceA: get(workspaceContentA),
 			workspaceB: get(workspaceContentB),
 			field1: get(todoField1),
@@ -231,6 +234,9 @@ export async function loadUserData(): Promise<void> {
 		persLockState.set(data.perslockstate);
 		if (data.profgoal) {
 			profGoalData.set(data.profgoal);
+		}
+		if (data.profhighlights) {
+			profGoalHighlights.set(data.profhighlights);
 		}
 		if (data.profGoalExpandedYears) {
 			profGoalExpandedYears.set(data.profGoalExpandedYears);
@@ -399,6 +405,11 @@ export function initPersistence() {
 
 	// Subscribe to goal changes
 	profGoalData.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave();
+	});
+
+	profGoalHighlights.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave();
 	});

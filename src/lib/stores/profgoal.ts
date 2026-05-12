@@ -6,7 +6,21 @@ export const profGoalExpandedYears = writable<Record<string, boolean>>({});
 export const profGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const profGoalExpandedWeeks = writable<Record<string, boolean>>({});
 
-export const profGoalHighlights = writable<Record<string,string>>({});
+interface HighlightLevel3 {
+    text: string;
+}
+
+interface HighlightLevel2 {
+    text: string;
+    children: Record<string, HighlightLevel3>;
+}
+
+export interface HighlightLevel1 {
+    text: string;
+    children: Record<string, HighlightLevel2>;
+}
+
+export const profGoalHighlights = writable<Record<string, HighlightLevel1>>({});
 
 export interface ProfGoalEntry {
     id: string;
@@ -432,34 +446,167 @@ export function toggleMonthProfessionalCompleted(
 //PersGoalHighlight functions
 export function addHighlightItem() {
     const id = makeId();
-
+ 
     profGoalHighlights.update((highlights) => ({
         ...highlights,
-        [id]: ""
+        [id]: {
+            text: "",
+            children: {}
+        }
     }));
 }
 
-export function removeHighlight() {
+export function addSubHighlight(
+    parentId: string
+) {
+    const id = makeId();
+
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [id]: {
+                    text: "",
+                    children: {}
+                }
+            }
+        }
+    }));
+}
+
+export function addDetailHighlight(
+    parentId: string,
+    childId: string
+) {
+    const id = makeId();
+
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [id]: {
+                            text: ""
+                        }
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function removeHighlight(
+    id: string
+) {
+    profGoalHighlights.update((highlights) => {
+        const updated = { ...highlights };
+        delete updated[id];
+        return updated;
+    });
+}
+
+export function removeSubHighlight(
+    parentId: string,
+    childId: string
+) {
     profGoalHighlights.update((highlights) => {
         const updated = { ...highlights };
 
-        const keys = Object.keys(updated);
-
-        if (keys.length > 0) {
-            const lastKey = keys[keys.length - 1];
-            delete updated[lastKey];
-        }
+        delete updated[parentId]
+            .children?.[childId];
 
         return updated;
     });
 }
 
-export function updateProfHighlight(
+export function removeDetailHighlight(
+    parentId: string,
+    childId: string,
+    detailId: string
+) {
+    profGoalHighlights.update((highlights) => {
+        const updated = { ...highlights };
+
+        delete updated[parentId]
+            .children?.[childId]
+            .children?.[detailId];
+
+        return updated;
+    });
+}
+
+export function updateTopHighlight(
     id: string,
     value: string
 ) {
     profGoalHighlights.update((highlights) => ({
         ...highlights,
-        [id]: value
+        [id]: {
+            ...highlights[id],
+            text: value
+        }
+    }));
+}
+
+export function updateSubHighlight(
+    parentId: string,
+    childId: string,
+    value: string
+) {
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    text: value
+                }
+            }
+        }
+    }));
+}
+
+export function updateDetailHighlight(
+    parentId: string,
+    childId: string,
+    detailId: string,
+    value: string
+) {
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [detailId]: {
+                            ...highlights[parentId]
+                                .children![childId]
+                                .children![detailId],
+                            text: value
+                        }
+                    }
+                }
+            }
+        }
     }));
 }
