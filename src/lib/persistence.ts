@@ -21,6 +21,23 @@ import { pass } from "$lib/stores/auth";
 import { get } from 'svelte/store';
 import ProfHighlights from './components/ProfHighlights.svelte';
 
+type PersistDomain =
+	| "todos"
+	| "commands"
+	| "howto"
+	| "projects"
+	| "howto"
+	| "finance"
+	| "calendar"
+	| "persGoal"
+	| "profgoal"
+	| "profhighlights"
+	| "workspaces"
+	| "fields"
+	| "projects";
+
+let pendingDomain: PersistDomain | null = null;
+
 let isHydrated = false;
 let persDirty = false;
 let lastSaveFingerprint = "";
