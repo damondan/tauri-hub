@@ -1,11 +1,12 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { saveUserData } from "$lib/persistence";
+  import { onMount, onDestroy } from "svelte";
+  import { saveUserEncryptionData } from "$lib/persistence";
   import { autoResize } from "$lib/utils/textareaResize";
   import { getMonthName, fileToDataUrl } from "$lib/stores/general";
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import { appPersState } from "$lib/stores/state.svelte";
   import PersHighlights from "$lib/components/PersHighlights.svelte";
+  import { tick } from 'svelte';
   import {
     persGoalData,
     generatePersGoalStructureToDate,
@@ -26,8 +27,6 @@
     removeYearImage,
     updateDayIsDream,
     updateHighlight,
-    addHighlightItem,
-    removeHighlight,
   } from "$lib/stores/persgoal";
   import { app } from "@tauri-apps/api";
 
@@ -78,6 +77,8 @@
     weekId: string;
     dayId: string;
     text: string;
+    title: string;
+    tags: string[];
   } | null>(null);
 
   function toggleExpand(dayId: string) {
@@ -133,25 +134,34 @@
     );
   }
 
+  onDestroy(() => {
+    console.log(`PersonalComponent onDestroy`);
+  });
+
   // toggleYear(yearId: string): void
   function toggleYear(yearId: string) {
+    console.log(`in toggleYear should execute scheduleSaveEncrypt`);
     persGoalExpandedYears.update((state) => ({
       ...state,
       [yearId]: !state[yearId],
     }));
+    saveUserEncryptionData();
   }
 
   // toggleMonth(key: string): void
   function toggleMonth(key: string) {
+    console.log(`toggleMonth and key is ${key}`);
     persGoalExpandedMonths.update((state) => ({
       ...state,
       [key]: !state[key],
     }));
+    saveUserEncryptionData();
   }
 
   // toggleWeek(key: string): void
   function toggleWeek(key: string) {
     persGoalExpandedWeeks.update((state) => ({ ...state, [key]: !state[key] }));
+    saveUserEncryptionData();
   }
 
   function handlePrivateGoalClick(
@@ -167,13 +177,12 @@
     showTop = !showTop;
   }
 
-  function addPersGoalHighlight() {
-    addHighlightItem();
+  function savePers() {
+    saveUserEncryptionData();
   }
-
-  function removePersGoalHighlight() {
-    removeHighlight("");
-  }
+  function addTagInput() {
+		editingDay?.tags.push('');
+	}
 </script>
 
 <div>
@@ -228,12 +237,14 @@
           rows="1"
           readonly
           value={year.yearPrivateGoal || ""}
-          onclick={() =>
+          onclick={() => {
             handlePrivateGoalClick(
               year.id,
               year.yearPrivateGoal || "",
               year.yearPrivateGoalChangeCount,
-            )}
+            );
+            saveUserEncryptionData();
+          }}
         ></textarea>
         <input
           bind:this={imageInput}
@@ -242,6 +253,11 @@
           class="hidden"
           onchange={handleImageChange}
         />
+        <button
+          class="w-6 h-6 text-white/80 text-xs rounded-full border-red-700 border-2 flex items-center justify-center border hover:border-white"
+          onclick={() => savePers()}
+          >S
+        </button>
         <button
           class="w-6 h-6 text-white/80 text-xs rounded-full border-green-700 border-2 flex items-center justify-center border hover:border-white"
           onclick={() => openImagePicker(year.id, "", "")}
@@ -354,19 +370,11 @@
                   day.dayPrivateGoals?.trim(),
                 )}
                 {@const result = hasWeekGoals || isThisWeek || hasDayGoals}
-                {@const debug = console.log({
-                  month,
-                  hasWeekGoals,
-                  isThisWeek,
-                  hasDayGoals,
-                  result,
-                })}
                 <div
                   class={result
                     ? "rounded-xl p-3"
                     : borderNTextNBg.collapseRows}
                 >
-                  {debug}
                   <div class="flex items-center gap-3">
                     <button
                       class="text-white text-3xl w-6"
@@ -439,7 +447,6 @@
                         {@const hasDayGoals = day.dayPrivateGoals?.trim()}
                         {@const isCurrDay = day.dayNumber == currentDay}
                         {@const result = hasDayGoals || isCurrDay}
-
                         <div
                           class={result
                             ? "rounded-lg p-3 bg-white/5"
@@ -488,6 +495,8 @@
                                   weekId: week.id,
                                   dayId: day.id,
                                   text: day.dayPrivateGoals || "",
+                                  title: day.title || "",
+                                  tags: day.dayTags || [],
                                 };
                               }}
                               oninput={(e) => {
@@ -600,6 +609,13 @@
         class="p-4 border-b border-white/10 flex justify-between items-center text-white/50 font-mono"
       >
         <span>EDITOR</span>
+        <input
+          type="text"
+          placeholder="..."
+          bind:value={editingDay.title}
+          class="bg-transparent border border-white/10 rounded px-2 py-1 text-center
+           text-white outline-none focus:border-white/30 w-94"
+        />
         <span class="text-xs">Through Perseverance We Conquer</span>
       </div>
 
@@ -610,7 +626,19 @@
         autofocus
       ></textarea>
 
-      <div class="p-6 border-t border-white/10 flex justify-end">
+      <div class="p-6 border-t border-white/10 flex">
+        <div class="flex mr-4">
+          {#each editingDay.tags as tag, index}
+            <input
+              type="text"
+              placeholder="#"
+              bind:value={editingDay.tags[index]}
+              class="bg-transparent border border-white/10 rounded px-2 py-1 text-center
+           text-white outline-none focus:border-white/30 w-54 mr-10"
+            />
+          {/each}
+          <button class="bg-black/50 hover:bg-white/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors" onclick={addTagInput}>+</button>
+        </div>
         <button
           onclick={() => {
             const current = editingDay;
@@ -621,12 +649,14 @@
               current.weekId,
               current.dayId,
               current.text,
+              current.title,
+              current.tags,
             );
 
-            // 2. Close modal
+            //saveUserEncryptionData();
             editingDay = null;
           }}
-          class="bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+          class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
         >
           Save
         </button>
@@ -634,7 +664,7 @@
           onclick={() => {
             editingDay = null;
           }}
-          class="bg-white text-black px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+          class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
         >
           Cancel
         </button>
@@ -642,487 +672,3 @@
     </div>
   </div>
 {/if}
-
-<!-- Private Goal Dialog -->
-{#if showPrivateGoalDialog}
-  <div
-    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-    onclick={() => (showPrivateGoalDialog = false)}
-  >
-    <div
-      class="bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <h3 class="text-white text-2xl font-semibold mb-4">
-        Change Private Goal
-      </h3>
-      <p class="text-white/90 text-xl mb-4">
-        Are you sure you want to change your private goal?
-      </p>
-      {#if pendingPrivateGoalChange && pendingPrivateGoalChange.changeCount > 0}
-        <p class="text-yellow-400 text-lg mb-6">
-          This is the {pendingPrivateGoalChange.changeCount}{pendingPrivateGoalChange.changeCount ===
-          1
-            ? "st"
-            : pendingPrivateGoalChange.changeCount === 2
-              ? "nd"
-              : pendingPrivateGoalChange.changeCount === 3
-                ? "rd"
-                : "th"} time you have changed it.
-        </p>
-      {/if}
-      <textarea
-        class="w-full bg-white/10 border border-white rounded px-4 py-3 text-white text-xl resize-none mb-6"
-        placeholder="Enter your private goal..."
-        rows="3"
-        bind:value={pendingPrivateGoalChange!.value}
-      ></textarea>
-      <div class="flex gap-3 justify-end">
-        <button
-          class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showPrivateGoalDialog = false)}
-        >
-          Cancel
-        </button>
-        <button
-          class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingPrivateGoalChange) {
-              updateYearPrivateGoal(
-                pendingPrivateGoalChange.yearId,
-                pendingPrivateGoalChange.value,
-              );
-              pendingPrivateGoalChange = null;
-            }
-            showPrivateGoalDialog = false;
-          }}
-        >
-          Confirm
-        </button>
-      </div>
-    </div>
-  </div>
-{/if}
-
-<!-- let showPrivateDayDialog = $state(false);
-  let pendingPrivateDayAction = $state<{
-    yearId: string;
-    monthId: string;
-    weekId: string;
-    dayId: string;
-  } | null>(null);
-
-  let showPrivateWeekDialog = $state(false);
-  let pendingPrivateWeekAction = $state<{
-    yearId: string;
-    monthId: string;
-    weekId: string;
-  } | null>(null);
-
-  let showPrivateMonthDialog = $state(false);
-  let pendingPrivateMonthAction = $state<{
-    yearId: string;
-    monthId: string;
-  } | null>(null);
-
-  // let showScreenGoalDialog = $state(false);
-  // let pendingScreenGoalAction = $state<{
-  //   yearId: string;
-  //   monthId: string;
-  //   weekId: string;
-  //   dayId: string;
-  // } | null>(null);
-
-  let showPrivateGoalDialog = $state(false);
-  let pendingPrivateGoalChange = $state<{
-    yearId: string;
-    value: string;
-    changeCount: number;
-  } | null>(null); -->
-<!-- Custom Private Day Dialog -->
-<!-- {#if showPrivateDayDialog}
-  <div
-    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-    onclick={() => (showPrivateDayDialog = false)}
-  >
-    <div
-      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <div class="flex flex-wrap gap-3 justify-center">
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingPrivateDayAction) {
-              toggleDayPrivateCompleted(
-                pendingPrivateDayAction.yearId,
-                pendingPrivateDayAction.monthId,
-                pendingPrivateDayAction.weekId,
-                pendingPrivateDayAction.dayId,
-                false,
-              );
-              pendingPrivateDayAction = null;
-            }
-            showPrivateDayDialog = false;
-          }}
-        >
-          Convert
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingPrivateDayAction) {
-              toggleDayPrivateCompleted(
-                pendingPrivateDayAction.yearId,
-                pendingPrivateDayAction.monthId,
-                pendingPrivateDayAction.weekId,
-                pendingPrivateDayAction.dayId,
-                true,
-              );
-              pendingPrivateDayAction = null;
-            }
-            showPrivateDayDialog = false;
-          }}
-        >
-          Fight
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showPrivateDayDialog = false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-{/if} -->
-
-<!-- Custom Private Week Dialog -->
-<!-- {#if showPrivateWeekDialog}
-  <div
-    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-    onclick={() => (showPrivateWeekDialog = false)}
-  >
-    <div
-      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <div class="flex flex-wrap gap-3 justify-center">
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingPrivateWeekAction) {
-              toggleWeekPrivateCompleted(
-                pendingPrivateWeekAction.yearId,
-                pendingPrivateWeekAction.monthId,
-                pendingPrivateWeekAction.weekId,
-                false,
-              );
-              pendingPrivateWeekAction = null;
-            }
-            showPrivateWeekDialog = false;
-          }}
-        >
-          Convert
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingPrivateWeekAction) {
-              toggleWeekPrivateCompleted(
-                pendingPrivateWeekAction.yearId,
-                pendingPrivateWeekAction.monthId,
-                pendingPrivateWeekAction.weekId,
-                true,
-              );
-              pendingPrivateWeekAction = null;
-            }
-            showPrivateWeekDialog = false;
-          }}
-        >
-          Fight
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showPrivateWeekDialog = false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-{/if} -->
-
-<!-- Custom Private Month Dialog -->
-<!-- {#if showPrivateMonthDialog}
-  <div
-    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-    onclick={() => (showPrivateMonthDialog = false)}
-  >
-    <div
-      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <div class="flex flex-wrap gap-3 justify-center">
-        <button
-          class="px-6 py-2 text-white {buttonStyles.circleLightHover} rounded-lg text-xl font-semibold transition-colors border"
-          onclick={() => {
-            if (pendingPrivateMonthAction) {
-              toggleMonthPrivateCompleted(
-                pendingPrivateMonthAction.yearId,
-                pendingPrivateMonthAction.monthId,
-                false,
-              );
-              pendingPrivateMonthAction = null;
-            }
-            showPrivateMonthDialog = false;
-          }}
-        >
-          Convert
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingPrivateMonthAction) {
-              toggleMonthPrivateCompleted(
-                pendingPrivateMonthAction.yearId,
-                pendingPrivateMonthAction.monthId,
-                true,
-              );
-              pendingPrivateMonthAction = null;
-            }
-            showPrivateMonthDialog = false;
-          }}
-        >
-          Fight
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showPrivateMonthDialog = false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-{/if} -->
-
-<!-- Screen Goal Dialog -->
-<!-- {#if showScreenGoalDialog}
-  <div
-    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-    onclick={() => (showScreenGoalDialog = false)}
-  >
-    <div
-      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
-      onclick={(e) => e.stopPropagation()}
-    >
-      <div class="flex flex-wrap gap-3 justify-center">
-       
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingScreenGoalAction) {
-              toggleDayScreenFollowed(
-                pendingScreenGoalAction.yearId,
-                pendingScreenGoalAction.monthId,
-                pendingScreenGoalAction.weekId,
-                pendingScreenGoalAction.dayId,
-                false,
-              );
-              pendingScreenGoalAction = null;
-            }
-            showScreenGoalDialog = false;
-          }}
-        >
-          Fail
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingScreenGoalAction) {
-              toggleDayScreenFollowed(
-                pendingScreenGoalAction.yearId,
-                pendingScreenGoalAction.monthId,
-                pendingScreenGoalAction.weekId,
-                pendingScreenGoalAction.dayId,
-                true,
-              );
-              pendingScreenGoalAction = null;
-            }
-            showScreenGoalDialog = false;
-          }}
-        >
-          Succeed
-        </button>
-         <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showScreenGoalDialog = false)}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
-{/if} -->
-
-<!-- Sleep & Screen row -->
-<!-- <div class="flex items-center gap-3 mt-2">
-                            <div class="w-58 shrink-0"></div>
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Sleep</label
-                            >
-                            <input
-                              type="text"
-                              class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-20"
-                              placeholder=""
-                              value={day.sleepTime || ""}
-                              oninput={(e) =>
-                                updateDaySleepScreen(
-                                  year.id,
-                                  month.id,
-                                  week.id,
-                                  day.id,
-                                  "sleepTime",
-                                  (e.target as HTMLInputElement).value,
-                                )}
-                            />
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Wake</label
-                            >
-                            <input
-                              type="text"
-                              class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-20"
-                              placeholder=""
-                              value={day.sleepWake || ""}
-                              oninput={(e) =>
-                                updateDaySleepScreen(
-                                  year.id,
-                                  month.id,
-                                  week.id,
-                                  day.id,
-                                  "sleepWake",
-                                  (e.target as HTMLInputElement).value,
-                                )}
-                            />
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Sleep</label
-                            >
-                            <input
-                              type="text"
-                              class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-20"
-                              placeholder=""
-                              value={day.sleepTimeBack || ""}
-                              oninput={(e) =>
-                                updateDaySleepScreen(
-                                  year.id,
-                                  month.id,
-                                  week.id,
-                                  day.id,
-                                  "sleepTimeBack",
-                                  (e.target as HTMLInputElement).value,
-                                )}
-                            />
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Wake</label
-                            >
-                            <input
-                              type="text"
-                              class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-20"
-                              placeholder=""
-                              value={day.sleepWakeAgain || ""}
-                              oninput={(e) =>
-                                updateDaySleepScreen(
-                                  year.id,
-                                  month.id,
-                                  week.id,
-                                  day.id,
-                                  "sleepWakeAgain",
-                                  (e.target as HTMLInputElement).value,
-                                )}
-                            />
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Sleep Total</label
-                            >
-                            <input
-                              type="text"
-                              class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-20"
-                              placeholder=""
-                              value={day.sleepTotal || ""}
-                              oninput={(e) =>
-                                updateDaySleepScreen(
-                                  year.id,
-                                  month.id,
-                                  week.id,
-                                  day.id,
-                                  "sleepTotal",
-                                  (e.target as HTMLInputElement).value,
-                                )}
-                            />
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Screen Bounds</label
-                            >
-                            <input
-                              type="text"
-                              class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-sm w-20"
-                              placeholder=""
-                              value={day.screenGoal || ""}
-                              oninput={(e) =>
-                                updateDaySleepScreen(
-                                  year.id,
-                                  month.id,
-                                  week.id,
-                                  day.id,
-                                  "screenGoal",
-                                  (e.target as HTMLInputElement).value,
-                                )}
-                            />
-
-                            <label
-                              class="{borderNTextNBg.lightText} text-sm font-semibold whitespace-nowrap"
-                              >Screen Goal</label
-                            >
-                            <button
-                              class="w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 {day.screenFollowed
-                                ? 'border-white shadow-[0_0_15px_rgba(255,255,255,0.8)]'
-                                : 'border-2 border-gray-500 hover:border-white'}"
-                              onclick={() => {
-                                if (!day.screenFollowed) {
-                                  pendingScreenGoalAction = {
-                                    yearId: year.id,
-                                    monthId: month.id,
-                                    weekId: week.id,
-                                    dayId: day.id,
-                                  };
-                                  showScreenGoalDialog = true;
-                                } else {
-                                  toggleDayScreenFollowed(
-                                    year.id,
-                                    month.id,
-                                    week.id,
-                                    day.id,
-                                  );
-                                }
-                              }}
-                            >
-                              {#if day.screenFollowed}
-                                <span class="text-white text-sm font-bold">⭐</span>
-                              {:else}
-                                <span
-                                  class="text-white"
-                                >x</span>
-                              {/if}
-                            </button>
-                          </div> -->

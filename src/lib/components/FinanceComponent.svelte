@@ -331,7 +331,7 @@
                             year.year,
                             month.monthNumber,
                             day.dayNumber)}
-                        {@const hasEntries = !!day.entries[i]?.description.trim()}
+                        {@const hasEntries = !!day.entries[0]?.description.trim()}
                         {@const collapseRowBool =
                           !isCurrDay && !hasEntries}
                         <div

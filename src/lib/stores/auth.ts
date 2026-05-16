@@ -5,7 +5,7 @@ import { persGoalEncryptedCache, updateYearByNumberPrivateGoal, persGoalData,
 	persGoalHighlights,
 	persGoalHighlightEncryptedCache} from './persgoal';
 import { appPersState } from './state.svelte';
-import { saveUserData } from '$lib/persistence';
+import { saveUserEncryptionData } from '$lib/persistence';
 
 export const pass = writable<string | null>(null);
 
@@ -82,6 +82,6 @@ export async function initLoginWithEncryption(password: string): Promise<boolean
 	persGoalHighlightEncryptedCache.set(initialHighlightEncrypt);
 	persLockState.set(LockState.UNLOCKED);
 	console.log(`In initLoginWithEncryption and saving data`);
-	saveUserData();
+	saveUserEncryptionData();
 	return true;
 }

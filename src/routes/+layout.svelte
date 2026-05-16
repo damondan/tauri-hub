@@ -6,14 +6,13 @@
 	import Navigation from "$lib/components/Navigation.svelte";
 	import {
 		loadUserData,
+		loadUserDataEncryption,
 		initPersistence,
 		setHydrated,
 		saveUserData,
+		saveUserEncryptionData,
 	} from "$lib/persistence";
-	import {
-		persLockState,
-		LockState,
-	} from "$lib/stores/persgoal";
+	import { persLockState, LockState } from "$lib/stores/persgoal";
 	import { get } from "svelte/store";
 
 	let backupStatus = $state<"idle" | "saving" | "done">("idle");
@@ -40,16 +39,24 @@
 	let showFocus = $state(false);
 	let hideTop = $state(false);
 
+	async function bootstrapApp() {
+		await loadUserData();
+
+		await loadUserDataEncryption();
+
+		if (get(persLockState) === LockState.UNLOCKED) {
+			persLockState.set(LockState.LOCKED);
+		}
+		console.log(
+			`in onMount before initPersistence and lock state is ${get(persLockState)}`,
+		);
+		initPersistence();
+		setHydrated(true);
+	}
+
 	onMount(() => {
 		console.log(`in onMount`);
-
-		loadUserData().then(() => {
-			if (get(persLockState) == LockState.UNLOCKED) {
-				persLockState.set(LockState.LOCKED);
-			}
-			initPersistence();
-			setHydrated(true);
-		});
+		bootstrapApp();
 
 		updateRamUsage();
 		updateGpuUsage();
@@ -201,9 +208,9 @@
 	}
 
 	function handleBackup() {
-		console.log('✅ Backup button clicked');
+		console.log("✅ Backup button clicked");
 
-		backupData();           // or whatever your actual backup function is
+		backupData(); // or whatever your actual backup function is
 	}
 
 	// Language selection handlers

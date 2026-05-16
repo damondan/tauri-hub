@@ -32,6 +32,27 @@ fn derive_key(password: &str, salt: &[u8]) -> [u8; 32] {
 
     key
 }
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Domain {
+	Todos,
+	Commands,
+	Howto,
+	Projects,
+	Finance,
+	Calendar,
+	PersGoal,
+	Profgoal,
+	Profhighlights,
+	Workspaces,
+	Fields,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SaveUserDataRequest {
+    pub domain: Domain,
+    pub data: serde_json::Value,
+}
 
 fn encrypt_data(password: &str, plaintext: &str) -> Result<String, String> {
     let mut salt = [0u8; 16];
@@ -1307,6 +1328,14 @@ fn get_user_data_path(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> 
     Ok(app_dir.join("user_data.json"))
 }
 
+fn get_user_data_path_encryption(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let app_dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("Failed to get app data encryption dir: {}", e))?;
+    fs::create_dir_all(&app_dir)
+        .map_err(|e| format!("Failed to create app data encryption dir: {}", e))?;
+    Ok(app_dir.join("user_data_encryption.json"))
+}
+
 #[tauri::command]
 async fn load_user_data(app_handle: tauri::AppHandle) -> Result<String, String> {
     let data_path = get_user_data_path(&app_handle)?;
@@ -1320,11 +1349,31 @@ async fn load_user_data(app_handle: tauri::AppHandle) -> Result<String, String> 
 }
 
 #[tauri::command]
+async fn load_user_data_encryption(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let data_path = get_user_data_path_encryption(&app_handle)?;
+    
+    if !data_path.exists() {
+        return Ok("{}".to_string()); // Return empty object if no file
+    }
+    
+    fs::read_to_string(&data_path)
+        .map_err(|e| format!("Failed to read user data encryption: {}", e))
+}
+
+#[tauri::command]
 async fn save_user_data(data: String, app_handle: tauri::AppHandle) -> Result<(), String> {
     let data_path = get_user_data_path(&app_handle)?;
     
     fs::write(&data_path, data)
         .map_err(|e| format!("Failed to write user data: {}", e))
+}
+//check save
+#[tauri::command]
+async fn save_user_data_encryption(data: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let data_path = get_user_data_path_encryption(&app_handle)?;
+    
+    fs::write(&data_path, data)
+        .map_err(|e| format!("Failed to write user data encryption: {}", e))
 }
 
 // backup_user_data(app_handle: tauri::AppHandle) -> Result<(), String>
@@ -1332,14 +1381,22 @@ async fn save_user_data(data: String, app_handle: tauri::AppHandle) -> Result<()
 #[tauri::command]
 async fn backup_user_data(app_handle: tauri::AppHandle) -> Result<(), String> {
     let data_path = get_user_data_path(&app_handle)?;
-    
+    let data_path_encrypt = get_user_data_path_encryption(&app_handle)?;
+
     if !data_path.exists() {
         return Err("No user data to backup".to_string());
     }
-    
+     if !data_path_encrypt.exists() {
+        return Err("No user data encryption to backup".to_string());
+    }
     let backup_path = data_path.with_file_name("user_data_backup.json");
+    let backup_path_encrypt = data_path_encrypt.with_file_name("user_data_backup_encrypt.json");
+
     fs::copy(&data_path, &backup_path)
         .map_err(|e| format!("Failed to backup user data: {}", e))?;
+
+    fs::copy(&data_path_encrypt, &backup_path_encrypt)
+        .map_err(|e| format!("Failed to backup user encrypt data: {}", e))?;
     
     Ok(())
 }
@@ -1392,7 +1449,9 @@ pub fn run() {
             get_gpu_usage,
             get_disk_usage,
             load_user_data,
+            load_user_data_encryption,
             save_user_data,
+            save_user_data_encryption,
             backup_user_data,
             encrypt_highlights,
             decrypt_highlights

@@ -79,6 +79,7 @@
 	}
 
 	function setlock() {
+		console.log(`In setLock and setting to locked`);
 		persLockState.set(LockState.LOCKED);
 	
 		persGoalData.set([]);

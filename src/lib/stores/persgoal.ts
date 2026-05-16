@@ -1,11 +1,11 @@
-import { writable,get } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 
 export const LockState = {
-	LOCKED: 'locked',
-	UNLOCKED: 'unlocked',
-	NOT_SET: 'not_set'
+    LOCKED: 'locked',
+    UNLOCKED: 'unlocked',
+    NOT_SET: 'not_set'
 } as const;
 
 export const persGoalExpandedYears = writable<Record<string, boolean>>({});
@@ -36,38 +36,25 @@ export interface HighlightLevel1 {
 
 export const persGoalHighlights = writable<Record<string, HighlightLevel1>>({});
 
-export interface PersGoalEntry {
-    id: string;
-    description: string;
-}
-
 //type PersLockState = 'locked' | 'unlocked' | 'not_set';
 
 export type PersLockState = typeof LockState[keyof typeof LockState];
 
 type PersImage = {
-  id: string;
-  dataUrl: string;
+    id: string;
+    dataUrl: string;
 };
 
 export interface PersGoalDay {
     id: string;
-    dayNumber: number; 
-    dayOfWeek: string; 
+    dayNumber: number;
+    title?: string;
+    dayOfWeek: string;
     dayPrivateGoals?: string;
-    priGoalCompleted?: boolean; 
-    priGoalRejected?: boolean; 
-    sleepTime?: string;
-    sleepWake?: string;
-    sleepTimeBack?: string;
-    sleepWakeAgain?: string;
-    sleepTotal?: string;
-    screenGoal?: string;
-    screenFollowed?: boolean;
     dayImage?: PersImage;
     isDream?: boolean;
     highlight?: boolean;
-    entries: PersGoalEntry[];
+    dayTags?: string[];
 }
 
 export interface PersGoalWeek {
@@ -112,7 +99,7 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
 
     persGoalData.update((years) => {
         const updatedYears = [...years];
-        
+
         // Find or create year
         let yearEntry = updatedYears.find(y => y.year === targetYear);
         if (!yearEntry) {
@@ -124,7 +111,7 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
             };
             updatedYears.push(yearEntry);
         }
-        
+
         // Generate months up to target month
         for (let monthNum = 1; monthNum <= targetMonth; monthNum++) {
             let monthEntry = yearEntry.months.find(m => m.monthNumber === monthNum);
@@ -137,17 +124,17 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
                 yearEntry.months.push(monthEntry);
                 yearEntry.months.sort((a, b) => a.monthNumber - b.monthNumber);
             }
-            
+
             // Determine how many days to generate for this month
             const daysInMonth = getDaysInMonth(targetYear, monthNum);
             const lastDayToGenerate = monthNum === targetMonth ? targetDay : daysInMonth;
-            
+
             // Generate weeks and days
             for (let dayNum = 1; dayNum <= lastDayToGenerate; dayNum++) {
                 const weekNum = Math.ceil(dayNum / 7);
                 const startDay = (weekNum - 1) * 7 + 1;
                 const endDay = Math.min(weekNum * 7, daysInMonth);
-                
+
                 // Find or create week
                 let weekEntry = monthEntry.weeks.find(w => w.weekNumber === weekNum);
                 if (!weekEntry) {
@@ -161,7 +148,7 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
                     monthEntry.weeks.push(weekEntry);
                     monthEntry.weeks.sort((a, b) => a.weekNumber - b.weekNumber);
                 }
-                
+
                 // Check if day already exists
                 const dayExists = weekEntry.days.find(d => d.dayNumber === dayNum);
                 if (!dayExists) {
@@ -170,128 +157,15 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
                         id: makeId(),
                         dayNumber: dayNum,
                         dayOfWeek,
-                        entries: [{
-                            id: makeId(),
-                            description:""
-                        }]
                     };
                     weekEntry.days.push(dayEntry);
                     weekEntry.days.sort((a, b) => a.dayNumber - b.dayNumber);
                 }
             }
         }
-        
+
         return updatedYears;
     });
-}
-
-// Add entry to a specific day
-// addHealthEntry(yearId: string, monthId: string, weekId: string, dayId: string): string
-export function addHealthEntry(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string
-): string {
-    const entryId = makeId();
-    persGoalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                return {
-                                    ...d,
-                                    entries: [...d.entries, { id: entryId, description: '' }]
-                                };
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-    return entryId;
-}
-
-// Delete entry from a day
-// deleteHealthEntry(yearId: string, monthId: string, weekId: string, dayId: string, entryId: string): void
-export function deleteHealthEntry(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string,
-    entryId: string
-): void {
-    persGoalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    return {
-                                                        ...d,
-                                                        entries: d.entries.filter(e => e.id !== entryId)
-                                                    };
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
-// Update year goal
-// updateHealthYearGoal(yearId: string, value: string): void
-export function updateHealthYearGoal(
-    yearId: string,
-    value: string
-): void {
-    persGoalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return { ...y, yearHealthGoal: value };
-            }
-            return y;
-        })
-    );
 }
 
 // Update year private goal
@@ -303,8 +177,8 @@ export function updateYearPrivateGoal(
     persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
-                return { 
-                    ...y, 
+                return {
+                    ...y,
                     yearPrivateGoal: value,
                     yearPrivateGoalChangeCount: y.yearPrivateGoalChangeCount + 1
                 };
@@ -321,8 +195,8 @@ export function updateYearByNumberPrivateGoal(
     persGoalData.update((years) =>
         years.map((y) => {
             if (y.year === yearNum) {
-                return { 
-                    ...y, 
+                return {
+                    ...y,
                     yearPrivateGoal: value,
                     yearPrivateGoalChangeCount: y.yearPrivateGoalChangeCount + 1
                 };
@@ -332,39 +206,14 @@ export function updateYearByNumberPrivateGoal(
     );
 }
 
-export function initHighlightLevel1(initHighLevel:string): void{
+export function initHighlightLevel1(initHighLevel: string): void {
     persGoalHighlights.update((highlights) => ({
-		...highlights,
-		level1: {
-			text: initHighLevel,
-			children: {}
-		}
-	}));
-}
-
-// Update month goal
-// updateHealthMonthGoal(yearId: string, monthId: string, value: string): void
-export function updateHealthMonthGoal(
-    yearId: string,
-    monthId: string,
-    value: string
-): void {
-    persGoalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return { ...m, monthGoals: value };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
+        ...highlights,
+        level1: {
+            text: initHighLevel,
+            children: {}
+        }
+    }));
 }
 
 // Update month private goals
@@ -426,7 +275,7 @@ export function updateWeekPrivateGoals(
     );
 }
 
-export function updateDayImage(dataUrl: string, year: string, month: string, week:string, day:string): void {
+export function updateDayImage(dataUrl: string, year: string, month: string, week: string, day: string): void {
     persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === year) {
@@ -442,11 +291,12 @@ export function updateDayImage(dataUrl: string, year: string, month: string, wee
                                             ...w,
                                             days: w.days.map((d) => {
                                                 if (d.id === day) {
-                                                    return { ...d, 
+                                                    return {
+                                                        ...d,
                                                         dayImage: {
-                                                            id:makeId(),
+                                                            id: makeId(),
                                                             dataUrl
-                                                        } 
+                                                        }
                                                     };
                                                 }
                                                 return d;
@@ -466,8 +316,8 @@ export function updateDayImage(dataUrl: string, year: string, month: string, wee
     );
 }
 
-export function updateWeekImage(dataUrl: string, year: string, month: string, week:string): void {
-persGoalData.update((years) =>
+export function updateWeekImage(dataUrl: string, year: string, month: string, week: string): void {
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === year) {
                 return {
@@ -480,12 +330,12 @@ persGoalData.update((years) =>
                                     if (w.id === week) {
                                         return {
                                             ...w,
-                                           weekImage : {
-                                            id:makeId(),
-                                            dataUrl
-                                           }
-                                            };
-                                        }
+                                            weekImage: {
+                                                id: makeId(),
+                                                dataUrl
+                                            }
+                                        };
+                                    }
                                     return w;
                                 })
                             };
@@ -509,10 +359,10 @@ export function updateMonthImage(dataUrl: string, year: string, month: string): 
                         if (m.id === month) {
                             return {
                                 ...m,
-                               monthImage: {
-                                id: makeId(),
-                                dataUrl
-                               }
+                                monthImage: {
+                                    id: makeId(),
+                                    dataUrl
+                                }
                             };
                         }
                         return m;
@@ -530,10 +380,10 @@ export function updateYearImage(dataUrl: string, year: string): void {
             if (y.id === year) {
                 return {
                     ...y,
-                   yearImage:{
-                    id:makeId(),
-                    dataUrl
-                   }
+                    yearImage: {
+                        id: makeId(),
+                        dataUrl
+                    }
                 };
             }
             return y;
@@ -546,8 +396,12 @@ export function updateDayPrivateGoals(
     monthId: string,
     weekId: string,
     dayId: string,
-    value: string
+    value: string,
+    title?: string,
+    tags?: string[]
 ): void {
+    console.log(`In updateDayPrivateGoals`);
+    console.log(`title is ${title}`);
     persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === yearId) {
@@ -563,8 +417,18 @@ export function updateDayPrivateGoals(
                                             ...w,
                                             days: w.days.map((d) => {
                                                 if (d.id === dayId) {
-                                                    return { ...d, dayPrivateGoals: value };
+                                                    const updated = {
+                                                        ...d,
+                                                        dayPrivateGoals: value,
+                                                        ...(title !== undefined ? { title } : {}),
+                                                        ...(tags !== undefined ? { dayTags: tags } : {})
+                                                    };
+
+                                                    console.log("UPDATED DAY:", updated);
+
+                                                    return updated;
                                                 }
+
                                                 return d;
                                             })
                                         };
@@ -582,7 +446,7 @@ export function updateDayPrivateGoals(
     );
 }
 
-export function removeDayImage(year: string, month: string, week:string, day:string): void {
+export function removeDayImage(year: string, month: string, week: string, day: string): void {
     persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === year) {
@@ -598,7 +462,8 @@ export function removeDayImage(year: string, month: string, week:string, day:str
                                             ...w,
                                             days: w.days.map((d) => {
                                                 if (d.id === day) {
-                                                    return { ...d, 
+                                                    return {
+                                                        ...d,
                                                         dayImage: undefined
                                                     };
                                                 }
@@ -619,8 +484,8 @@ export function removeDayImage(year: string, month: string, week:string, day:str
     );
 }
 
-export function removeWeekImage(year: string, month: string, week:string): void {
-persGoalData.update((years) =>
+export function removeWeekImage(year: string, month: string, week: string): void {
+    persGoalData.update((years) =>
         years.map((y) => {
             if (y.id === year) {
                 return {
@@ -633,9 +498,9 @@ persGoalData.update((years) =>
                                     if (w.id === week) {
                                         return {
                                             ...w,
-                                           weekImage : undefined
-                                            };
-                                        }
+                                            weekImage: undefined
+                                        };
+                                    }
                                     return w;
                                 })
                             };
@@ -659,7 +524,7 @@ export function removeMonthImage(year: string, month: string): void {
                         if (m.id === month) {
                             return {
                                 ...m,
-                               monthImage: undefined
+                                monthImage: undefined
                             };
                         }
                         return m;
@@ -677,7 +542,7 @@ export function removeYearImage(year: string): void {
             if (y.id === year) {
                 return {
                     ...y,
-                   yearImage: undefined
+                    yearImage: undefined
                 };
             }
             return y;
@@ -685,73 +550,73 @@ export function removeYearImage(year: string): void {
     );
 }
 
-export function updateDayIsDream(year:string,month:string,week:string,day:string, value:boolean):void {
+export function updateDayIsDream(year: string, month: string, week: string, day: string, value: boolean): void {
     persGoalData.update(years =>
-    years.map(y =>
-      y.id === year
-        ? {
-            ...y,
-            months: y.months.map(m =>
-              m.id === month
+        years.map(y =>
+            y.id === year
                 ? {
-                    ...m,
-                    weeks: m.weeks.map(w =>
-                      w.id === week
-                        ? {
-                            ...w,
-                            days: w.days.map(d =>
-                              d.id === day
-                                ? { ...d, isDream: value }
-                                : d
-                            )
-                          }
-                        : w
+                    ...y,
+                    months: y.months.map(m =>
+                        m.id === month
+                            ? {
+                                ...m,
+                                weeks: m.weeks.map(w =>
+                                    w.id === week
+                                        ? {
+                                            ...w,
+                                            days: w.days.map(d =>
+                                                d.id === day
+                                                    ? { ...d, isDream: value }
+                                                    : d
+                                            )
+                                        }
+                                        : w
+                                )
+                            }
+                            : m
                     )
-                  }
-                : m
-            )
-          }
-        : y
-    )
-  );
+                }
+                : y
+        )
+    );
 }
 
-export function  updateHighlight(
-                                  yearid:string,
-                                  monthid: string,
-                                  weekid: string,
-                                  dayid:string,
-                                  value:boolean
-                                ):void{
-     persGoalData.update(years =>
-    years.map(y =>
-      y.id === yearid
-        ? {
-            ...y,
-            months: y.months.map(m =>
-              m.id === monthid
+export function updateHighlight(
+    yearid: string,
+    monthid: string,
+    weekid: string,
+    dayid: string,
+    value: boolean
+): void {
+    persGoalData.update(years =>
+        years.map(y =>
+            y.id === yearid
                 ? {
-                    ...m,
-                    weeks: m.weeks.map(w =>
-                      w.id === weekid
-                        ? {
-                            ...w,
-                            days: w.days.map(d =>
-                              d.id === dayid
-                                ? { ...d, highlight: value }
-                                : d
-                            )
-                          }
-                        : w
+                    ...y,
+                    months: y.months.map(m =>
+                        m.id === monthid
+                            ? {
+                                ...m,
+                                weeks: m.weeks.map(w =>
+                                    w.id === weekid
+                                        ? {
+                                            ...w,
+                                            days: w.days.map(d =>
+                                                d.id === dayid
+                                                    ? { ...d, highlight: value }
+                                                    : d
+                                            )
+                                        }
+                                        : w
+                                )
+                            }
+                            : m
                     )
-                  }
-                : m
-            )
-          }
-        : y
-    )
-  );
-                                }
+                }
+                : y
+        )
+    );
+}
 
 // updateDaySleepScreen(yearId: string, monthId: string, weekId: string, dayId: string, field: 'sleepTime' | 'sleepWake' | 'sleepTimeBack' | 'sleepWakeAgain' | 'sleepTotal' | 'screenGoal', value: string): void
 export function updateDaySleepScreen(
@@ -796,54 +661,6 @@ export function updateDaySleepScreen(
     );
 }
 
-// toggleDayScreenFollowed(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
-export function toggleDayScreenFollowed(
-    yearId: string,
-    monthId: string,
-    weekId: string,
-    dayId: string,
-    completed?: boolean
-): void {
-    persGoalData.update((years) =>
-        years.map((y) => {
-            if (y.id === yearId) {
-                return {
-                    ...y,
-                    months: y.months.map((m) => {
-                        if (m.id === monthId) {
-                            return {
-                                ...m,
-                                weeks: m.weeks.map((w) => {
-                                    if (w.id === weekId) {
-                                        return {
-                                            ...w,
-                                            days: w.days.map((d) => {
-                                                if (d.id === dayId) {
-                                                    if (completed === true) {
-                                                        return { ...d, screenFollowed: true };
-                                                    } else if (completed === false) {
-                                                        return { ...d, screenFollowed: false };
-                                                    } else {
-                                                        return { ...d, screenFollowed: !d.screenFollowed };
-                                                    }
-                                                }
-                                                return d;
-                                            })
-                                        };
-                                    }
-                                    return w;
-                                })
-                            };
-                        }
-                        return m;
-                    })
-                };
-            }
-            return y;
-        })
-    );
-}
-
 // Toggle day private checkbox
 // toggleDayPrivateCompleted(yearId: string, monthId: string, weekId: string, dayId: string, completed?: boolean): void
 export function toggleDayPrivateCompleted(
@@ -870,23 +687,23 @@ export function toggleDayPrivateCompleted(
                                                 if (d.id === dayId) {
                                                     if (completed === true) {
                                                         // User clicked Yes
-                                                        return { 
-                                                            ...d, 
-                                                            priGoalCompleted: true, 
+                                                        return {
+                                                            ...d,
+                                                            priGoalCompleted: true,
                                                             priGoalRejected: false
                                                         };
                                                     } else if (completed === false) {
                                                         // User clicked No
-                                                        return { 
-                                                            ...d, 
-                                                            priGoalCompleted: false, 
-                                                            priGoalRejected: true 
+                                                        return {
+                                                            ...d,
+                                                            priGoalCompleted: false,
+                                                            priGoalRejected: true
                                                         };
                                                     } else {
                                                         // Toggle (reset)
-                                                        return { 
-                                                            ...d, 
-                                                            priGoalCompleted: false, 
+                                                        return {
+                                                            ...d,
+                                                            priGoalCompleted: false,
                                                             priGoalRejected: false
                                                         };
                                                     }
@@ -928,21 +745,21 @@ export function toggleWeekPrivateCompleted(
                                 weeks: m.weeks.map((w) => {
                                     if (w.id === weekId) {
                                         if (completed === true) {
-                                            return { 
-                                                ...w, 
-                                                priGoalCompleted: true, 
+                                            return {
+                                                ...w,
+                                                priGoalCompleted: true,
                                                 priGoalRejected: false
                                             };
                                         } else if (completed === false) {
-                                            return { 
-                                                ...w, 
-                                                priGoalCompleted: false, 
-                                                priGoalRejected: true 
+                                            return {
+                                                ...w,
+                                                priGoalCompleted: false,
+                                                priGoalRejected: true
                                             };
                                         } else {
-                                            return { 
-                                                ...w, 
-                                                priGoalCompleted: false, 
+                                            return {
+                                                ...w,
+                                                priGoalCompleted: false,
                                                 priGoalRejected: false
                                             };
                                         }
@@ -975,21 +792,21 @@ export function toggleMonthPrivateCompleted(
                     months: y.months.map((m) => {
                         if (m.id === monthId) {
                             if (completed === true) {
-                                return { 
-                                    ...m, 
-                                    priGoalCompleted: true, 
+                                return {
+                                    ...m,
+                                    priGoalCompleted: true,
                                     priGoalRejected: false
                                 };
                             } else if (completed === false) {
-                                return { 
-                                    ...m, 
-                                    priGoalCompleted: false, 
-                                    priGoalRejected: true 
+                                return {
+                                    ...m,
+                                    priGoalCompleted: false,
+                                    priGoalRejected: true
                                 };
                             } else {
-                                return { 
-                                    ...m, 
-                                    priGoalCompleted: false, 
+                                return {
+                                    ...m,
+                                    priGoalCompleted: false,
                                     priGoalRejected: false
                                 };
                             }
@@ -1006,7 +823,7 @@ export function toggleMonthPrivateCompleted(
 //PersGoalHighlight functions
 export function addHighlightItem() {
     const id = makeId();
- 
+
     persGoalHighlights.update((highlights) => ({
         ...highlights,
         [id]: {
@@ -1171,21 +988,97 @@ export function updateDetailHighlight(
     }));
 }
 
-export function migratePersGoalHighlights(
-  data: any
-): Record<string, HighlightLevel1> {
-  // No migration needed yet.
-  // This exists to support future schema changes.
+export function addPersDayTitle(yearid: string, monthid: string, weekid: string, dayid: string, title: string) {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearid) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthid) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === weekid) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === dayid) {
+                                                    return { ...d, title: title };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
 
-  return data as Record<string, HighlightLevel1>;
+export function addPersDayTag(yearid: string, monthid: string, weekid: string, dayid: string, tags: string[]) {
+    persGoalData.update((years) =>
+        years.map((y) => {
+            if (y.id === yearid) {
+                return {
+                    ...y,
+                    months: y.months.map((m) => {
+                        if (m.id === monthid) {
+                            return {
+                                ...m,
+                                weeks: m.weeks.map((w) => {
+                                    if (w.id === weekid) {
+                                        return {
+                                            ...w,
+                                            days: w.days.map((d) => {
+                                                if (d.id === dayid) {
+                                                    return {
+                                                        ...d, dayTags: [
+                                                            ...(d.dayTags ?? []),
+                                                            ...tags
+                                                        ]
+                                                    };
+                                                }
+                                                return d;
+                                            })
+                                        };
+                                    }
+                                    return w;
+                                })
+                            };
+                        }
+                        return m;
+                    })
+                };
+            }
+            return y;
+        })
+    );
+}
+
+
+export function migratePersGoalHighlights(
+    data: any
+): Record<string, HighlightLevel1> {
+    // No migration needed yet.
+    // This exists to support future schema changes.
+
+    return data as Record<string, HighlightLevel1>;
 }
 
 export function migratePersGoal(
-  data: any
+    data: any
 ): PersGoalYear[] {
-  // No migration needed yet.
-  // This exists to support future schema changes.
+    // No migration needed yet.
+    // This exists to support future schema changes.
 
-  return data as PersGoalYear[];
+    return data as PersGoalYear[];
 }
 

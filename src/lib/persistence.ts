@@ -1,7 +1,6 @@
 // src/lib/persistence.ts
 //5.8.26 - saying password is incorrect or data is corrupted. 
 import { invoke } from '@tauri-apps/api/core';
-import { appPersState } from '$lib/stores/state.svelte';
 import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/stores/todo';
 import { commandData, commandExpandedCategories, commandExpandedSubcategories } from '$lib/stores/commands';
 import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/projects';
@@ -9,8 +8,8 @@ import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoEx
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
 import {
-	persGoalData, updateYearByNumberPrivateGoal, persGoalEncryptedCache, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights,
-	migratePersGoalHighlights, persGoalHighlightEncryptedCache, migratePersGoal, persLockState, type HighlightLevel1, type PersGoalYear,
+	persGoalData, persGoalEncryptedCache, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights,
+	migratePersGoal, migratePersGoalHighlights, persGoalHighlightEncryptedCache, persLockState, type HighlightLevel1,
 	LockState,
 	type PersLockState
 } from '$lib/stores/persgoal';
@@ -19,7 +18,6 @@ import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
 import { get } from 'svelte/store';
-import ProfHighlights from './components/ProfHighlights.svelte';
 
 type PersistDomain =
 	| "todos"
@@ -29,7 +27,7 @@ type PersistDomain =
 	| "howto"
 	| "finance"
 	| "calendar"
-	| "persGoal"
+	| "persgoal"
 	| "profgoal"
 	| "profhighlights"
 	| "workspaces"
@@ -40,45 +38,10 @@ let pendingDomain: PersistDomain | null = null;
 
 let isHydrated = false;
 let persDirty = false;
-let lastSaveFingerprint = "";
 
 export function setHydrated(value: boolean) {
+	console.log(`In setHydrated is true`);
 	isHydrated = value;
-}
-
-function buildFingerprint() {
-	return JSON.stringify({
-		todos: get(todosByDate),
-			commands: get(commandData),
-			commandExpandedCategories: get(commandExpandedCategories),
-			commandExpandedSubcategories: get(commandExpandedSubcategories),
-			projects: get(projectsData),
-			howto: get(howtoData),
-			finance: get(financeData),
-			calendar: get(calendarData),
-			profgoal: get(profGoalData),
-			profhighlights: get(profGoalHighlights),
-			workspaceA: get(workspaceContentA),
-			workspaceB: get(workspaceContentB),
-			field1: get(todoField1),
-			field2: get(todoField2),
-			todoExpandedState: get(todoExpandedState),
-			projectExpandedProjects: get(projectExpandedProjects),
-			projectExpandedSubprojects: get(projectExpandedSubprojects),
-			projectExpandedTasks: get(projectExpandedTasks),
-			howtoExpandedCategories: get(howtoExpandedCategories),
-			howtoExpandedSubcategories: get(howtoExpandedSubcategories),
-			howtoExpandedTopics: get(howtoExpandedTopics),
-			financeExpandedYears: get(financeExpandedYears),
-			financeExpandedMonths: get(financeExpandedMonths),
-			financeExpandedWeeks: get(financeExpandedWeeks),
-			persGoalExpandedYears: get(persGoalExpandedYears),
-			persGoalExpandedMonths: get(persGoalExpandedMonths),
-			persGoalExpandedWeeks: get(persGoalExpandedWeeks),
-			profGoalExpandedYears: get(profGoalExpandedYears),
-			profGoalExpandedMonths: get(profGoalExpandedMonths),
-			profGoalExpandedWeeks: get(profGoalExpandedWeeks),
-	});
 }
 
 interface UserData {
@@ -89,10 +52,10 @@ interface UserData {
 	howto?: any[];
 	finance?: any[];
 	calendar?: any[];
-	persgoalencryption?: string;                         
-	profgoal?: any[],
+	// persgoalencryption?: string;                         
+	profgoal?: any[];
 	profhighlights?: Record<string, HighlightLevel1>;
-	persgoalhighlightsencrypted?: string,         
+	// persgoalhighlightsencrypted?: string,         
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -107,15 +70,24 @@ interface UserData {
 	financeExpandedYears?: Record<string, boolean>;
 	financeExpandedMonths?: Record<string, boolean>;
 	financeExpandedWeeks?: Record<string, boolean>;
-	persGoalExpandedYears?: Record<string, boolean>;
-	persGoalExpandedMonths?: Record<string, boolean>;
-	persGoalExpandedWeeks?: Record<string, boolean>;
+	// persGoalExpandedYears?: Record<string, boolean>;
+	// persGoalExpandedMonths?: Record<string, boolean>;
+	// persGoalExpandedWeeks?: Record<string, boolean>;
 	profGoalExpandedYears?: Record<string, boolean>;
 	profGoalExpandedMonths?: Record<string, boolean>;
 	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
 	commandExpandedSubcategories?: Record<string, boolean>;
-	perslockstate: PersLockState
+	// perslockstate: PersLockState
+}
+
+interface UserEncryptData {
+	persgoalencryption?: string;
+	persgoalhighlightsencrypted?: string;
+	persGoalExpandedYears?: Record<string, boolean>;
+	persGoalExpandedMonths?: Record<string, boolean>;
+	persGoalExpandedWeeks?: Record<string, boolean>;
+	perslockstate: PersLockState;
 }
 
 let saveTimeout: number | null = null;
@@ -123,26 +95,44 @@ let saveTimeout: number | null = null;
 // Every 1 second there is no activity on a scheduleSave for a data structure, scheduleSave is called.
 //This needs to add encryptPersHighlightGoals after encryptPersGoals.
 //This than calls the encryptPersGoals
-function scheduleSave() {
+function scheduleSave(domain: PersistDomain) {
+	pendingDomain = domain;
+
 	if (saveTimeout !== null) {
 		clearTimeout(saveTimeout);
 	}
 
 	saveTimeout = window.setTimeout(async () => {
-		const fp = buildFingerprint();
+		if (!pendingDomain) return;
 
-		// 🔥 KEY STEP: skip full save if nothing changed
-		if (fp === lastSaveFingerprint) {
-			console.log("Skip save (no changes)");
+		const domainToSave = pendingDomain;
+
+		pendingDomain = null;
+
+		await saveUserData(domainToSave);
+	}, 500);
+}
+
+function scheduleSaveEncrypt(domain:PersistDomain) {
+	console.log(`In scheduleSaveEncrypt`);
+	pendingDomain = domain;
+	if (saveTimeout !== null) {
+		console.log(`in saveTimeOut != null`);
+		clearTimeout(saveTimeout);
+	}
+	saveTimeout = window.setTimeout(async () => {
+		if (!pendingDomain) {
 			return;
 		}
+		const domainToSave = pendingDomain;
 
-		lastSaveFingerprint = fp;
-		if(persDirty){
+		pendingDomain = null;
+
+		if (persDirty) {
+			console.log(`persDirty is true. Next fire encryptPersGoals()`);
 			await encryptPersGoals();
 		}
-		await saveUserData();
-	}, 500);
+	}, 1000);
 }
 
 //This is called to ecrypt the PersGoal Data - takes in the persGoalData
@@ -150,7 +140,7 @@ function scheduleSave() {
 //This encrypts and caches the encryption. It does not save it to backend yet.
 //GOOD DONE
 export async function encryptPersGoals() {
-	console.log(`encryptPersGoals in persistence.ts`);
+	console.log(`In encryptPersGoals`);
 
 	const password = get(pass);
 
@@ -160,10 +150,8 @@ export async function encryptPersGoals() {
 		password &&
 		persDirty
 	) {
-		console.log(
-			`Encrypting Pers because persDirty = true`
-		);
-
+		console.log(`Lock state,password, and isDirty ${get(persLockState)} 
+		${password} ${persDirty}`)
 		const persEncrypted = await invoke<string>(
 			"encrypt_highlights",
 			{
@@ -179,19 +167,17 @@ export async function encryptPersGoals() {
 				data: JSON.stringify(get(persGoalHighlights))
 			}
 		);
-
+		console.log(`In encryptPersGoals and set encrypted to cache store`);
 		persGoalEncryptedCache.set(persEncrypted);
 		persGoalHighlightEncryptedCache.set(persHLEncrypted);
-
 		// ✅ reset dirty flag AFTER successful encryption
 		persDirty = false;
 	}
 }
 
 // Save todos and commands to disk
-export async function saveUserData(): Promise<void> {
+export async function saveUserData(domain: PersistDomain): Promise<void> {
 	try {
-		console.log(`In saveUserData an lockState is ${get(persLockState)}`);
 		const data: UserData = {
 			todos: get(todosByDate),
 			commands: get(commandData),
@@ -201,8 +187,6 @@ export async function saveUserData(): Promise<void> {
 			howto: get(howtoData),
 			finance: get(financeData),
 			calendar: get(calendarData),
-			persgoalencryption: get(persGoalEncryptedCache) ?? "",
-			persgoalhighlightsencrypted: get(persGoalHighlightEncryptedCache) ?? "",
 			profgoal: get(profGoalData),
 			profhighlights: get(profGoalHighlights),
 			workspaceA: get(workspaceContentA),
@@ -219,13 +203,9 @@ export async function saveUserData(): Promise<void> {
 			financeExpandedYears: get(financeExpandedYears),
 			financeExpandedMonths: get(financeExpandedMonths),
 			financeExpandedWeeks: get(financeExpandedWeeks),
-			persGoalExpandedYears: get(persGoalExpandedYears),
-			persGoalExpandedMonths: get(persGoalExpandedMonths),
-			persGoalExpandedWeeks: get(persGoalExpandedWeeks),
 			profGoalExpandedYears: get(profGoalExpandedYears),
 			profGoalExpandedMonths: get(profGoalExpandedMonths),
 			profGoalExpandedWeeks: get(profGoalExpandedWeeks),
-			perslockstate: get(persLockState)
 		};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -237,7 +217,7 @@ export async function saveUserData(): Promise<void> {
 // For Pers, gets the data.persgoalencryption and sets persGoalEncryptionCache. This
 //sets the cache so that it can than be decrypted when Pers tab is clicked. 
 export async function loadUserData(): Promise<void> {
-	console.log(`In loadUserData lockstate is ${get(persLockState)}`);
+	console.log(`In loadUserData`);
 	try {
 		const dataStr = await invoke<string>('load_user_data');
 		const data: UserData = JSON.parse(dataStr);
@@ -302,18 +282,6 @@ export async function loadUserData(): Promise<void> {
 		if (data.financeExpandedWeeks) {
 			financeExpandedWeeks.set(data.financeExpandedWeeks);
 		}
-		if (data.persGoalExpandedYears) {
-			persGoalExpandedYears.set(data.persGoalExpandedYears);
-		}
-		if (data.persGoalExpandedMonths) {
-			persGoalExpandedMonths.set(data.persGoalExpandedMonths);
-		}
-		if (data.persGoalExpandedWeeks) {
-			persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
-		}
-		persGoalEncryptedCache.set(data.persgoalencryption ?? "");
-		persGoalHighlightEncryptedCache.set(data.persgoalhighlightsencrypted ?? "");
-		persLockState.set(data.perslockstate);
 		if (data.profgoal) {
 			profGoalData.set(data.profgoal);
 		}
@@ -342,182 +310,234 @@ export async function loadUserData(): Promise<void> {
 	}
 }
 
+export async function loadUserDataEncryption(): Promise<void> {
+	try {
+		console.log(`IN loadUserDataEncryption`);
+		const dataStr = await invoke<string>('load_user_data_encryption');
+		const data: UserEncryptData = JSON.parse(dataStr);
+
+		if (data.persGoalExpandedYears) {
+			persGoalExpandedYears.set(data.persGoalExpandedYears);
+		}
+		if (data.persGoalExpandedMonths) {
+			persGoalExpandedMonths.set(data.persGoalExpandedMonths);
+		}
+		if (data.persGoalExpandedWeeks) {
+			persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
+		}
+		persGoalEncryptedCache.set(data.persgoalencryption ?? "");
+		persGoalHighlightEncryptedCache.set(data.persgoalhighlightsencrypted ?? "");
+		persLockState.set(data.perslockstate ?? LockState.NOT_SET);
+
+		console.log('User data encryption loaded');
+		console.log(`persLockState set locally with ${get(persLockState)}`);
+	} catch (error) {
+		console.error('Failed to load user data:', error);
+	}
+}
+
+export async function saveUserEncryptionData (): Promise<void>{
+	try {
+		console.log(`In saveUserEncryptionData function`);
+		const dataEncrypted: UserEncryptData = {
+			persgoalencryption: get(persGoalEncryptedCache) ?? "",
+			persgoalhighlightsencrypted: get(persGoalHighlightEncryptedCache) ?? "",
+			persGoalExpandedYears: get(persGoalExpandedYears),
+			persGoalExpandedMonths: get(persGoalExpandedMonths),
+			persGoalExpandedWeeks: get(persGoalExpandedWeeks),
+			perslockstate: get(persLockState)
+					};
+		await invoke('save_user_data_encryption', { data: JSON.stringify(dataEncrypted) });
+		console.log('User data encryption saved');
+	} catch (error) {
+		console.error('Failed to save user encrypt data:', error);
+	}
+}
+
 // Subscribe to store changes and auto-save
 export function initPersistence() {
 
 	// Subscribe to todos changes
 	todosByDate.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("todos");
 	});
 
 	// Subscribe to commands changes
 	commandData.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("commands");
 	});
 
 	commandExpandedCategories.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("commands");
 	});
 
 	commandExpandedSubcategories.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("commands");
 	});
 
 	// Subscribe to projects changes
 	projectsData.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("projects");
 	});
 
 	// Subscribe to field changes
 	todoField1.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("todos");
 	});
 
 	todoField2.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("todos");
 	});
 
 	// Subscribe to expanded state changes
 	todoExpandedState.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("todos");
 	});
 
 	projectExpandedProjects.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("projects");
 	});
 
 	projectExpandedSubprojects.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("projects");
 	});
 
 	projectExpandedTasks.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("projects");
 	});
 
 	// Subscribe to howto changes
 	howtoData.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("howto");
 	});
 
 	howtoExpandedCategories.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("howto");
 	});
 
 	howtoExpandedSubcategories.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("howto");
 	});
 
 	howtoExpandedTopics.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("howto");
 	});
 
 	// Subscribe to finance changes
 	financeData.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("finance");
 	});
 
 	calendarData.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("calendar");
 	});
 
 	financeExpandedYears.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("finance");
 	});
 
 	financeExpandedMonths.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("finance");
 	});
 
 	financeExpandedWeeks.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("finance");
 	});
 
 	persGoalExpandedYears.subscribe(() => {
+		console.log(`inpersgoalexpandedYears.subscribe`);
 		if (!isHydrated) return;
-		scheduleSave();
+		persDirty = true;
+		scheduleSaveEncrypt("persgoal");
 	});
 
 	persGoalExpandedMonths.subscribe(() => {
+		console.log(`inpersgoalexpandedmonths.subscribe`);
 		if (!isHydrated) return;
-		scheduleSave();
+		persDirty = true;
+		console.log(`inpersgoalexpandedmonths.subscribe and persDirty is true`);
+		scheduleSaveEncrypt("persgoal");
 	});
 
 	persGoalExpandedWeeks.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		persDirty = true;
+		scheduleSaveEncrypt("persgoal");
 	});
 
 	// Subscribe to goal changes
 	persGoalData.subscribe(() => {
 		if (!isHydrated) return;
-		console.log("In ScheduleSave persGoalData");
+		console.log("In persGoalData.subscribe");
 		persDirty = true;
+		scheduleSaveEncrypt("persgoal");
 	});
 
 	persGoalHighlights.subscribe(() => {
 		if (!isHydrated) return;
-		console.log("In ScheduleSave persGoalHighlights");
+		console.log("In persGoalHighlights.subscribe");
 		persDirty = true;
+		scheduleSaveEncrypt("persgoal");
 	});
 
 	persLockState.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSaveEncrypt("persgoal");
 	});
 
 	// Subscribe to goal changes
 	profGoalData.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("profgoal");
 	});
 
 	profGoalHighlights.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("profgoal");
 	});
 
 	profGoalExpandedYears.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("profgoal");
 	});
 
 	profGoalExpandedMonths.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("profgoal");
 	});
 
 	profGoalExpandedWeeks.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("profgoal");
 	});
 
 	// Subscribe to workspace changes
 	workspaceContentA.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("workspaces");
 	});
 	workspaceContentB.subscribe(() => {
 		if (!isHydrated) return;
-		scheduleSave();
+		scheduleSave("workspaces");
 	});
 }
