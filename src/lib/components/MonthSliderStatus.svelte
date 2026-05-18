@@ -177,8 +177,15 @@
             <div class="text-green-500 text-2xl">Month Inc Limit</div>
             <h2 class="text-white text-2xl">{monthIncomeLimit}</h2>
 
-            <div class="text-green-500 text-2xl">Month Spent</div>
+            <div class="text-green-500 text-2xl">Spent F/G/O</div>
             <h2 class="text-white text-2xl">{monthIncomeSpent}</h2>
+
+            <div class="text-green-500 text-2xl">Expenses Paid</div>
+            <h2 class="text-white text-2xl"></h2>
+
+            <div class="text-green-500 text-2xl">Expenses Left</div>
+            <h2 class="text-white text-2xl"></h2>
+
 
             <div class="text-green-500 text-2xl">Month Inc Left</div>
             <h2 class="text-white text-2xl">{monthIncomeLeft}</h2>

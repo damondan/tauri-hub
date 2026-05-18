@@ -69,7 +69,7 @@
       <textarea
       class="w-full flex-1 rounded-2xl px-8 pb-5 pt-8 ml-3 mr-3 bg-purple-500/10 text-purple-100 text-4xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
-        placeholder="Principles ... Questions ... Dialog ... Vocabulary ..."
+        placeholder="Domains ? => Principles ... Questions ... Dialog ... Vocabulary ..."
         rows="1"
         value={levelOne.text || ""}
         oninput={(e) => {
@@ -146,7 +146,7 @@ focus:outline-none focus:ring-1 focus:ring-blue-400 focus:shadow-[0_0_20px_rgba(
                 class="flex-1 mb-2 bg-yellow-100/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-yellow-300 focus:shadow-[0_0_20px_rgba(250,204,21,0.35)]"
                 use:autoResize={[
-                  levelTwo.text,
+                  levelThree.text,
                   appPersState.expandedRowsTexArea[detailid],
                 ]}
                 value={levelThree.text}

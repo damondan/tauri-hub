@@ -1,7 +1,7 @@
 <!-- src/lib/components/CommandsComponent.svelte -->
 <!-- CommandsComponent.svelte -->
 <script lang="ts">
-  import { autoResize, resizeTextarea } from '$lib/utils/textareaResize';
+  import { autoResizeText, resizeTextarea } from '$lib/utils/textareaResize';
   import {
     commandData,
     addCommandCategory,
@@ -137,7 +137,7 @@
                       text-3xl placeholder-white/40 resize-none overflow-hidden leading-tight"
                       placeholder="Command..."
                       value={task.text}
-                      use:autoResize={task.text}
+                      use:autoResizeText
                       on:input={(e) => {
                         const target = e.target as HTMLTextAreaElement;
                         target.style.height = 'auto';

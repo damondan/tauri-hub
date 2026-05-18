@@ -13,7 +13,8 @@ import {
 	LockState,
 	type PersLockState
 } from '$lib/stores/persgoal';
-import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, profGoalHighlights } from '$lib/stores/profgoal';
+import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, 
+	profGoalHighlights } from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
@@ -351,6 +352,7 @@ export async function saveUserEncryptionData (): Promise<void>{
 		console.log('User data encryption saved');
 	} catch (error) {
 		console.error('Failed to save user encrypt data:', error);
+		alert("Data save failed in persistence.ts saveUserEncryptionData");
 	}
 }
 

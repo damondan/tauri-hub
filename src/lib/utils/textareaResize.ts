@@ -21,6 +21,28 @@ export function resizeTextarea(textarea: HTMLTextAreaElement): void {
  * autoResize(textarea: HTMLTextAreaElement): { update: () => void; destroy: () => void }
  * Svelte action that auto-resizes textarea on mount and input
  */
+export function autoResizeText(textarea: HTMLTextAreaElement) {
+	const resize = () => {
+		(async () => {
+			const scrollPos = window.scrollY;
+
+			await tick();
+
+			textarea.style.height = 'auto';
+			textarea.style.height = `${textarea.scrollHeight}px`;
+
+			window.scrollTo(window.scrollX, scrollPos);
+		})();
+	};
+
+	requestAnimationFrame(resize);
+
+	return {
+		update() {
+			resize();
+		}
+	};
+}
 
 export function autoResize(
 	textarea: HTMLTextAreaElement,

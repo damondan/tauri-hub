@@ -6,7 +6,8 @@
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import { appPersState } from "$lib/stores/state.svelte";
   import PersHighlights from "$lib/components/PersHighlights.svelte";
-  import { tick } from 'svelte';
+  import { tick } from "svelte";
+  import { fade } from "svelte/transition";
   import {
     persGoalData,
     generatePersGoalStructureToDate,
@@ -50,8 +51,6 @@
       1,
   );
 
-  let showTop = $state(false);
-
   let activeTarget = $state<{
     yearId: string;
     monthId?: string;
@@ -81,6 +80,8 @@
     tags: string[];
   } | null>(null);
 
+  let showSaved = $state(false);
+
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRows[dayId] ?? false;
 
@@ -103,7 +104,15 @@
 
     const dataUrl = await fileToDataUrl(file);
 
-    if (target.weekId) {
+    if (target.dayId) {
+      updateDayImage(
+        dataUrl,
+        target.yearId,
+        target.monthId!,
+        target.weekId!,
+        target.dayId,
+      );
+    } else if (target.weekId) {
       updateWeekImage(dataUrl, target.yearId, target.monthId!, target.weekId);
     } else if (target.monthId) {
       updateMonthImage(dataUrl, target.yearId, target.monthId);
@@ -174,15 +183,24 @@
   }
 
   function showTopToggle() {
-    showTop = !showTop;
+    appPersState.showTopPers = !appPersState.showTopPers;
   }
 
   function savePers() {
     saveUserEncryptionData();
   }
+
+  function showSavedFunc() {
+    showSaved = true;
+
+    setTimeout(() => {
+      showSaved = false;
+    }, 1000);
+  }
+
   function addTagInput() {
-		editingDay?.tags.push('');
-	}
+    editingDay?.tags.push("");
+  }
 </script>
 
 <div>
@@ -195,7 +213,7 @@
   </button>
 </div>
 <div
-  class="{showTop
+  class="{appPersState.showTopPers
     ? 'bg-white/10 rounded-xl mb-2 ml-2'
     : borderNTextNBg.collapseRows} "
 >
@@ -254,10 +272,22 @@
           onchange={handleImageChange}
         />
         <button
-          class="w-6 h-6 text-white/80 text-xs rounded-full border-red-700 border-2 flex items-center justify-center border hover:border-white"
-          onclick={() => savePers()}
+          class="w-6 h-6 text-white/80 text-xs rounded-full border-red-700 border-2 flex items-center
+          justify-center border hover:border-white"
+          onclick={() => {
+            savePers();
+            showSavedFunc();
+          }}
           >S
         </button>
+        {#if showSaved}
+          <div
+            transition:fade={{ duration: 800 }}
+            class="mt-2 text-green-400 font-mono"
+          >
+            Saved
+          </div>
+        {/if}
         <button
           class="w-6 h-6 text-white/80 text-xs rounded-full border-green-700 border-2 flex items-center justify-center border hover:border-white"
           onclick={() => openImagePicker(year.id, "", "")}
@@ -266,7 +296,9 @@
         {#if year.yearImage?.dataUrl}
           <img
             src={year.yearImage?.dataUrl}
-            class="mt-2 max-w-full h-auto rounded-lg"
+            class={appPersState.expandedRows[year.id]
+              ? "mt-2 max-w-full h-auto rounded-lg"
+              : "mt-2 max-w-full rounded-lg h-10"}
             ondblclick={() => removeYearImage(year.id)}
           />
         {/if}
@@ -350,7 +382,9 @@
               {#if month.monthImage?.dataUrl}
                 <img
                   src={month.monthImage?.dataUrl}
-                  class="mt-2 max-w-full h-auto rounded-lg"
+                  class={appPersState.expandedRows[month.id]
+                    ? "mt-2 max-w-full h-auto rounded-lg"
+                    : "mt-2 max-w-full h-10 rounded-lg"}
                   ondblclick={() => removeMonthImage(year.id, month.id)}
                 />
               {/if}
@@ -433,7 +467,9 @@
                     {#if week.weekImage?.dataUrl}
                       <img
                         src={week.weekImage?.dataUrl}
-                        class="mt-2 max-w-full h-auto rounded-lg"
+                        class={appPersState.expandedRows[week.id]
+                          ? "mt-2 max-w-full h-auto rounded-lg"
+                          : "mt-2 max-w-full h-10 rounded-lg"}
                         ondblclick={() =>
                           removeWeekImage(year.id, month.id, week.id)}
                       />
@@ -532,7 +568,9 @@
                             {#if day.dayImage?.dataUrl}
                               <img
                                 src={day.dayImage?.dataUrl}
-                                class="mt-2 max-w-full h-auto rounded-lg"
+                                class={appPersState.expandedRows[day.id]
+                                  ? "mt-2 max-w-full h-auto rounded-lg"
+                                  : "mt-2 max-w-full h-10 rounded-lg"}
                                 ondblclick={() =>
                                   removeDayImage(
                                     year.id,
@@ -637,7 +675,10 @@
            text-white outline-none focus:border-white/30 w-54 mr-10"
             />
           {/each}
-          <button class="bg-black/50 hover:bg-white/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors" onclick={addTagInput}>+</button>
+          <button
+            class="bg-black/50 hover:bg-white/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
+            onclick={addTagInput}>+</button
+          >
         </div>
         <button
           onclick={() => {

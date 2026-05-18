@@ -21,7 +21,7 @@
     removeHighlight,
     addHighlightItem
   } from "$lib/stores/profgoal";
-    import ProfHighlights from "$lib/components/ProfHighlights.svelte";
+    // import ProfHighlights from "$lib/components/ProfHighlights.svelte";
 
   let currentDay = new Date().getDate();
   let currentWeekOfMonth = Math.ceil(new Date().getDate() / 7);
@@ -32,8 +32,6 @@
     ($profGoalData.find((y) => y.year === currentYear)?.months?.length ?? 0) -
       1,
   );
-
-  let showTop = $state(false);
 
   let showProfessionalDayDialog = $state(false);
   let pendingProfessionalDayAction = $state<{
@@ -137,13 +135,13 @@
   }
 
   function showTopToggle() {
-    showTop = !showTop;
+    appProfState.showTopProf = !appProfState.showTopProf
   }
 
 
 </script>
 
-<div>
+<!-- <div>
   <button
     class="float-right rounded text-sm bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80 border border-white/30"
@@ -151,14 +149,14 @@
   >
     Top
   </button>
-</div>
-<div
-  class="{showTop
+</div> -->
+<!-- <div
+  class="{appProfState.showTopProf
     ? 'bg-white/10 rounded-xl mb-2 ml-2'
     : borderNTextNBg.collapseRows} "
 >
   <ProfHighlights />
-</div>
+</div> -->
 
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
@@ -596,7 +594,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Fail
+          Convert
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
@@ -614,7 +612,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Succeed
+          Fight
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
@@ -690,24 +688,12 @@
     onclick={() => (showProfessionalMonthDialog = false)}
   >
     <div
-      class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-md"
+      class="flex flex-wrap w-80 bg-gradient-to-t from-black to-white border border-white/30 rounded-xl p-6 max-w-md"
       onclick={(e) => e.stopPropagation()}
     >
-      <h3 class="text-white text-2xl font-semibold mb-4">
-        Professional Goal Check
-      </h3>
-      <p class="text-white/90 text-xl mb-6">
-        Did you fulfill your Professional goals for this month?
-      </p>
-      <div class="flex gap-3 justify-end">
+      <div class="flex flex-wrap gap-3 justify-center">
         <button
-          class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => (showProfessionalMonthDialog = false)}
-        >
-          Cancel
-        </button>
-        <button
-          class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xl font-semibold transition-colors"
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalMonthAction) {
               toggleMonthProfessionalCompleted(
@@ -720,10 +706,10 @@
             showProfessionalMonthDialog = false;
           }}
         >
-          No
+          Convert
         </button>
         <button
-          class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xl font-semibold transition-colors"
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
             if (pendingProfessionalMonthAction) {
               toggleMonthProfessionalCompleted(
@@ -736,7 +722,13 @@
             showProfessionalMonthDialog = false;
           }}
         >
-          Yes
+          Fight
+        </button>
+        <button
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+          onclick={() => (showProfessionalMonthDialog = false)}
+        >
+          Cancel
         </button>
       </div>
     </div>

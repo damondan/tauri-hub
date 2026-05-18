@@ -26,6 +26,7 @@
 		{ path: "/finances", label: "Finance" },
 		{ path: "/todo", label: "ToDo" },
 		{ path: "/projects", label: "Logs" },
+		{ path: "/articulate", label: "Artic" },
 		{ path: "/personal", label: "Pers" },
 		{ path: "/professional", label: "Prof" },
 		{ path: "/thegoals", label: "Goals" },
