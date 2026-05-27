@@ -14,7 +14,7 @@ import {
 	type PersLockState
 } from '$lib/stores/persgoal';
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, 
-	profGoalHighlights } from '$lib/stores/profgoal';
+	profGoalHighlights} from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { theGoalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
@@ -52,11 +52,9 @@ interface UserData {
 	projects?: Record<string, any>;
 	howto?: any[];
 	finance?: any[];
-	calendar?: any[];
-	// persgoalencryption?: string;                         
+	calendar?: any[];                         
 	profgoal?: any[];
-	profhighlights?: Record<string, HighlightLevel1>;
-	// persgoalhighlightsencrypted?: string,         
+	profhighlights?: Record<string, HighlightLevel1>;        
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -71,15 +69,11 @@ interface UserData {
 	financeExpandedYears?: Record<string, boolean>;
 	financeExpandedMonths?: Record<string, boolean>;
 	financeExpandedWeeks?: Record<string, boolean>;
-	// persGoalExpandedYears?: Record<string, boolean>;
-	// persGoalExpandedMonths?: Record<string, boolean>;
-	// persGoalExpandedWeeks?: Record<string, boolean>;
 	profGoalExpandedYears?: Record<string, boolean>;
 	profGoalExpandedMonths?: Record<string, boolean>;
 	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
 	commandExpandedSubcategories?: Record<string, boolean>;
-	// perslockstate: PersLockState
 }
 
 interface UserEncryptData {

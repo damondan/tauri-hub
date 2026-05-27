@@ -486,7 +486,7 @@
                         <div
                           class={result
                             ? "rounded-lg p-3 bg-white/5"
-                            : "h-0 min-h-0 max-h-0 p-0 m-0 opacity-0 overflow-hidden border-0 flex-none scale-y-0 origin-top"}
+                            : borderNTextNBg.collapseRows}
                         >
                           <!-- Day entry -->
                           <div class="flex items-center gap-3">

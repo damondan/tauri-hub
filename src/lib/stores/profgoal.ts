@@ -2,6 +2,11 @@ import { writable } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 
+type ProfImage = {
+    id: string;
+    dataUrl: string;
+};
+
 export const profGoalExpandedYears = writable<Record<string, boolean>>({});
 export const profGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const profGoalExpandedWeeks = writable<Record<string, boolean>>({});
@@ -10,9 +15,10 @@ interface HighlightLevel3 {
     text: string;
 }
 
-interface HighlightLevel2 {
+export interface HighlightLevel2 {
     text: string;
     children: Record<string, HighlightLevel3>;
+    patterns?: Record<string, string[]>;
 }
 
 export interface HighlightLevel1 {
@@ -446,7 +452,7 @@ export function toggleMonthProfessionalCompleted(
 //PersGoalHighlight functions
 export function addHighlightItem() {
     const id = makeId();
- 
+
     profGoalHighlights.update((highlights) => ({
         ...highlights,
         [id]: {
@@ -519,6 +525,7 @@ export function removeSubHighlight(
     parentId: string,
     childId: string
 ) {
+    console.log(`In removeSubHighlight`);
     profGoalHighlights.update((highlights) => {
         const updated = { ...highlights };
 
@@ -610,3 +617,107 @@ export function updateDetailHighlight(
         }
     }));
 }
+
+export function updateDetailHighlightPattern(
+    parentId: string,
+    childId: string,
+) {
+    console.log(`In updateDetailhighlightPattern`);
+    const newPatternId = makeId();
+
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+
+        [parentId]: {
+            ...highlights[parentId],
+
+            children: {
+                ...highlights[parentId].children,
+
+                [childId]: {
+                    ...highlights[parentId].children[childId],
+
+                    patterns: {
+                        ...(highlights[parentId]
+                            .children[childId]
+                            .patterns ?? {}),
+
+                        [newPatternId]: [""]
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function updatePatternSteps(
+    parentId: string,
+    childId: string,
+    patternId: string,
+    index: number,
+    stepValue: string
+) {
+    const newPatternId = makeId();
+
+    profGoalHighlights.update((highlights) => ({
+        ...highlights,
+
+        [parentId]: {
+            ...highlights[parentId],
+
+            children: {
+                ...highlights[parentId].children,
+
+                [childId]: {
+                    ...highlights[parentId].children[childId],
+
+                    patterns: {
+                        ...(highlights[parentId]
+                            .children[childId]
+                            .patterns ?? {}),
+
+                        [newPatternId]: []
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function updateDetailHighlightRemovePattern(
+    parentId: string,
+    childId: string,
+    patternId: string
+) {
+    profGoalHighlights.update((highlights) => {
+
+        const patterns =
+            highlights[parentId]
+                .children[childId]
+                .patterns ?? {};
+
+        const {
+            [patternId]: _,
+            ...remainingPatterns
+        } = patterns;
+
+        return {
+            ...highlights,
+
+            [parentId]: {
+                ...highlights[parentId],
+
+                children: {
+                    ...highlights[parentId].children,
+
+                    [childId]: {
+                        ...highlights[parentId].children[childId],
+
+                        patterns: remainingPatterns
+                    }
+                }
+            }
+        };
+    });
+}
+
