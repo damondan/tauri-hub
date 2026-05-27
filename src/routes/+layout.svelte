@@ -97,6 +97,7 @@
 	// Invokes backup_user_data Rust command and shows brief status feedback
 	async function backupData() {
 		console.log(`IN back up data function`);
+		alert("Backing up data");
 		try {
 			backupStatus = "saving";
 			await invoke("backup_user_data");

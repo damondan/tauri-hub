@@ -58,20 +58,20 @@
   <div class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono">
     <div class="flex">
       <button
-        class="bg-white/10 text-white/30
+        class="bg-white/5 text-white/10
       hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => addSubHighlight(id)}
       >
         +
       </button>
       <button
-        class="text-white text-3xl w-6"
+        class="text-white/20 text-3xl w-6"
         onclick={() => togglesublevel(id)}
       >
         {appProfState.expandedRowsProf[id] ? "▼" : "▷"}
       </button>
       <textarea
-        class="w-full flex-1 rounded-2xl px-8 pb-5 pt-8 ml-3 mr-3 bg-white/20 text-white text-4xl resize-none overflow-hidden
+        class="w-full flex-1 rounded-2xl px-8 pb-5 pt-6 ml-3 mr-3 bg-purple-500/20 text-purple-600/50 text-4xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
         placeholder="Domains ? => Principles ... Questions ... Dialog ... Vocabulary ..."
         rows="1"
@@ -81,7 +81,7 @@ focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgb
         }}
       />
       <button
-        class="bg-white/10 text-white/30
+        class="bg-white/5 text-white/10
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => removeHighlight(id)}
       >
@@ -99,7 +99,7 @@ focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgb
         >
           <div class="flex flex-row gap-2">
             <button
-              class="bg-white/10 text-white/30
+              class="bg-white/5 text-white/10
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => addDetailHighlight(id, childid)}
             >
@@ -107,19 +107,20 @@ focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgb
             </button>
             <button
               onclick={() => toggleExpand(childid)}
-              class="mt-1 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
+              class="mt-1 w-6 h-6 mt-5 rounded-lg border border-white/20 bg-white/5
+               hover:bg-white/20 hover:text-white/70 text-white/20 font-mono text-xs transition-colors"
               title="Toggle Expand"
             >
               {appProfState.expandedRowsTexArea[childid] ? "S" : "E"}
             </button>
             <button
-              class="text-white text-3xl w-6"
+              class="text-white/20 text-3xl w-6"
               onclick={() => togglethirdlevel(childid)}
             >
               {appProfState.expandedRowsProf[childid] ? "▼" : "▷"}
             </button>
             <textarea
-              class="flex-1 mb-2 bg-blue-500/10 rounded-2xl px-3 py-1 text-blue-100 text-xl resize-none overflow-hidden
+              class="flex-1 pb-3 pt-3 mb-2 bg-blue-500/20 rounded-2xl px-3 py-1 text-blue-600/70 text-3xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-blue-400 focus:shadow-[0_0_20px_rgba(59,130,246,0.35)]"
               use:autoResize={[
                 levelTwo.text,
@@ -136,15 +137,15 @@ focus:outline-none focus:ring-1 focus:ring-blue-400 focus:shadow-[0_0_20px_rgba(
               }}
             />
             <button
-              class="bg-white/10 text-white/30
+              class="bg-white/5 text-white/10
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => removeSubHighlight(id, childid)}
             >
               -
             </button>
             <button
-              class="bg-white/10 text-white/30
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-xl w-auto ml-2"
+              class="bg-white/3 text-white/10
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-xl w-auto pl-2 pr-2 h-10 ml-2 mt-3"
               onclick={() => updateDetailHighlightPattern(id, childid)}
             >
               Pattern
@@ -175,7 +176,7 @@ focus:outline-none focus:ring-1 focus:ring-blue-400 focus:shadow-[0_0_20px_rgba(
                 {appProfState.expandedRowsTexArea[detailid] ? "S" : "E"}
               </button>
               <textarea
-                class="flex-1 mb-2 bg-yellow-100/10 rounded-2xl px-3 py-1 text-white text-xl resize-none overflow-hidden
+                class="flex-1 pb-2 pt-2 mb-2 bg-yellow-100/10 rounded-2xl px-3 py-1 text-white/50 text-xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-yellow-300 focus:shadow-[0_0_20px_rgba(250,204,21,0.35)]"
                 use:autoResize={[
                   levelThree.text,
@@ -194,7 +195,7 @@ focus:outline-none focus:ring-1 focus:ring-yellow-300 focus:shadow-[0_0_20px_rgb
               />
               <button
                 class="bg-white/10 text-white/30
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6 ml-2"
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6 ml-2 mr-25"
                 onclick={() => removeDetailHighlight(id, childid, detailid)}
               >
                 -

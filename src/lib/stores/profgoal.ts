@@ -657,31 +657,40 @@ export function updatePatternSteps(
     index: number,
     stepValue: string
 ) {
-    const newPatternId = makeId();
+    profGoalHighlights.update((currentHighlights) => {
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns?.[patternId] ?? [];
 
-    profGoalHighlights.update((highlights) => ({
-        ...highlights,
+        const updatedPattern = [...existingPattern];
 
-        [parentId]: {
-            ...highlights[parentId],
+        updatedPattern[index] = stepValue;
 
-            children: {
-                ...highlights[parentId].children,
+        return {
+            ...currentHighlights,
 
-                [childId]: {
-                    ...highlights[parentId].children[childId],
+            [parentId]: {
+                ...currentHighlights[parentId],
 
-                    patterns: {
-                        ...(highlights[parentId]
-                            .children[childId]
-                            .patterns ?? {}),
+                children: {
+                    ...currentHighlights[parentId].children,
 
-                        [newPatternId]: []
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+
+                        patterns: {
+                            ...(currentHighlights[parentId]
+                                .children[childId]
+                                .patterns ?? {}),
+
+                            [patternId]: updatedPattern
+                        }
                     }
                 }
             }
-        }
-    }));
+        };
+    });
 }
 
 export function updateDetailHighlightRemovePattern(
@@ -721,3 +730,80 @@ export function updateDetailHighlightRemovePattern(
     });
 }
 
+export function initStep(parentId: string,
+    childId: string,
+    patternId: string) {
+    profGoalHighlights.update((currentHighlights) => {
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns?.[patternId] ?? [];
+
+        const updatedPattern = [...existingPattern];
+
+        updatedPattern.push("");
+
+        return {
+            ...currentHighlights,
+
+            [parentId]: {
+                ...currentHighlights[parentId],
+
+                children: {
+                    ...currentHighlights[parentId].children,
+
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+
+                        patterns: {
+                            ...(currentHighlights[parentId]
+                                .children[childId]
+                                .patterns ?? {}),
+
+                            [patternId]: updatedPattern
+                        }
+                    }
+                }
+            }
+        };
+    });
+}
+
+export function removeStep(parentId: string,
+    childId: string,
+    patternId: string) {
+    profGoalHighlights.update((currentHighlights) => {
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns?.[patternId] ?? [];
+
+        const updatedPattern = [...existingPattern];
+
+        updatedPattern.pop();
+
+        return {
+            ...currentHighlights,
+
+            [parentId]: {
+                ...currentHighlights[parentId],
+
+                children: {
+                    ...currentHighlights[parentId].children,
+
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+
+                        patterns: {
+                            ...(currentHighlights[parentId]
+                                .children[childId]
+                                .patterns ?? {}),
+
+                            [patternId]: updatedPattern
+                        }
+                    }
+                }
+            }
+        };
+    });
+}
