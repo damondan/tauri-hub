@@ -28,6 +28,7 @@
     removeYearImage,
     updateDayIsDream,
     updateHighlight,
+    persLockState
   } from "$lib/stores/persgoal";
   import { app } from "@tauri-apps/api";
 
@@ -125,6 +126,7 @@
 
   // onMount(): void
   onMount(() => {
+    console.log(`In PersonalComponent onMount`);
     const today = new Date();
     // Always generate structure to ensure current date data exists
     generatePersGoalStructureToDate(today);
@@ -203,6 +205,11 @@
   }
 </script>
 
+<!-- Empty state -->
+{#if $persGoalData.length === 0}
+  <div class="text-white/70 italic">Locked or Loading...</div>
+{/if}
+
 <div>
   <button
     class="float-right rounded text-sm bg-white/10 text-white/30
@@ -219,10 +226,6 @@
 >
   <PersHighlights />
 </div>
-<!-- Empty state -->
-{#if $persGoalData.length === 0}
-  <div class="text-white/70 italic">Loading...</div>
-{/if}
 
 <!-- Years list -->
 {#each $persGoalData as year (year.id)}

@@ -29,11 +29,13 @@ export interface CalendarMonth {
     id: string;
     monthNumber: number;
     projectedEarnings: string;
+    projectedExpenses?: string;
     monthBalLimit: string;
     monthSpent: string;
     foodLimit: string;
     gasLimit: string;
     otherLimit: string;
+
     days: CalendarDay[];
 }
 
@@ -121,6 +123,7 @@ export function addOrUpdateFinancial(
     console.log(`In addOrUpdateFinancial and entry.id is ${entry.id}`);
     const entryId = entry?.id || makeId();
     console.log(`after - entry?.id || makeId(); entryId is ${entryId}`);
+    
     calendarData.update((years) => {
         const updatedYears = years.map((y) =>
             y.yearNumber !== year
@@ -248,7 +251,7 @@ export function getFinanceMonthCal(calYears: CalendarYear[], calYear: number, ca
 ////Is triggered by getMonthStatus in clicking Go button
 // setCalMonthLimits(calYear: number, calMonth: number, incomeLimit: string, foodLimit: string, gasLimit: string): void
 export function setCalMonthLimits(calYear: number,
-    calMonth: number, projectedEarnings: string, incomeLimit: string,
+    calMonth: number, projectedEarnings: string, projectedExpenses:string, incomeLimit: string,
     foodLimit: string, gasLimit: string, otherLimit: string): void {
     console.log("In setCalMonthIncomeLimit");
     console.log(`Cal Year is ${calYear} and Cal Month is ${calMonth} and incomeLimit is ${incomeLimit} and foodLimit is ${foodLimit}`)
@@ -264,6 +267,7 @@ export function setCalMonthLimits(calYear: number,
                             : {
                                 ...m,
                                 projectedEarnings,
+                                projectedExpenses,
                                 monthBalLimit: incomeLimit,
                                 foodLimit,
                                 gasLimit,

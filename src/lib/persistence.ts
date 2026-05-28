@@ -3,7 +3,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/stores/todo';
 import { commandData, commandExpandedCategories, commandExpandedSubcategories } from '$lib/stores/commands';
-import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks } from '$lib/stores/projects';
+import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, projectOrder, initProjectOrder } from '$lib/stores/projects';
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
 import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
@@ -63,6 +63,7 @@ interface UserData {
 	projectExpandedProjects?: Record<string, boolean>;
 	projectExpandedSubprojects?: Record<string, boolean>;
 	projectExpandedTasks?: Record<string, boolean>;
+	projectorder?: string[];
 	howtoExpandedCategories?: Record<string, boolean>;
 	howtoExpandedSubcategories?: Record<string, boolean>;
 	howtoExpandedTopics?: Record<string, boolean>;
@@ -192,6 +193,7 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			projectExpandedProjects: get(projectExpandedProjects),
 			projectExpandedSubprojects: get(projectExpandedSubprojects),
 			projectExpandedTasks: get(projectExpandedTasks),
+			projectorder: get(projectOrder),
 			howtoExpandedCategories: get(howtoExpandedCategories),
 			howtoExpandedSubcategories: get(howtoExpandedSubcategories),
 			howtoExpandedTopics: get(howtoExpandedTopics),
@@ -252,6 +254,11 @@ export async function loadUserData(): Promise<void> {
 		}
 		if (data.projectExpandedTasks) {
 			projectExpandedTasks.set(data.projectExpandedTasks);
+		}
+		if (!data.projectorder) {
+			projectOrder.set(initProjectOrder());
+		}else{
+			projectOrder.set(data.projectorder);
 		}
 		if (data.howtoExpandedCategories) {
 			howtoExpandedCategories.set(data.howtoExpandedCategories);
@@ -409,6 +416,11 @@ export function initPersistence() {
 	});
 
 	projectExpandedTasks.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("projects");
+	});
+
+	projectOrder.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave("projects");
 	});

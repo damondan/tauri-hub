@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable,get } from 'svelte/store';
 import type { TodoRow } from './todo';
 export const projectExpandedProjects = writable<Record<string, boolean>>({});
 export const projectExpandedSubprojects = writable<Record<string, boolean>>({});
@@ -23,6 +23,7 @@ export interface Project {
 }
 
 export const projectsData = writable<Record<string, Project>>({});
+export const projectOrder = writable<string[]>([]);
 
 // Delete a project
 // deleteProject(projectName: string): void
@@ -31,6 +32,9 @@ export function deleteProject(projectName: string): void {
 		const next = { ...projects };
 		delete next[projectName];
 		return next;
+	});
+	projectOrder.update((order) => {
+ 	return order.filter((id) => id !== projectName);
 	});
 }
 
@@ -57,4 +61,9 @@ export function deleteTask(projectName: string, subprojectName: string, taskId: 
 			}
 		};
 	});
+}
+
+export function initProjectOrder(): string[]{
+	const getStringArray = get(projectsData);
+	return Object.keys(getStringArray);
 }

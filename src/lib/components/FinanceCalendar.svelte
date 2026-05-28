@@ -460,9 +460,49 @@
               selectedEntry.isPaycheck = false;
               selectedEntry.note = "";
               showDayCalendarDialog = false;
-            }}>Update</button
-          >
+            }}>Update</button>
         {/if}
+
+        <button
+          class="w-20 h-10 rounded-2xl text-white bg-yellow-400 hover:bg-yellow-900"
+          onclick={() => {
+             let fwdEntry = $state<CalendarFinanceDayEntry>({
+                  id: "",
+                  name: "",
+                  amount: "",
+                  datePaid: "",
+                  dateDue: "",
+                  isPaycheck: false,
+                  note: "",
+                });
+            console.log("onclick selectedEntry:", selectedEntry);
+            addOrUpdateFinancial(
+              payType,
+              payName,
+              payAmount,
+              "",
+              selectedDayMonthYear!.dayNum,
+              selectedDayMonthYear!.month+1,
+              selectedDayMonthYear!.year,
+              "",
+              fwdEntry,
+            );
+
+            payType = "expense";
+            payName = "";
+            payAmount = "";
+            note = "";
+            selectedEntry.id = "";
+            selectedEntry.name = "";
+            selectedEntry.amount = "";
+            selectedEntry.datePaid = "";
+            selectedEntry.dateDue = "";
+            selectedEntry.isPaycheck = false;
+            selectedEntry.note = "";
+            showDayCalendarDialog = false;
+            
+          }}>Fwd</button>
+
         <button
           class="w-20 h-10 rounded-2xl text-white bg-red-600 hover:bg-red-700"
           onclick={() => {

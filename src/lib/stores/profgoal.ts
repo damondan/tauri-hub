@@ -769,10 +769,13 @@ export function initStep(parentId: string,
     });
 }
 
-export function removeStep(parentId: string,
+export function removeStep(
+    parentId: string,
     childId: string,
-    patternId: string) {
+    patternId: string
+) {
     profGoalHighlights.update((currentHighlights) => {
+
         const existingPattern =
             currentHighlights[parentId]
                 .children[childId]
@@ -782,6 +785,36 @@ export function removeStep(parentId: string,
 
         updatedPattern.pop();
 
+        const childPatterns =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns ?? {};
+
+        // 👇 IF EMPTY → REMOVE KEY
+        if (updatedPattern.length === 0) {
+
+            const { [patternId]: _, ...remainingPatterns } = childPatterns;
+
+            return {
+                ...currentHighlights,
+
+                [parentId]: {
+                    ...currentHighlights[parentId],
+
+                    children: {
+                        ...currentHighlights[parentId].children,
+
+                        [childId]: {
+                            ...currentHighlights[parentId].children[childId],
+
+                            patterns: remainingPatterns
+                        }
+                    }
+                }
+            };
+        }
+
+        // 👇 ELSE → KEEP KEY UPDATED
         return {
             ...currentHighlights,
 
@@ -795,10 +828,7 @@ export function removeStep(parentId: string,
                         ...currentHighlights[parentId].children[childId],
 
                         patterns: {
-                            ...(currentHighlights[parentId]
-                                .children[childId]
-                                .patterns ?? {}),
-
+                            ...childPatterns,
                             [patternId]: updatedPattern
                         }
                     }

@@ -845,6 +845,7 @@ export function calculateFoodGasOtherTotal(financeYears: FinanceYear[], financeY
         }
     }
     let rettotal = total.toFixed(2);
+    console.log(`in expenses total in month ${rettotal}`);
     return rettotal;
 }
 

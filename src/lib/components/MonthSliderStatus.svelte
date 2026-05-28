@@ -28,6 +28,7 @@
 
     let monthIncomeLimit = $state("");
     let projectedEarnings = $state("");
+    let projectedExpenses = $state("");
     let foodSpendLimit: string = $state("");
     let gasSpendLimit: string = $state("");
     let persSpendLimit: string = $state("");
@@ -36,7 +37,6 @@
     let monthIncomeSpent: string = $state("");
     let expensesTotal: string = $state("");
     let expensesPaid: string = $state("");
-    let expensesLeft: string = $state("");
 
     let lastLoadedMonthKey: string = $state("");
 
@@ -54,8 +54,8 @@
             : 0,
     );
 
-    let monthIncomeLeft = $derived(
-        Math.round(Number(monthIncomeLimit) - Number(monthIncomeSpent)),
+    let expensesLeft = $derived(
+        Math.round(Number(projectedExpenses) - Number(monthIncomeSpent))
     );
 
     let foodLimitSpent = $derived(
@@ -80,6 +80,7 @@
             displayYear,
             displayMonth,
             projectedEarnings,
+            projectedExpenses,
             monthIncomeLimit,
             foodSpendLimit,
             gasSpendLimit,
@@ -113,6 +114,7 @@
     if (!presentMonth) return;
 
     projectedEarnings = presentMonth.projectedEarnings ?? "";
+    projectedExpenses = presentMonth.projectedExpenses ?? "";
     monthIncomeLimit = presentMonth.monthBalLimit ?? "";
     gasSpendLimit = presentMonth.gasLimit ?? "";
     foodSpendLimit = presentMonth.foodLimit ?? "";
@@ -130,11 +132,11 @@
             class="w-full w-bg-white/5 border border-white/20 rounded px-2 py-1 text-white"
             bind:value={projectedEarnings}
         />
-        <div class="text-white text-2xl">Month Inc Limit</div>
+         <div class="text-white text-2xl">~ Expenses</div>
         <input
             type="text"
             class="w-full w-bg-white/5 border border-white/20 rounded px-2 py-1 text-white"
-            bind:value={monthIncomeLimit}
+            bind:value={projectedExpenses}
         />
 
         <!-- Row 2 bind value-->
@@ -174,22 +176,11 @@
                 {formatCurrency(balanceFromFin)}
             </h2>
 
-            <div class="text-green-500 text-2xl">Month Inc Limit</div>
-            <h2 class="text-white text-2xl">{monthIncomeLimit}</h2>
-
             <div class="text-green-500 text-2xl">Spent F/G/O</div>
             <h2 class="text-white text-2xl">{monthIncomeSpent}</h2>
 
-            <div class="text-green-500 text-2xl">Expenses Paid</div>
-            <h2 class="text-white text-2xl"></h2>
-
             <div class="text-green-500 text-2xl">Expenses Left</div>
-            <h2 class="text-white text-2xl"></h2>
-
-
-            <div class="text-green-500 text-2xl">Month Inc Left</div>
-            <h2 class="text-white text-2xl">{monthIncomeLeft}</h2>
-            <!-- <h2 class="text-white text-2xl">{monthIncomeLeft}</h2> -->
+            <h2 class="text-white text-2xl">{expensesLeft}</h2>
 
             <div>----------------</div>
             <h2></h2>
@@ -215,29 +206,6 @@
             <div class="text-red-700 text-2xl">Gas Left</div>
             <h2 class="text-white text-2xl">{gasLeft}</h2>
 
-            <div>----------------</div>
-            <h2></h2>
-
-            <div class="text-purple-700 text-2xl">Personal Limit</div>
-            <h2 class="text-white text-2xl">{persSpendLimit}</h2>
-
-            <div class="text-purple-700 text-2xl">Personal Spend</div>
-            <h2 class="text-white text-2xl">{persLimitSpent}</h2>
-
-            <div class="text-purple-700 text-2xl">Personal Left</div>
-            <h2 class="text-white text-2xl">{persLeft}</h2>
-
-            <div>----------------</div>
-            <h2></h2>
-
-            <div class="text-blue-600 text-2xl">Expenses Total</div>
-            <h2 class="text-white text-2xl">{expensesTotal}</h2>
-
-            <div class="text-blue-600 text-2xl">Expenses Paid</div>
-            <h2 class="text-white text-2xl">{expensesPaid}</h2>
-
-            <div class="text-blue-600 text-2xl">Expenses Left</div>
-            <h2 class="text-white text-2xl">{expensesLeft}</h2>
         {/if}
     </div>
 </div>

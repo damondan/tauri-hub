@@ -18,6 +18,13 @@
   } from "$lib/stores/profgoal";
   import PatternComponent from "./PatternComponent.svelte";
 
+  let editingDay = $state<{
+    eid: string;
+    echildid: string;
+    edetailid: string;
+    etext: string;
+  } | null>(null);
+
   function toggleExpand(dayId: string) {
     const currentState = appProfState.expandedRowsTexArea[dayId] ?? false;
 
@@ -71,8 +78,8 @@
         {appProfState.expandedRowsProf[id] ? "▼" : "▷"}
       </button>
       <textarea
-        class="w-full flex-1 rounded-2xl px-8 pb-5 pt-6 ml-3 mr-3 bg-purple-500/20 text-purple-600/50 text-4xl resize-none overflow-hidden
-focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgba(168,85,247,0.35)]"
+        class="w-full flex-1 rounded-2xl px-8 pb-5 pt-6 ml-3 mr-3 bg-indigo-400/20 text-indigo-200/50 text-4xl resize-none overflow-hidden
+focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgba(165,180,252,0.35)]"
         placeholder="Domains ? => Principles ... Questions ... Dialog ... Vocabulary ..."
         rows="1"
         value={levelOne.text || ""}
@@ -120,8 +127,8 @@ focus:outline-none focus:ring-1 focus:ring-purple-400 focus:shadow-[0_0_20px_rgb
               {appProfState.expandedRowsProf[childid] ? "▼" : "▷"}
             </button>
             <textarea
-              class="flex-1 pb-3 pt-3 mb-2 bg-blue-500/20 rounded-2xl px-3 py-1 text-blue-600/70 text-3xl resize-none overflow-hidden
-focus:outline-none focus:ring-1 focus:ring-blue-400 focus:shadow-[0_0_20px_rgba(59,130,246,0.35)]"
+             class="flex-1 pb-3 pt-3 mb-2 bg-sky-400/20 rounded-2xl px-3 py-1 text-sky-200/70 text-3xl resize-none overflow-hidden
+focus:outline-none focus:ring-1 focus:ring-sky-300/80"
               use:autoResize={[
                 levelTwo.text,
                 appProfState.expandedRowsTexArea[childid],
@@ -176,12 +183,20 @@ focus:outline-none focus:ring-1 focus:ring-blue-400 focus:shadow-[0_0_20px_rgba(
                 {appProfState.expandedRowsTexArea[detailid] ? "S" : "E"}
               </button>
               <textarea
-                class="flex-1 pb-2 pt-2 mb-2 bg-yellow-100/10 rounded-2xl px-3 py-1 text-white/50 text-xl resize-none overflow-hidden
-focus:outline-none focus:ring-1 focus:ring-yellow-300 focus:shadow-[0_0_20px_rgba(250,204,21,0.35)]"
+                class="flex-1 pb-2 pt-2 mb-2 bg-amber-400/10 rounded-2xl px-3 py-1 text-amber-100/60 text-xl resize-none overflow-hidden
+focus:outline-none focus:ring-1 focus:ring-amber-300/80"
                 use:autoResize={[
                   levelThree.text,
                   appProfState.expandedRowsTexArea[detailid],
                 ]}
+                ondblclick={() => {
+                                editingDay = {
+                                  eid: id,
+                                  echildid: childid,
+                                  edetailid: detailid,
+                                  etext: levelThree.text || "",
+                                };
+                              }}
                 value={levelThree.text}
                 rows="1"
                 oninput={(e) => {
@@ -207,3 +222,61 @@ focus:outline-none focus:ring-1 focus:ring-yellow-300 focus:shadow-[0_0_20px_rgb
     {/if}
   </div>
 {/each}
+
+{#if editingDay}
+  <div class="fixed inset-0 z-[100] flex items-center justify-center">
+    <div
+      class="absolute inset-0 bg-black/80 backdrop-blur-md"
+      onclick={() => (editingDay = null)}
+    ></div>
+
+    <div
+      class="relative w-[95vw] md:w-[90vw] lg:w-[85vw] h-[80vh] bg-[#1a1a1a] border border-white/20 rounded-3xl flex flex-col shadow-2xl"
+    >
+      <div
+        class="p-4 border-b border-white/10 flex justify-between items-center text-white/50 font-mono"
+      >
+        <span>EDITOR</span>
+        <span class="text-xs">Through Perseverance We Conquer</span>
+      </div>
+
+      <textarea
+        class="flex-1 bg-transparent p-4 text-white text-2xl font-mono outline-none resize-none overflow-y-auto"
+        style="padding-top: 5vh; padding-bottom: 5vh;"
+        bind:value={editingDay.etext}
+        autofocus
+      ></textarea>
+
+      <div class="p-6 border-t border-white/10 flex">
+        <div class="flex mr-4">
+        <button
+          onclick={() => {
+            const current = editingDay;
+            if (!current) return;
+            updateDetailHighlight(
+              current.eid,
+              current.echildid,
+              current.edetailid,
+              current.etext,
+            );
+
+            //saveUserEncryptionData();
+            editingDay = null;
+          }}
+          class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
+        >
+          Save
+        </button>
+        <button
+          onclick={() => {
+            editingDay = null;
+          }}
+          class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+  </div>
+{/if}

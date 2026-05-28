@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { makeId, todayKey } from './general';
-import { projectsData, type ProjectTask } from './projects';
+import { projectsData, projectOrder, type ProjectTask } from './projects';
 // ToDo header fields
 export const todoField1 = writable<string>('');
 export const todoField2 = writable<string>('');
@@ -174,6 +174,8 @@ export function sendTodoToProjects(date: string, itemId: string): boolean {
 	let todoItem: TodoItem | null = null;
 
 	// Get the TodoItem
+	//From the date and itemId, you get the title and this is parsed to than
+	//update the projectsData. The project name is the key for the projectsData REcords.
 	todosByDate.update((map) => {
 		const items = map[date] ?? [];
 		const item = items.find((it) => it.id === itemId);
@@ -225,6 +227,12 @@ export function sendTodoToProjects(date: string, itemId: string): boolean {
 
 		// Add task to subproject
 		updatedProjects[project].subprojects[subproject].tasks.push(task);
+
+		//Set the Order 
+		projectOrder.update((order) => {
+    	if (order.includes(project)) return order;
+    	return [...order, project];
+});
 
 		success = true;
 		return updatedProjects;
