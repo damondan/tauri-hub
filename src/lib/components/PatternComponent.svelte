@@ -6,7 +6,7 @@
         removeStep,
     } from "$lib/stores/profgoal";
     import { buttonStyles } from "$lib/styles";
-    import ChevronRight from "@lucide/svelte/icons/chevron-right";
+    import  ChevronRight from "@lucide/svelte/icons/chevron-right";
     import { remove } from "@tauri-apps/plugin-fs";
 
     interface Props {

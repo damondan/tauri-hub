@@ -3,6 +3,7 @@
 	import favicon from "$lib/assets/favicon.svg";
 	import { onMount, onDestroy } from "svelte";
 	import { invoke } from "@tauri-apps/api/core";
+	import {Play, Pause, Square} from "@lucide/svelte";
 	import Navigation from "$lib/components/Navigation.svelte";
 	import {
 		loadUserData,
@@ -388,9 +389,9 @@
 						{showFocus
 						? 'bg-white/30'
 						: backupStatus === 'done'
-							? 'bg-green-600'
-							: 'bg-blue-600 hover:bg-blue-700'}
-						text-white disabled:opacity-50"
+							? 'bg-green-600/40'
+							: 'bg-blue-600/30 hover:bg-blue-700'}
+						text-white/70 disabled:opacity-50"
 				>
 					{#if backupStatus === "saving"}
 						💾...
@@ -499,7 +500,7 @@
 				</div>
 				<!-- Speech to Text Controls -->
 				<div
-					class="bg-white/10 backdrop-blur-sm rounded-2xl p-1 w-45 h-[52px]"
+					class="bg-white/10 backdrop-blur-sm rounded-2xl p-1 w-55 h-[52px]"
 				>
 					<div class="flex items-center gap-2">
 						<!-- Play/Pause Button -->
@@ -507,26 +508,26 @@
 							onclick={handlePlayPause}
 							disabled={recordingStatus === "Processing"}
 							class="w-12 h-12 rounded-lg font-bold text-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-							class:bg-green-500={recordingStatus === "Recording"}
-							class:hover:bg-green-600={recordingStatus ===
+							class:bg-green-800={recordingStatus === "Recording"}
+							class:hover:bg-green-900={recordingStatus ===
 								"Recording"}
-							class:bg-yellow-500={recordingStatus === "Paused"}
-							class:hover:bg-yellow-600={recordingStatus ===
+							class:bg-yellow-700={recordingStatus === "Paused"}
+							class:hover:bg-yellow-800={recordingStatus ===
 								"Paused"}
 							class:bg-gray-700={recordingStatus === "Idle"}
 							class:hover:bg-gray-600={recordingStatus === "Idle"}
 							class:text-white={true}
 						>
 							{#if recordingStatus === "Recording"}
-								⏸️
+								 <Pause class="w-10 h-10 text-amber-300/40" />
 							{:else if recordingStatus === "Processing"}
 								⏳
 							{:else}
 								{#if showFocus}
-									<span class="opacity-30">▶️</span>
+									<Play class="w-10 h-10 text-amber-300/40" />
 								{/if}
 								{#if !showFocus}
-									▶️
+									<Play class="w-10 h-10 text-amber-300/70" />
 								{/if}
 							{/if}
 						</button>
@@ -536,10 +537,10 @@
 							onclick={stopRecordingAndTranscribe}
 							disabled={recordingStatus === "Idle" ||
 								recordingStatus === "Processing"}
-							class="w-12 h-12 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xl
+							class="w-12 h-12 rounded-lg bg-red-600/50 hover:bg-red-700 text-white font-bold text-xl
 						transition-all disabled:opacity-30 disabled:cursor-not-allowed"
 						>
-							⏹️
+							<Square class="w-10 h-10 text-amber-300" />
 						</button>
 
 						<!-- Status Text -->
@@ -560,7 +561,7 @@
 								{/if}
 							</p>
 							{#if transcribedText}
-								<p class="text-green-300 text-xs mt-0.5">
+								<p class="text-green-300/70 text-xs mt-0.5">
 									✓ Copied
 								</p>
 							{/if}

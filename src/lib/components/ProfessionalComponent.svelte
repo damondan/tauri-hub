@@ -594,7 +594,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Convert
+          Despair
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
@@ -612,7 +612,7 @@
             showProfessionalDayDialog = false;
           }}
         >
-          Fight
+          Faith
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
