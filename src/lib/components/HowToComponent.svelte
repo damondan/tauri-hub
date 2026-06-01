@@ -49,8 +49,47 @@
   onMount(() => {
     return setupTextareaResizeListener();
   });
+
+  function openAllRows(){
+     howtoExpandedCategories.update((howto) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in howto) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+    howtoExpandedSubcategories.update((howtosubs) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in howtosubs) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+    howtoExpandedTopics.update((tasks) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in tasks) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+
+  }
+
 </script>
 
+<button
+  class="float-left ml-10 rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
+  onclick={openAllRows}
+>
+  Open All
+</button>
 <!-- Header with Add button -->
 <div class="flex items-center justify-end mb-6">
   <button
@@ -199,7 +238,7 @@
                           text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
                             placeholder="How To Descriptor..."
                             value={task.text}
-                            use:autoResize
+                            use:autoResize={[task.text,$howtoExpandedTopics[topicKey]]}
                             oninput={(el) => {
                               const targetTask = el.target as HTMLTextAreaElement;
                               targetTask.style.height = 'auto';

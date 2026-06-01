@@ -20,6 +20,7 @@
   // toggleCategory(categoryId: string): void
   function toggleCategory(categoryId: string) {
     commandExpandedCategories.update(state => ({ ...state, [categoryId]: !state[categoryId] }));
+    
   }
 
   // toggleSubcategory(key: string): void
@@ -35,16 +36,44 @@
       console.error('Failed to copy', e);
     }
   }
+
+  function openAllRows(){
+    commandExpandedCategories.update((command) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in command) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+    commandExpandedSubcategories.update((commandSub) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in commandSub) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+  }
 </script>
 
 <!-- Header with Add button -->
 <div class="flex items-center justif>y-end mb-6">
   <button 
-    on:click={() => addCommandCategory()}
+    onclick={() => addCommandCategory()}
     class="bg-green-500/30 hover:bg-green-600/50 text-white w-10 h-10 rounded-lg font-bold text-2xl transition-colors flex items-center justify-center"
   >
     +
   </button>
+  <button
+  class="ml-10 rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
+  onclick={openAllRows}
+>
+  Open All
+</button>
 </div>
 
 <!-- Empty state -->
@@ -60,7 +89,7 @@
       <div class="flex items-center gap-3">
         <button 
           class="text-white text-3xl w-6"
-          on:click={() => toggleCategory(category.id)}
+          onclick={() => toggleCategory(category.id)}
         >
           {$commandExpandedCategories[category.id] ? '▼' : '▷'}
         </button>
@@ -70,19 +99,19 @@
           class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
           placeholder="Category name..."
           value={category.name}
-          on:input={(e) => updateCommandCategoryName(category.id, (e.target as HTMLInputElement).value)}
+          oninput={(e) => updateCommandCategoryName(category.id, (e.target as HTMLInputElement).value)}
         />
         
         <button 
           class="bg-green-600/50 hover:bg-green-600 text-white px-2 py-1 rounded"
-          on:click={() => addCommandSubcategory(category.id)}
+          onclick={() => addCommandSubcategory(category.id)}
         >
           +
         </button>
         
         <button 
           class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
-          on:click={() => deleteCommandCategory(category.id)}
+          onclick={() => deleteCommandCategory(category.id)}
         >
           Del
         </button>
@@ -98,7 +127,7 @@
             <div class="flex items-center gap-3">
               <button 
                 class="text-white text-3xl w-6"
-                on:click={() => toggleSubcategory(subKey)}
+                onclick={() => toggleSubcategory(subKey)}
               >
                 {$commandExpandedSubcategories[subKey] ? '▼' : '▷'}
               </button>
@@ -108,19 +137,19 @@
                 class="flex-1 bg-white/5 border border-white/20 rounded px-3 py-2 text-white text-3xl placeholder-white/40"
                 placeholder="Subcategory name..."
                 value={subcategory.name}
-                on:input={(e) => updateCommandSubcategoryName(category.id, subcategory.id, (e.target as HTMLInputElement).value)}
+                oninput={(e) => updateCommandSubcategoryName(category.id, subcategory.id, (e.target as HTMLInputElement).value)}
               />
               
               <button 
                 class="bg-green-600/50 hover:bg-green-700 text-white px-2 py-1 rounded"
-                on:click={() => addCommandTask(category.id, subcategory.id)}
+                onclick={() => addCommandTask(category.id, subcategory.id)}
               >
                 +
               </button>
               
               <button 
                 class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
-                on:click={() => deleteCommandSubcategory(category.id, subcategory.id)}
+                onclick={() => deleteCommandSubcategory(category.id, subcategory.id)}
               >
                 Del
               </button>
@@ -138,7 +167,7 @@
                       placeholder="Command..."
                       value={task.text}
                       use:autoResizeText
-                      on:input={(e) => {
+                      oninput={(e) => {
                         const target = e.target as HTMLTextAreaElement;
                         target.style.height = 'auto';
                         target.style.height = target.scrollHeight + 'px';
@@ -148,14 +177,14 @@
                     
                     <button 
                       class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-lg"
-                      on:click={() => handleCopy(task.text)}
+                      onclick={() => handleCopy(task.text)}
                     >
                       Copy
                     </button>
                     
                     <button 
                       class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
-                      on:click={() => deleteCommandTask(category.id, subcategory.id, task.id)}
+                      onclick={() => deleteCommandTask(category.id, subcategory.id, task.id)}
                     >
                       Del
                     </button>

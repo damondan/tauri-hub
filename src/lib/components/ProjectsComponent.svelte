@@ -7,9 +7,9 @@
     projectExpandedProjects,
     projectExpandedSubprojects,
     projectExpandedTasks,
-    projectOrder
+    projectOrder,
   } from "$lib/stores/projects";
-    import { stopPropagation } from "svelte/legacy";
+  import { stopPropagation } from "svelte/legacy";
 
   //Dragging functionality
   let draggingId = $state<string | null>(null);
@@ -22,42 +22,41 @@
     e.dataTransfer.setData("text/plain", projectId);
 
     e.dataTransfer.effectAllowed = "move";
-}
+  }
 
- function onDrop(targetProjectId: string) {
+  function onDrop(targetProjectId: string) {
     const draggedId = draggingId;
 
     if (!draggedId) return;
     if (draggedId === targetProjectId) return;
 
     projectOrder.update((order) => {
+      const updated = [...order];
 
-        const updated = [...order];
+      // 1. Find dragged item index
+      const fromIndex = updated.indexOf(draggedId);
 
-        // 1. Find dragged item index
-        const fromIndex = updated.indexOf(draggedId);
+      if (fromIndex === -1) return order;
 
-        if (fromIndex === -1) return order;
+      // 2. Remove dragged item
+      updated.splice(fromIndex, 1);
 
-        // 2. Remove dragged item
-        updated.splice(fromIndex, 1);
+      // 3. Find target index (after removal!)
+      const toIndex = updated.indexOf(targetProjectId);
 
-        // 3. Find target index (after removal!)
-        const toIndex = updated.indexOf(targetProjectId);
+      if (toIndex === -1) {
+        // fallback: put at end
+        updated.push(draggedId);
+      } else {
+        // insert at target position
+        updated.splice(toIndex, 0, draggedId);
+      }
 
-        if (toIndex === -1) {
-            // fallback: put at end
-            updated.push(draggedId);
-        } else {
-            // insert at target position
-            updated.splice(toIndex, 0, draggedId);
-        }
-
-        return updated;
+      return updated;
     });
 
     draggingId = null;
-}
+  }
 
   function toggleProject(projectName: string) {
     projectExpandedProjects.update((state) => ({
@@ -94,10 +93,47 @@
       hour12: false,
     });
   }
+
+  function openAll() {
+    projectExpandedProjects.update((projects) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in projects) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+    projectExpandedSubprojects.update((subs) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in subs) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+    projectExpandedTasks.update((tasks) => {
+      const updated: Record<string, boolean> = {};
+
+      for (const key in tasks) {
+        updated[key] = true;
+      }
+
+      return updated;
+    });
+  }
 </script>
 
 <!-- Header -->
-<div class="mb-10"></div>
+<!-- <div class="mb-10"></div> -->
+<button
+  class="rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
+  onclick={openAll}
+>
+  Open All
+</button>
 
 <!-- Empty state -->
 {#if Object.keys($projectsData).length === 0}
@@ -109,16 +145,16 @@
 
 <!-- Projects list -->
 <!-- {#each Object.values($projectsData) as project (project.name)} -->
- {#each $projectOrder as projectName}
+{#each $projectOrder as projectName}
   {@const project = $projectsData[projectName]}
   <div class="mb-3">
     <!-- Level 1: Project -->
-      
+
     <div
       class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15"
       onclick={() => toggleProject(project.name)}
       ondragover={(e) => e.preventDefault()}
-  ondrop={() => onDrop(project.name)}
+      ondrop={() => onDrop(project.name)}
     >
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -130,25 +166,22 @@
           >
         </div>
         <div class="flex gap-10">
-        <div
-              draggable="true"
-              ondragstart={(e) => 
-                onDragStart(e, projectName)
-              }
-              class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
-            >
-              ⠿
-            </div>
-        <button
-          class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
-          onclick={(e) => 
-                  {
-                    e.stopPropagation();
-                    deleteProject(project.name);
-                  }}
-        >
-          Del
-        </button>
+          <div
+            draggable="true"
+            ondragstart={(e) => onDragStart(e, projectName)}
+            class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
+          >
+            ⠿
+          </div>
+          <button
+            class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
+            onclick={(e) => {
+              e.stopPropagation();
+              deleteProject(project.name);
+            }}
+          >
+            Del
+          </button>
         </div>
       </div>
     </div>
@@ -197,7 +230,7 @@
                         e.stopPropagation();
                         deleteTask(project.name, subproject.name, task.id);
                       }}
-                        >
+                    >
                       Del
                     </button>
                   </div>

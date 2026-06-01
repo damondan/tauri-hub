@@ -15,6 +15,9 @@
     updateSubHighlight,
     updateDetailHighlight,
     updateDetailHighlightPattern,
+    profGoalExpandedYears,
+    profGoalExpandedMonths,
+    profGoalExpandedWeeks,
   } from "$lib/stores/profgoal";
   import PatternComponent from "./PatternComponent.svelte";
 
@@ -48,7 +51,12 @@
       !appProfState.expandedRowsProf[childid];
   }
 
-  function addPattern(id: string, childid: string, detailid: string) {}
+  function openAllProfRows() {
+	for (const key in appProfState.expandedRowsProf) {
+    console.log(`In openAllProfRows ${key}`);
+		appProfState.expandedRowsProf[key] = true;
+	}
+}
 </script>
 
 <div class="m-0 p-0">
@@ -60,7 +68,13 @@
     +
   </button>
 </div>
-
+<button
+  class="ml-10 rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
+  onclick={openAllProfRows}
+>
+  Open All
+</button>
 <!-- Top level -->
 {#each Object.entries($profGoalHighlights) as [id, levelOne] (id)}
   <div class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono">
