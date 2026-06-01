@@ -55,7 +55,7 @@
     );
 
     let expensesLeft = $derived(
-        Math.round(Number(projectedExpenses) - Number(monthIncomeSpent))
+        Math.round(Number(projectedExpenses) - Number(monthIncomeSpent)),
     );
 
     let foodLimitSpent = $derived(
@@ -101,38 +101,37 @@
         console.log("effect reran");
         const monthKey = `${displayYear}-${displayMonth}`;
 
-    if (monthKey === lastLoadedMonthKey) return;
+        if (monthKey === lastLoadedMonthKey) return;
 
-    lastLoadedMonthKey = monthKey;
+        lastLoadedMonthKey = monthKey;
 
-    const presentMonth = getFinanceMonthCal(
-        $calendarData,
-        displayYear,
-        displayMonth
-    );
+        const presentMonth = getFinanceMonthCal(
+            $calendarData,
+            displayYear,
+            displayMonth,
+        );
 
-    if (!presentMonth) return;
+        if (!presentMonth) return;
 
-    projectedEarnings = presentMonth.projectedEarnings ?? "";
-    projectedExpenses = presentMonth.projectedExpenses ?? "";
-    monthIncomeLimit = presentMonth.monthBalLimit ?? "";
-    gasSpendLimit = presentMonth.gasLimit ?? "";
-    foodSpendLimit = presentMonth.foodLimit ?? "";
-    persSpendLimit = presentMonth.otherLimit ?? "";
-});
-
+        projectedEarnings = presentMonth.projectedEarnings ?? "";
+        projectedExpenses = presentMonth.projectedExpenses ?? "";
+        monthIncomeLimit = presentMonth.monthBalLimit ?? "";
+        gasSpendLimit = presentMonth.gasLimit ?? "";
+        foodSpendLimit = presentMonth.foodLimit ?? "";
+        persSpendLimit = presentMonth.otherLimit ?? "";
+    });
 </script>
 
 <div class="w-[320px] mr-2">
     <div class="grid grid-cols-[70%_30%] gap-x-0 gap-y-2 items-center mt-4">
         <!-- Row 1 bind value-->
-         <div class="text-white text-2xl">~ Earnings</div>
+        <div class="text-white text-2xl">~ Earnings</div>
         <input
             type="text"
             class="w-full w-bg-white/5 border border-white/20 rounded px-2 py-1 text-white"
             bind:value={projectedEarnings}
         />
-         <div class="text-white text-2xl">~ Expenses</div>
+        <div class="text-white text-2xl">~ Expenses</div>
         <input
             type="text"
             class="w-full w-bg-white/5 border border-white/20 rounded px-2 py-1 text-white"
@@ -169,7 +168,6 @@
         >
 
         {#if showMonthStatus == true}
-           
             <!-- Good -->
             <div class="text-green-500 text-2xl">Balance</div>
             <h2 class="text-white text-2xl">
@@ -205,7 +203,6 @@
 
             <div class="text-red-700 text-2xl">Gas Left</div>
             <h2 class="text-white text-2xl">{gasLeft}</h2>
-
         {/if}
     </div>
 </div>

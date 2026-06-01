@@ -26,9 +26,9 @@
 		{ path: "/finances", label: "Finance" },
 		{ path: "/todo", label: "ToDo" },
 		{ path: "/projects", label: "Logs" },
-		{ path: "/articulate", label: "Artic" },
 		{ path: "/personal", label: "Pers" },
 		{ path: "/professional", label: "Prof" },
+		{ path: "/articulate", label: "Artic" },
 		{ path: "/thegoals", label: "Goals" },
 		{ path: "/commands", label: "Commands" },
 		{ path: "/howto", label: "HowTo" },
@@ -44,40 +44,77 @@
 	}
 
 	export async function submitAuth(password: string) {
-		console.log(`In submitAuth`);
-		passwordInput="";
-		let success: boolean = false;
-		pass.set(password);
+	console.log("[AUTH] In submitAuth");
 
-		if (get(persLockState) == LockState.NOT_SET) {
-			console.log(`initLoginWithEncryption`);
-			try {
-				success = await initLoginWithEncryption(password);
-			} catch (e) {
-				console.log(`in submitAuth and success is false`);
-				return false;
-			}
-		}
-		if (get(persLockState) == LockState.LOCKED) {
-			console.log(`unlockPers`);
-			try {
-				success = await unlockPers(password);
-			} catch (e) {
-				console.log(`in submitAuth and success is false`);
-				return false;
-			}
-		}
-		if (success) {
-			showAuthModal.set(false);
-			const target = get(authTargetTab);
-			if (target) goto(target);
+	passwordInput = "";
+	let success = false;
+	pass.set(password);
 
-			authTargetTab.set(null);
-			authError.set(null);
+	const lockState = get(persLockState);
+
+	try {
+		if (lockState === LockState.NOT_SET) {
+			console.log("[AUTH] Starting initLoginWithEncryption");
+
+			success = await initLoginWithEncryption(password);
+
+			console.log("[AUTH] Finished initLoginWithEncryption:", success);
+
+		// CHANGED:
+		// Converted second if to else-if so only one branch executes
+		} else if (lockState === LockState.LOCKED) {
+
+			console.log("[AUTH] Starting unlockPers");
+
+			success = await unlockPers(password);
+
+			console.log("[AUTH] Finished unlockPers:", success);
+
+		// NEW:
+		// Handle already unlocked state explicitly
 		} else {
-			authError.set("Incorrect password");
+			success = true;
 		}
+
+	// NEW:
+	// Single try/catch around all auth operations
+	} catch (e) {
+		console.error("[AUTH] Auth/decrypt error:", e);
+
+		authError.set("Authentication failed");
+
+		// NEW:
+		// Return immediately on exception
+		return false;
 	}
+
+	// NEW:
+	// Early return if auth failed
+	if (!success) {
+		authError.set("Incorrect password");
+		return false;
+	}
+
+	// CHANGED:
+	// Navigation target retrieved AFTER successful auth/decrypt
+	const target = get(authTargetTab);
+
+	showAuthModal.set(false);
+	authError.set(null);
+
+	if (target) {
+
+		// CHANGED:
+		// Await navigation so it happens after decrypt completion
+		await goto(target);
+
+		authTargetTab.set(null);
+	}
+
+	// NEW:
+	// Explicit success return
+	return true;
+}
 
 	function setlock() {
 		console.log(`In setLock and setting to locked`);
@@ -101,6 +138,8 @@
 				) {
 					authTargetTab.set(tab.path);
 					showAuthModal.set(true);
+					//return exits onclick
+					return;
 				}
 
 				console.log("about to go to goto");

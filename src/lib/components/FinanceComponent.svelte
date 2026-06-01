@@ -1,11 +1,13 @@
 <!-- src/lib/components/FinanceComponent.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
+  import { get } from "svelte/store";
   import { getMonthName } from "$lib/stores/general";
   import FinanceCalendar from "$lib/components/FinanceCalendar.svelte";
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import {
     financeData,
+    financeNames,
     generateFinanceStructureToDate,
     addFinanceEntry,
     deleteFinanceEntry,
@@ -30,23 +32,28 @@
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
 
-  let selectedPresentYear: FinanceYear = $state({
-    id: "",
-    year: new Date().getFullYear(),
-    months: [],
-  });
-  let selectedPresentMonth: FinanceMonth = $state({
-    id: "",
-    monthNumber: 0,
-    discAmount: "",
-    discIntAmount: "",
-    amerXAmount: "",
-    amerXIntAmount: "",
-    foodAmount: "",
-    gasAmount: "",
-    balanceMonth: "",
-    weeks: [],
-  });
+  let showNameEditor = $state(false);
+
+  let draftFinanceNames = $state($financeNames);
+
+  function toggleNameEditor() {
+    showNameEditor = !showNameEditor;
+
+    // Copy current store value into draft
+    draftFinanceNames = { ...$financeNames };
+  }
+
+  function changeFinanceNames() {
+    // Update store value
+    financeNames.set({ ...draftFinanceNames });
+
+    showNameEditor = false;
+  }
+
+  function cancelFinanceNames() {
+    draftFinanceNames = { ...$financeNames };
+    showNameEditor = false;
+  }
 
   // onMount(): void
   onMount(() => {
@@ -125,6 +132,65 @@
   <div class="text-white/70 italic">Loading...</div>
 {/if}
 
+<!--Show Name Editor to change checking,primary,secondary-->
+{#if showNameEditor}
+  <div
+    class="w-full mt-3 mb-4 rounded-lg border border-white/20
+        bg-white/5 p-3 flex items-center gap-3"
+  >
+    <input
+      bind:value={draftFinanceNames.checking}
+      placeholder="Checking Account"
+      class="bg-black/30 text-white/70 border border-white/20
+            rounded px-2 py-1 outline-none"
+    />
+
+    <input
+      bind:value={draftFinanceNames.primaryCard}
+      placeholder="Primary Credit Card"
+      class="bg-black/30 text-white/70 border border-white/20
+            rounded px-2 py-1 outline-none"
+    />
+
+    <input
+      bind:value={draftFinanceNames.secondaryCard}
+      placeholder="Secondary Credit Card"
+      class="bg-black/30 text-white/70 border border-white/20
+            rounded px-2 py-1 outline-none"
+    />
+
+    <div class="flex gap-2">
+      <button
+        type="button"
+        onclick={cancelFinanceNames}
+        class="rounded text-sm bg-white/10 text-white/30
+		hover:bg-black/70 hover:text-white/80
+		border border-white/30 px-3 py-1"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        onclick={changeFinanceNames}
+        class="rounded text-sm bg-white/10 text-white/30
+		hover:bg-black/70 hover:text-white/80
+		border border-white/30 px-3 py-1"
+      >
+        Change
+      </button>
+    </div>
+  </div>
+{/if}
+
+<button
+  class="float-right rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
+  onclick={toggleNameEditor}
+>
+  Names
+</button>
+
 <!-- Years list -->
 {#each $financeData as year (year.id)}
   <div class="mb-3">
@@ -180,7 +246,9 @@
               <div class="flex items-center gap-4">
                 <!-- Disc Amount -->
                 <div class="flex items-center gap-1">
-                  <label class="text-white text-xl">Disc $</label>
+                  <label for="Primary Credit Card" class="text-white text-xl"
+                    >{$financeNames.primaryCard} $</label
+                  >
                   <input
                     type="text"
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
@@ -198,7 +266,10 @@
 
                 <!-- Disc Interest Amount -->
                 <div class="flex items-center gap-1">
-                  <label class="text-white text-xl">Int $</label>
+                  <label
+                    for="Primary Credit Card Interest"
+                    class="text-white text-xl">Int $</label
+                  >
                   <input
                     type="text"
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
@@ -216,7 +287,9 @@
 
                 <!-- AmerX Amount -->
                 <div class="flex items-center gap-1">
-                  <label class="text-white text-xl">AmerX $</label>
+                  <label for="Secondary Credit Card" class="text-white text-xl"
+                    >{$financeNames.secondaryCard} $</label
+                  >
                   <input
                     type="text"
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-32"
@@ -234,7 +307,10 @@
 
                 <!-- AmerX Interest Amount -->
                 <div class="flex items-center gap-1">
-                  <label class="text-white text-xl">Int $</label>
+                  <label
+                    for="Secondary Credit Card Interest"
+                    class="text-white text-xl">Int $</label
+                  >
                   <input
                     type="text"
                     class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-20"
@@ -328,20 +404,23 @@
                     <div class="mt-3 space-y-3">
                       {#each week.days as day, i (day.id)}
                         {@const isCurrDay = isCurrentDay(
-                            year.year,
-                            month.monthNumber,
-                            day.dayNumber)}
-                        {@const hasEntries = !!day.entries[0]?.description.trim()}
-                        {@const collapseRowBool =
-                          !isCurrDay && !hasEntries}
+                          year.year,
+                          month.monthNumber,
+                          day.dayNumber,
+                        )}
+                        {@const hasEntries =
+                          !!day.entries[0]?.description.trim()}
+                        {@const collapseRowBool = !isCurrDay && !hasEntries}
                         <div
-                          class="{isCurrentDay(
+                          class={isCurrentDay(
                             year.year,
                             month.monthNumber,
                             day.dayNumber,
                           )
-                            ? 'border-2 border-green-500 bg-white/5 rounded-lg p-3'
-                            : collapseRowBool ? borderNTextNBg.collapseRows : 'bg-white/5 rounded-lg p-3'}"
+                            ? "border-2 border-green-500 bg-white/5 rounded-lg p-3"
+                            : collapseRowBool
+                              ? borderNTextNBg.collapseRows
+                              : "bg-white/5 rounded-lg p-3"}
                         >
                           <!-- Day entries -->
                           {#each day.entries as entry, entryIndex (entry.id)}
@@ -363,7 +442,7 @@
                               <label class="text-white text-xl w-4">+</label>
                               <input
                                 type="text"
-                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-24"
+                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-34"
                                 placeholder="0"
                                 value={entry.addAmount}
                                 oninput={(e) =>
@@ -384,7 +463,7 @@
                               >
                               <input
                                 type="text"
-                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-24"
+                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-34"
                                 placeholder="0"
                                 value={entry.subAmount}
                                 oninput={(e) =>
@@ -406,7 +485,7 @@
                                   <label
                                     class="text-white text-sm flex items-center gap-1"
                                   >
-                                    HB
+                                    {$financeNames.checking}
                                     <input
                                       type="radio"
                                       name="card-{entry.id}"
@@ -424,9 +503,10 @@
                                     />
                                   </label>
                                   <label
+                                    for="Primary Credit Card Radio"
                                     class="text-white text-sm flex items-center gap-1"
                                   >
-                                    Disc
+                                    {$financeNames.primaryCard}
                                     <input
                                       type="radio"
                                       name="card-{entry.id}"
@@ -444,9 +524,10 @@
                                     />
                                   </label>
                                   <label
+                                    for="Secondary Credit Card Radio"
                                     class="text-white text-sm flex items-center gap-1"
                                   >
-                                    AmerX
+                                    {$financeNames.secondaryCard}
                                     <input
                                       type="radio"
                                       name="card-{entry.id}"
@@ -597,3 +678,21 @@
 <div class="mt-6">
   <FinanceCalendar />
 </div>
+
+<!-- // let selectedPresentYear: FinanceYear = $state({
+     id: "",
+     year: new Date().getFullYear(),
+     months: [],
+   });
+   let selectedPresentMonth: FinanceMonth = $state({
+     id: "",
+     monthNumber: 0,
+     discAmount: "",
+     discIntAmount: "",
+     amerXAmount: "",
+     amerXIntAmount: "",
+     foodAmount: "",
+     gasAmount: "",
+     balanceMonth: "",
+     weeks: [],
+   }); -->

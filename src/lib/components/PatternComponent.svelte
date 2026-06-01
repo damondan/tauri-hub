@@ -76,7 +76,7 @@ px-3 py-1 rounded-lg transition-colors"
                             (e.target as HTMLTextAreaElement).value,
                         );
                     }}
-                    class={`patternstep mt-4 bg-transparent border rounded px-2 py-1 text-center text-xl outline-none w-44 mr-5
+                    class={`patternstep mt-4 bg-transparent border rounded px-2 py-1 text-center text-xl outline-none w-64 mr-5
                     ${valueIndex === values.length - 1
                     ? "border-4 border-green-400/30 text-green-700"
                     : "border-white/10 text-white"}`}

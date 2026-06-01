@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { makeId, getDaysInMonth, getDayOfWeek } from '$lib/stores/general'
 
 // roundCurrency(value: number): number
@@ -11,15 +11,27 @@ export const financeExpandedYears = writable<Record<string, boolean>>({});
 export const financeExpandedMonths = writable<Record<string, boolean>>({});
 export const financeExpandedWeeks = writable<Record<string, boolean>>({});
 
+export interface FinanceNames {
+    checking: string;
+    primaryCard: string;
+    secondaryCard: string;
+}
+
+export const financeNames = writable<FinanceNames>({
+    checking: "HB",
+    primaryCard: "Disc",
+    secondaryCard: "AmeriX"
+});
+
 // Finance
 export interface FinanceEntry {
     id: string;
     addAmount: string;
     subAmount: string;
     description: string;
-    isHB: boolean;
-    isDisc: boolean;
-    isAmerX: boolean;
+    isHB: boolean; //Checking
+    isDisc: boolean; //Primary Credit Card
+    isAmerX: boolean; //Secondary Credit Card
     isGas: boolean;
     isFood: boolean;
     isOther: boolean;
@@ -44,10 +56,10 @@ export interface FinanceWeek {
 export interface FinanceMonth {
     id: string;
     monthNumber: number;
-    discAmount: string;
-    discIntAmount: string;
-    amerXAmount: string;
-    amerXIntAmount: string;
+    discAmount: string; //Primary Credit Card
+    discIntAmount: string;//Primary CC Interest
+    amerXAmount: string;//Secondary Credit Card
+    amerXIntAmount: string;//Secondarry CC Interest
     foodAmount: string;
     gasAmount: string;
     balanceMonth: string;
@@ -739,8 +751,30 @@ export function calculateMonthTotal(month: FinanceMonth): number {
 // Calculate HB balance for a month (starting balance from balanceMonth + this month's HB transactions)
 // calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number
 export function calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number {
-    // Get starting balance (copied from previous month via "Copy Prev" button)
+    //This fwd's the balance to the next month. 
     const startingBalance = parseFloat(month.balanceMonth) || 0;
+    let initBalance = "";
+
+    if (startingBalance === 0 && month.monthNumber === 1
+        && isPriorYearPresent(year)) {
+        //get prior year, 12th month balance and set it to 
+        //year-month monthBalance
+        //return
+        const priorMonth = get(financeData).find(y =>
+            y.year === year.year - 1)?.months.find(m => m.monthNumber === 12);
+        if (priorMonth?.balanceMonth) {
+            initBalance = priorMonth?.balanceMonth;
+            return parseFloat(initBalance);
+        }
+    } else if (startingBalance === 0 && month.monthNumber != 1) {
+        const priorMonth = get(financeData).find(y =>
+            y.year === year.year)?.months.find(m => m.monthNumber === month.monthNumber - 1);
+        if (priorMonth?.balanceMonth) {
+            initBalance = priorMonth?.balanceMonth;
+            return parseFloat(initBalance);
+        }
+    }
+
 
     // Calculate this month's HB transactions
     let monthHBTotal = 0;
@@ -956,6 +990,10 @@ export function calculateOtherTotal(financeYears: FinanceYear[], financeYear: nu
             }
         }
     }
-     let rettotal = String(Math.round(otherTotal));
+    let rettotal = String(Math.round(otherTotal));
     return rettotal;
+}
+
+export function isPriorYearPresent(year: FinanceYear): boolean {
+    return get(financeData).some(y => y.year === year.year - 1);
 }

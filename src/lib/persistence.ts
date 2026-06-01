@@ -5,7 +5,8 @@ import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/sto
 import { commandData, commandExpandedCategories, commandExpandedSubcategories } from '$lib/stores/commands';
 import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, projectOrder, initProjectOrder } from '$lib/stores/projects';
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
-import { financeData, financeExpandedYears, financeExpandedMonths, financeExpandedWeeks } from '$lib/stores/finance';
+import { financeData, financeExpandedYears, financeExpandedMonths, 
+	financeExpandedWeeks, financeNames, type FinanceNames } from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
 import {
 	persGoalData, persGoalEncryptedCache, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights,
@@ -75,6 +76,7 @@ interface UserData {
 	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
 	commandExpandedSubcategories?: Record<string, boolean>;
+	financenames:FinanceNames;
 }
 
 interface UserEncryptData {
@@ -203,6 +205,7 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			profGoalExpandedYears: get(profGoalExpandedYears),
 			profGoalExpandedMonths: get(profGoalExpandedMonths),
 			profGoalExpandedWeeks: get(profGoalExpandedWeeks),
+			financenames: get(financeNames),
 		};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -271,6 +274,9 @@ export async function loadUserData(): Promise<void> {
 		}
 		if (data.finance) {
 			financeData.set(data.finance);
+		}
+		if (data.financenames) {
+			financeNames.set(data.financenames);
 		}
 		if (data.calendar) {
 			calendarData.set(data.calendar);
@@ -448,6 +454,11 @@ export function initPersistence() {
 
 	// Subscribe to finance changes
 	financeData.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("finance");
+	});
+
+	financeNames.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave("finance");
 	});

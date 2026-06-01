@@ -28,12 +28,13 @@
     removeYearImage,
     updateDayIsDream,
     updateHighlight,
-    persLockState
+    persLockState,
   } from "$lib/stores/persgoal";
   import { app } from "@tauri-apps/api";
 
   let now = new Date();
-  let currentDay = now.getDate();
+  //let currentDay = now.getDate();
+  let currentDay = $state(getCurrentDay());
   let currentWeekOfMonth = Math.ceil(new Date().getDate() / 7);
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
@@ -82,6 +83,13 @@
   } | null>(null);
 
   let showSaved = $state(false);
+
+  function getCurrentDay() {
+    return new Date().getDate();
+  }
+  function refreshCurrentDay() {
+    currentDay = getCurrentDay();
+  }
 
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRows[dayId] ?? false;
@@ -213,7 +221,7 @@
 <div>
   <button
     class="float-right rounded text-sm bg-white/10 text-white/30
-  hover:bg-black/70 hover:text-white/80 border border-white/30"
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
     onclick={() => showTopToggle()}
   >
     Top
@@ -514,11 +522,11 @@
                               class="flex-1 bg-white/10 rounded-2xl ml-4 px-3 py-1 text-white text-xl resize-none overflow-hidden
                               focus:outline-none focus:ring-1 focus:ring-white focus:shadow-[0_0_30px_rgba(255,255,255,0.3)]
                                  {isCurrDay
-                                ? 'border-2 border-green-500/70'
+                                ? 'border-3 border-green-500/70'
                                 : day.isDream
-                                  ? 'border-2 border-blue-700'
+                                  ? 'border-3 border-blue-700'
                                   : day.highlight
-                                    ? 'border-2 border-yellow-400'
+                                    ? 'border-3 border-yellow-400'
                                     : 'border border-white/30'}"
                               placeholder=""
                               rows="1"
