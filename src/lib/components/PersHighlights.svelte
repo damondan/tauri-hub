@@ -13,6 +13,8 @@
     removeDetailHighlight,
     updateSubHighlight,
     updateDetailHighlight,
+    updateDialogM,
+    updateDialogO,
   } from "$lib/stores/persgoal";
   // let { showTop } = $props();
 
@@ -60,7 +62,10 @@
       <button
         class="bg-white/5 text-white/10
       hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
-        onclick={() => addSubHighlight(id)}
+        onclick={() => {
+          addSubHighlight(id);
+          appPersState.expandedRows[id] = true;
+        }}
       >
         +
       </button>
@@ -100,7 +105,10 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
             <button
               class="bg-white/5 text-white/10
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
-              onclick={() => addDetailHighlight(id, childid)}
+              onclick={() => {
+                addDetailHighlight(id, childid);
+                appPersState.expandedRowsTexArea[childid] = true;
+              }}
             >
               +
             </button>
@@ -153,7 +161,10 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
               <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
                 <button
-                  onclick={() => toggleExpand(detailid)}
+                  onclick={() => {
+                    toggleExpand(detailid);
+                    appPersState.expandedRowsTexArea[detailid] = true; 
+                  }}
                   class="mt-0 mr-2 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
                   title="Toggle Expand"
                 >
@@ -161,8 +172,12 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 </button>
 
                 <textarea
-                  class="flex-1 pb-2 pt-2 mb-4 bg-amber-400/10 rounded-2xl px-3 py-1 text-amber-100/60 text-2xl resize-none overflow-hidden
-focus:outline-none focus:ring-1 focus:ring-amber-300/80"
+                  class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
+                  focus:outline-none focus:ring-1 {levelThree.one
+                  ? "bg-white/40 text-black border border-white/30 focus:ring-white/80"
+                  : levelThree.me
+                    ? "bg-black/20 text-white/70 border border-white/20 focus:ring-white/60"
+                    : "bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80"}"
                   use:autoResize={[
                     levelThree.text,
                     appPersState.expandedRowsTexArea[detailid],
@@ -186,6 +201,45 @@ focus:outline-none focus:ring-1 focus:ring-amber-300/80"
                 >
                   -
                 </button>
+                <div class="flex flex-col float-end">
+                  <label class="flex gap-1 cursor-pointer">
+                    <span class="text-teal-100/20 text-sm leading-tight">
+                      M
+                    </span>
+
+                    <input
+                      type="checkbox"
+                      bind:checked={levelThree.me}
+                      onchange={(e) =>
+                        updateDialogM(
+                          id,
+                          childid,
+                          detailid,
+                          (e.target as HTMLInputElement).checked,
+                        )}
+                      class="w-4 h-4 accent-teal-500 opacity-10"
+                    />
+                  </label>
+
+                  <label class="flex gap-1 cursor-pointer">
+                    <span class="text-cyan-100/20 text-sm leading-tight">
+                      O
+                    </span>
+
+                    <input
+                      type="checkbox"
+                      bind:checked={levelThree.one}
+                      onchange={(e) =>
+                        updateDialogO(
+                          id,
+                          childid,
+                          detailid,
+                          (e.target as HTMLInputElement).checked,
+                        )}
+                      class="w-4 h-4 accent-cyan-500 opacity-10"
+                    />
+                  </label>
+                </div>
               </div>
             {/each}
           {/if}

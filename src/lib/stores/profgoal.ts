@@ -13,6 +13,8 @@ export const profGoalExpandedWeeks = writable<Record<string, boolean>>({});
 
 interface HighlightLevel3 {
     text: string;
+    one: boolean;
+    me: boolean;
 }
 
 export interface HighlightLevel2 {
@@ -502,7 +504,7 @@ export function addDetailHighlight(
                             .children![childId]
                             .children,
                         [id]: {
-                            text: ""
+                            text: "",one:false,me:false
                         }
                     }
                 }
@@ -836,4 +838,64 @@ export function removeStep(
             }
         };
     });
+}
+
+export function updateDialogM( parentId: string,
+    childId: string,
+    detailId: string,
+    value: boolean){
+     profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [detailId]: {
+                            ...highlights[parentId]
+                                .children![childId]
+                                .children![detailId],
+                            me: value
+                        }
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function updateDialogO( parentId: string,
+    childId: string,
+    detailId: string,
+    value: boolean){
+     profGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [detailId]: {
+                            ...highlights[parentId]
+                                .children![childId]
+                                .children![detailId],
+                            one: value
+                        }
+                    }
+                }
+            }
+        }
+    }));
 }

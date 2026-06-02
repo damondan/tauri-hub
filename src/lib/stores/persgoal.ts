@@ -22,6 +22,8 @@ export const dirtyNodes = writable<Set<string>>(new Set());
 
 interface HighlightLevel3 {
     text: string;
+    one: boolean;
+    me: boolean;
 }
 
 interface HighlightLevel2 {
@@ -35,8 +37,6 @@ export interface HighlightLevel1 {
 }
 
 export const persGoalHighlights = writable<Record<string, HighlightLevel1>>({});
-
-//type PersLockState = 'locked' | 'unlocked' | 'not_set';
 
 export type PersLockState = typeof LockState[keyof typeof LockState];
 
@@ -873,7 +873,7 @@ export function addDetailHighlight(
                             .children![childId]
                             .children,
                         [id]: {
-                            text: ""
+                            text: "",one:false,me:false
                         }
                     }
                 }
@@ -1082,3 +1082,62 @@ export function migratePersGoal(
     return data as PersGoalYear[];
 }
 
+export function updateDialogM( parentId: string,
+    childId: string,
+    detailId: string,
+    value: boolean){
+     persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [detailId]: {
+                            ...highlights[parentId]
+                                .children![childId]
+                                .children![detailId],
+                            me: value
+                        }
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function updateDialogO( parentId: string,
+    childId: string,
+    detailId: string,
+    value: boolean){
+     persGoalHighlights.update((highlights) => ({
+        ...highlights,
+        [parentId]: {
+            ...highlights[parentId],
+            children: {
+                ...highlights[parentId].children,
+                [childId]: {
+                    ...highlights[parentId]
+                        .children![childId],
+                    children: {
+                        ...highlights[parentId]
+                            .children![childId]
+                            .children,
+                        [detailId]: {
+                            ...highlights[parentId]
+                                .children![childId]
+                                .children![detailId],
+                            one: value
+                        }
+                    }
+                }
+            }
+        }
+    }));
+}

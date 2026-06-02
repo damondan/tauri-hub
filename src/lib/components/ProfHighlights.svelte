@@ -1,8 +1,7 @@
 <script lang="ts">
-  import { buttonStyles } from "$lib/styles";
   import { autoResize } from "$lib/utils/textareaResize";
   import { appProfState } from "$lib/stores/state.svelte";
-
+  import { onMount } from "svelte";
   import {
     profGoalHighlights,
     addHighlightItem,
@@ -15,9 +14,9 @@
     updateSubHighlight,
     updateDetailHighlight,
     updateDetailHighlightPattern,
-    profGoalExpandedYears,
-    profGoalExpandedMonths,
-    profGoalExpandedWeeks,
+    updateDialogM,
+    updateDialogO,
+    profGoalExpandedYears,//name makes no sense presently TODO but is functional
   } from "$lib/stores/profgoal";
   import PatternComponent from "./PatternComponent.svelte";
 
@@ -27,6 +26,8 @@
     edetailid: string;
     etext: string;
   } | null>(null);
+
+  onMount(() => {});
 
   function toggleExpand(dayId: string) {
     const currentState = appProfState.expandedRowsTexArea[dayId] ?? false;
@@ -43,20 +44,20 @@
   }
 
   function togglesublevel(id: string) {
-    appProfState.expandedRowsProf[id] = !appProfState.expandedRowsProf[id];
+    $profGoalExpandedYears[id] = !$profGoalExpandedYears[id];
   }
 
   function togglethirdlevel(childid: string) {
-    appProfState.expandedRowsProf[childid] =
-      !appProfState.expandedRowsProf[childid];
+    $profGoalExpandedYears[childid] =
+      !$profGoalExpandedYears[childid];
   }
 
   function openAllProfRows() {
-	for (const key in appProfState.expandedRowsProf) {
-    console.log(`In openAllProfRows ${key}`);
-		appProfState.expandedRowsProf[key] = true;
-	}
-}
+    for (const key in $profGoalExpandedYears) {
+      console.log(`In openAllProfRows ${key}`);
+      $profGoalExpandedYears[key] = true;
+    }
+  }
 </script>
 
 <div class="m-0 p-0">
@@ -84,7 +85,7 @@
       hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => {
           addSubHighlight(id);
-          appProfState.expandedRowsProf[id] = true;
+          $profGoalExpandedYears[id] = true;
         }}
       >
         +
@@ -94,7 +95,7 @@
         class="text-white/20 text-3xl w-6"
         onclick={() => togglesublevel(id)}
       >
-        {appProfState.expandedRowsProf[id] ? "▼" : "▷"}
+        {$profGoalExpandedYears[id] ? "▼" : "▷"}
       </button>
 
       <textarea
@@ -118,7 +119,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
     </div>
 
     <!-- Middle level: only render when this top row is expanded -->
-    {#if appProfState.expandedRowsProf[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
+    {#if $profGoalExpandedYears[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
       {#each Object.entries(levelOne.children ?? {}) as [childid, levelTwo] (childid)}
         <div class="px-6 flex flex-col w-full gap-3 mt-4">
           <div class="flex flex-row gap-2">
@@ -127,7 +128,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => {
                 addDetailHighlight(id, childid);
-                appProfState.expandedRowsProf[childid] = true;
+                $profGoalExpandedYears[childid] = true;
               }}
             >
               +
@@ -146,7 +147,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
               class="text-white/20 text-3xl w-6"
               onclick={() => togglethirdlevel(childid)}
             >
-              {appProfState.expandedRowsProf[childid] ? "▼" : "▷"}
+              {$profGoalExpandedYears[childid] ? "▼" : "▷"}
             </button>
 
             <textarea
@@ -185,7 +186,7 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
           </div>
 
           <!-- Lower level: only render when this middle row is expanded -->
-          {#if appProfState.expandedRowsProf[childid] && levelTwo.children && Object.keys(levelTwo.children).length > 0}
+          {#if $profGoalExpandedYears[childid] && levelTwo.children && Object.keys(levelTwo.children).length > 0}
             {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
               <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
                 <button
@@ -197,8 +198,12 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 </button>
 
                 <textarea
-                  class="flex-1 pb-2 pt-2 mb-4 bg-amber-400/10 rounded-2xl px-3 py-1 text-amber-100/60 text-2xl resize-none overflow-hidden
-focus:outline-none focus:ring-1 focus:ring-amber-300/80"
+                  class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
+                  focus:outline-none focus:ring-1 {levelThree.one
+                  ? "bg-white/40 text-black border border-white/30 focus:ring-white/80"
+                  : levelThree.me
+                    ? "bg-black/20 text-white/70 border border-white/20 focus:ring-white/60"
+                    : "bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80"}"
                   use:autoResize={[
                     levelThree.text,
                     appProfState.expandedRowsTexArea[detailid],
@@ -230,9 +235,48 @@ focus:outline-none focus:ring-1 focus:ring-amber-300/80"
                 >
                   -
                 </button>
+                <div class="flex flex-col float-end">
+                  <label class="flex gap-1 cursor-pointer">
+                    <span class="text-teal-100/20 text-sm leading-tight">
+                      M
+                    </span>
+
+                    <input
+                      type="checkbox"
+                      bind:checked={levelThree.me}
+                      onchange={(e) =>
+                        updateDialogM(
+                          id,
+                          childid,
+                          detailid,
+                          (e.target as HTMLInputElement).checked,
+                        )}
+                      class="w-4 h-4 accent-teal-500 opacity-10"
+                    />
+                  </label>
+
+                  <label class="flex gap-1 cursor-pointer">
+                    <span class="text-cyan-100/20 text-sm leading-tight">
+                      O
+                    </span>
+
+                    <input
+                      type="checkbox"
+                      bind:checked={levelThree.one}
+                      onchange={(e) =>
+                        updateDialogO(
+                          id,
+                          childid,
+                          detailid,
+                          (e.target as HTMLInputElement).checked,
+                        )}
+                      class="w-4 h-4 accent-cyan-500 opacity-10"
+                    />
+                  </label>
+                </div>
               </div>
             {/each}
-            {#if appProfState.expandedRowsProf[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
+            {#if $profGoalExpandedYears[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
               <PatternComponent {id} {childid} {levelTwo} />
             {/if}
           {/if}

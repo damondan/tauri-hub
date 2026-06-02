@@ -17,7 +17,7 @@ import {
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, 
 	profGoalHighlights} from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
-import { goalData, theGoalExpandedMonths, theGoalExpandedYears } from './stores/thegoals';
+import { goalData, goalOrder, type GoalThread } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
 import { get } from 'svelte/store';
 
@@ -34,7 +34,8 @@ type PersistDomain =
 	| "profhighlights"
 	| "workspaces"
 	| "fields"
-	| "projects";
+	| "projects"
+	| "goal";
 
 let pendingDomain: PersistDomain | null = null;
 
@@ -77,6 +78,8 @@ interface UserData {
 	commandExpandedCategories?: Record<string, boolean>;
 	commandExpandedSubcategories?: Record<string, boolean>;
 	financenames:FinanceNames;
+	goaldata: GoalThread[];
+	goalorder: string[];
 }
 
 interface UserEncryptData {
@@ -173,7 +176,7 @@ export async function encryptPersGoals() {
 	}
 }
 
-// Save todos and commands to disk
+// TODO : save from domain to be more efficient
 export async function saveUserData(domain: PersistDomain): Promise<void> {
 	try {
 		const data: UserData = {
@@ -206,6 +209,8 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			profGoalExpandedMonths: get(profGoalExpandedMonths),
 			profGoalExpandedWeeks: get(profGoalExpandedWeeks),
 			financenames: get(financeNames),
+			goaldata: get(goalData),
+			goalorder: get(goalOrder)
 		};
 		await invoke('save_user_data', { data: JSON.stringify(data) });
 		console.log('User data saved');
@@ -304,6 +309,12 @@ export async function loadUserData(): Promise<void> {
 		}
 		if (data.profGoalExpandedWeeks) {
 			persGoalExpandedWeeks.set(data.profGoalExpandedWeeks);
+		}
+		if (data.goaldata) {
+			goalData.set(data.goaldata);
+		}
+		if (data.goalorder) {
+			goalOrder.set(data.goalorder);
 		}
 		if (data.workspaceA !== undefined) {
 			workspaceContentA.set(data.workspaceA);
@@ -548,6 +559,16 @@ export function initPersistence() {
 	profGoalExpandedWeeks.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave("profgoal");
+	});
+
+	goalData.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("goal");
+	});
+
+	goalOrder.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("goal");
 	});
 
 	// Subscribe to workspace changes
