@@ -21,6 +21,7 @@ export interface HighlightLevel2 {
     text: string;
     children: Record<string, HighlightLevel3>;
     patterns?: Record<string, string[]>;
+    imagePatterns?: Record<string,ProfImage[]>;
 }
 
 export interface HighlightLevel1 {

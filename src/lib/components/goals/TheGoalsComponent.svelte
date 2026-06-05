@@ -29,15 +29,11 @@
 	let displayYear: number = $state(0);
 	let displayMonth: number = $state(0);
 	let displayDay: number = $state(0);
-	//let todayDate: Date = $state(new Date());
-
-	//start Mock data ---------------
-	let mockTodayDate: Date = $state(new Date());
+	let todayDate: Date = $state(new Date());
 
 	function getTodayDate(): Date {
-		return mockTodayDate;
+		return todayDate;
 	}
-	//End Mock
 
 	let selectedGoalEntryData = $state<{
 		thread: GoalThread;
@@ -46,13 +42,6 @@
 	} | null>(null);
 
 	onMount(() => {
-		// displayDay = todayDate.getDate();
-		// displayYear = todayDate.getFullYear();
-		// displayMonth = todayDate.getMonth() + 1;
-
-		// generateTheGoalStructureToDate(todayDate);
-
-		//Start Mock
 		const currentDate = getTodayDate();
 
 		displayDay = currentDate.getDate();
@@ -60,27 +49,8 @@
 		displayMonth = currentDate.getMonth() + 1;
 
 		generateTheGoalStructureToDate(currentDate);
-		//End Mock
+		createGoalEntriesForDate(currentDate);
 	});
-
-	//Start Mock
-	function mockNextDay() {
-		const nextDate = new Date(mockTodayDate);
-
-		nextDate.setDate(nextDate.getDate() + 1);
-
-		mockTodayDate = nextDate;
-
-		displayDay = nextDate.getDate();
-		displayMonth = nextDate.getMonth() + 1;
-		displayYear = nextDate.getFullYear();
-
-		createGoalEntriesForDate(nextDate);
-
-		// Later, call your real logic here:
-		// initializeGoalEntriesForDate(nextDate);
-	}
-	//End Mock
 
 	function daysBetween(startDate: Date, currentDate: Date): number {
 		const start = new Date(
@@ -324,6 +294,10 @@
 	}
 
 	function getThreadAxisLimit(thread: GoalThread): number {
+		if (thread.measurementType === "none") {
+			return 12;
+		}
+
 		const highestValue = Math.max(
 			0,
 			...thread.goals.map((goal) =>
@@ -439,7 +413,10 @@
 				entry: startEntry,
 				dayNumber: startDay,
 				xPercent: getXPercent(startDay, totalDays),
-				yPercent: getYPercent(Number(goal.startAmount), axisLimit),
+				yPercent: getYPercent(
+					getGoalNodeYValue(thread, goal, Number(goal.startAmount)),
+					axisLimit,
+				),
 				color: "#ffffff",
 				isPending: false,
 			});
@@ -458,7 +435,14 @@
 					entry,
 					dayNumber: day.dayNumber,
 					xPercent: getXPercent(day.dayNumber, totalDays),
-					yPercent: getYPercent(Number(entry.value ?? 0), axisLimit),
+					yPercent: getYPercent(
+						getGoalNodeYValue(
+							thread,
+							goal,
+							Number(entry.value ?? 0),
+						),
+						axisLimit,
+					),
 					color: getEntryNodeColor(entry, goal),
 					isPending: entry.status === "pending",
 				});
@@ -691,21 +675,35 @@
 
 		updateGoalThreadField(thread.threadId, "activeGoalId", nextGoal.goalId);
 	}
+
+	function isNoneMeasurementThread(thread: GoalThread): boolean {
+		return thread.measurementType === "none";
+	}
+
+	function getNoneGoalLaneValue(thread: GoalThread, goal: Goal): number {
+		const lanes = [9, 3, -3, -9];
+
+		const index = thread.goals.findIndex(
+			(existingGoal) => existingGoal.goalId === goal.goalId,
+		);
+
+		return lanes[index] ?? 0;
+	}
+
+	function getGoalNodeYValue(
+		thread: GoalThread,
+		goal: Goal,
+		value: number,
+	): number {
+		if (thread.measurementType === "none") {
+			return getNoneGoalLaneValue(thread, goal);
+		}
+
+		return value;
+	}
 </script>
 
 <div class="mb-6 flex items-center justify-end gap-3">
-	<!--Start Mock-->
-	<div class="text-sm text-white/50">
-		Mock Today: {mockTodayDate.toLocaleDateString()}
-	</div>
-
-	<button
-		class="rounded border border-blue-400/40 bg-blue-500/20 px-3 py-2 text-sm text-blue-100 hover:bg-blue-500/40"
-		onclick={mockNextDay}
-	>
-		Mock Next Day
-	</button>
-	<!--End Mock-->
 	<button
 		class="rounded border border-white/30 bg-white/10 px-3 py-2 text-sm text-white/40 hover:bg-black/70 hover:text-white/80"
 		onclick={openAllRows}
@@ -953,7 +951,13 @@
 								/>
 							</div>
 
-							<div class="flex flex-col">
+							<div
+								class={`flex flex-col ${
+									isNoneMeasurementThread(thread)
+										? "opacity-30 pointer-events-none"
+										: ""
+								}`}
+							>
 								<label class="mb-1 text-xs text-white/40"
 									>Start Amt</label
 								>
@@ -962,6 +966,7 @@
 									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
 									placeholder="Start"
 									value={goal.startAmount}
+									disabled={isNoneMeasurementThread(thread)}
 									oninput={(e) =>
 										updateGoalField(
 											thread.threadId,
@@ -975,7 +980,13 @@
 								/>
 							</div>
 
-							<div class="flex flex-col">
+							<div
+								class={`flex flex-col ${
+									isNoneMeasurementThread(thread)
+										? "opacity-30 pointer-events-none"
+										: ""
+								}`}
+							>
 								<label class="mb-1 text-xs text-white/40"
 									>Goal Amt</label
 								>
@@ -984,6 +995,7 @@
 									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
 									placeholder="Amount"
 									value={goal.measurementAmount}
+									disabled={isNoneMeasurementThread(thread)}
 									oninput={(e) =>
 										updateGoalField(
 											thread.threadId,
@@ -1043,7 +1055,13 @@
 								/>
 							</div>
 
-							<div class="flex flex-col">
+							<div
+								class={`flex flex-col ${
+									isNoneMeasurementThread(thread)
+										? "opacity-30 pointer-events-none"
+										: ""
+								}`}
+							>
 								<label class="mb-1 text-xs text-white/40"
 									>Low</label
 								>
@@ -1052,6 +1070,7 @@
 									class="w-24 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
 									placeholder="Low"
 									value={goal.lowLimit}
+									disabled={isNoneMeasurementThread(thread)}
 									oninput={(e) =>
 										updateGoalField(
 											thread.threadId,
@@ -1065,7 +1084,13 @@
 								/>
 							</div>
 
-							<div class="flex flex-col">
+							<div
+								class={`flex flex-col ${
+									isNoneMeasurementThread(thread)
+										? "opacity-30 pointer-events-none"
+										: ""
+								}`}
+							>
 								<label class="mb-1 text-xs text-white/40"
 									>High</label
 								>
@@ -1074,6 +1099,7 @@
 									class="w-24 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
 									placeholder="High"
 									value={goal.highLimit}
+									disabled={isNoneMeasurementThread(thread)}
 									oninput={(e) =>
 										updateGoalField(
 											thread.threadId,
