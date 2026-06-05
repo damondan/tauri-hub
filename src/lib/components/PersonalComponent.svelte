@@ -683,7 +683,7 @@
               placeholder="#"
               bind:value={editingDay.tags[index]}
               class="bg-transparent border border-white/10 rounded px-2 py-1 text-center
-           text-white outline-none focus:border-white/30 w-54 mr-10"
+           text-white outline-none focus:border-white/30 w-74 mr-10"
             />
           {/each}
           <button
@@ -719,6 +719,65 @@
           class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
         >
           Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+{#if showPrivateGoalDialog}
+  <div
+    class="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+    onclick={() => (showPrivateGoalDialog = false)}
+  >
+    <div
+      class="bg-gradient-to-br from-purple-900/90 to-blue-900/90 border border-white/30 rounded-xl p-6 max-w-2xl"
+      onclick={(e) => e.stopPropagation()}
+    >
+      <h3 class="text-white text-2xl font-semibold mb-4">
+        Change Professional Goal
+      </h3>
+      <p class="text-white/90 text-xl mb-4">
+        Are you sure you want to change your professional goal?
+      </p>
+      {#if pendingPrivateGoalChange && pendingPrivateGoalChange.changeCount > 0}
+        <p class="text-yellow-400 text-lg mb-6">
+          This is the {pendingPrivateGoalChange.changeCount}{pendingPrivateGoalChange.changeCount ===
+          1
+            ? "st"
+            : pendingPrivateGoalChange.changeCount === 2
+              ? "nd"
+              : pendingPrivateGoalChange.changeCount === 3
+                ? "rd"
+                : "th"} time you have changed it.
+        </p>
+      {/if}
+      <textarea
+        class="w-full bg-white/10 border border-yellow-500 rounded px-4 py-3 text-white text-xl resize-none mb-6"
+        placeholder="Enter your professional goal..."
+        rows="3"
+        bind:value={pendingPrivateGoalChange!.value}
+      ></textarea>
+      <div class="flex gap-3 justify-end">
+        <button
+          class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xl font-semibold transition-colors"
+          onclick={() => (showPrivateGoalDialog = false)}
+        >
+          Cancel
+        </button>
+        <button
+          class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xl font-semibold transition-colors"
+          onclick={() => {
+            if (pendingPrivateGoalChange) {
+              updateYearPrivateGoal(
+                pendingPrivateGoalChange.yearId,
+                pendingPrivateGoalChange.value,
+              );
+              pendingPrivateGoalChange = null;
+            }
+            showPrivateGoalDialog = false;
+          }}
+        >
+          Confirm
         </button>
       </div>
     </div>

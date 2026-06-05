@@ -1,8 +1,17 @@
 import { writable } from 'svelte/store';
 
-export type GoalMeasurementType = 'time' | 'count';
+export type GoalMeasurementType = 'time' | 'count' | 'none';
 
 export type GoalIterationType = 'day' | 'week' | 'month';
+
+export type GoalEntryStatus =
+	| 'pending'
+	| 'done'
+	| 'not_done'
+	| 'yes'
+	| 'no'
+	| 'projected'
+	| 'missed';
 
 export interface GoalEntry {
 	entryId: string;
@@ -11,11 +20,19 @@ export interface GoalEntry {
 	value?: number;
 	description?: string;
 
+	status?: GoalEntryStatus;
+
+	consequenceDescription?: string;
+	isConsequenceActive?: boolean;
+	isConsequenceCompleted?: boolean;
+
 	isCompleted?: boolean;
 	isSucceeded?: boolean;
 	hasFailed?: boolean;
 
 	createdAt?: string;
+	updatedAt?: string;
+
 }
 
 export interface GoalDay {
@@ -37,7 +54,7 @@ export interface GoalYear {
 }
 
 export interface Goal {
-	goalId: string;
+    goalId: string;
 
 	title?: string;
 	description?: string;
@@ -47,8 +64,6 @@ export interface Goal {
 	dateEnd?: string;
 
 	startAmount?: number;
-
-	measurementType?: GoalMeasurementType;
 	measurementAmount?: number;
 
 	iterationType?: GoalIterationType;
@@ -59,8 +74,11 @@ export interface Goal {
 
 	maxFailuresAllowed?: number;
 
+	consequenceDescription?: string;
+
 	isExpanded?: boolean;
 	isPersisted?: boolean;
+	isInitialized?: boolean;
 
 	isCompleted?: boolean;
 	isSucceeded?: boolean;
@@ -74,8 +92,14 @@ export interface GoalThread {
 	description?: string;
 	color?: string;
 
+	measurementType?: GoalMeasurementType;
+
 	isExpanded?: boolean;
 	isPersisted?: boolean;
+	isInitialized?: boolean;
+
+	iterateGoalMode?: boolean;
+	activeGoalId?: string;
 
 	goals: Goal[];
 
@@ -114,21 +138,22 @@ export function createEmptyGoal(): Goal {
 		dateStart: createTodayDateString(),
 		dateEnd: '',
 
-
-		startAmount:0,
-
-		measurementType: 'count',
+		startAmount: 0,
 		measurementAmount: 0,
 
 		iterationType: 'day',
 		iterationAmount: 1,
-		
+
 		highLimit: 0,
 		lowLimit: 0,
+
 		maxFailuresAllowed: 10,
+
+		consequenceDescription: '',
 
 		isExpanded: false,
 		isPersisted: false,
+		isInitialized: false,
 
 		isCompleted: false,
 		isSucceeded: false,
@@ -144,8 +169,13 @@ export function createEmptyGoalThread(): GoalThread {
 		description: '',
 		color: '#f59e0b',
 
+		measurementType: 'count',
+		iterateGoalMode: false,
+		activeGoalId: '',
+
 		isExpanded: true,
 		isPersisted: false,
+		isInitialized: false,
 
 		goals: [],
 
@@ -252,7 +282,7 @@ export function initGoalThread(threadId: string): void {
 
 			return {
 				...thread,
-				isPersisted: true,
+				isInitialized: true,
 				isExpanded: true
 			};
 		});
@@ -339,7 +369,7 @@ export function initGoal(threadId: string, goalId: string): void {
 
 					return {
 						...goal,
-						isPersisted: true,
+						isInitialized: true,
 						isExpanded: true
 					};
 				})
@@ -374,3 +404,46 @@ export function updateGoalField<K extends keyof Goal>(
 		});
 	});
 }
+
+export function updateRealGoalEntry(
+		threadId: string,
+		goalId: string,
+		entryId: string,
+		updates: Partial<GoalEntry>,
+	) {
+		goalData.update((threads) => {
+			return threads.map((thread) => {
+				if (thread.threadId !== threadId) return thread;
+
+				const updatedCalendar = { ...thread.goalCalendar };
+
+				for (const yearKey of Object.keys(updatedCalendar)) {
+					const year = updatedCalendar[Number(yearKey)];
+
+					for (const month of year.months) {
+						for (const day of month.days) {
+							day.entries = day.entries.map((entry) => {
+								if (
+									entry.goalId !== goalId ||
+									entry.entryId !== entryId
+								) {
+									return entry;
+								}
+
+								return {
+									...entry,
+									...updates,
+									updatedAt: new Date().toISOString(),
+								};
+							});
+						}
+					}
+				}
+
+				return {
+					...thread,
+					goalCalendar: updatedCalendar,
+				};
+			});
+		});
+	}
