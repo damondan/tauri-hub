@@ -1,7 +1,8 @@
 <!-- src/lib/components/CommandsComponent.svelte -->
 <!-- CommandsComponent.svelte -->
 <script lang="ts">
-  import { autoResizeText, resizeTextarea } from '$lib/utils/textareaResize';
+  import { autoResizeText } from '$lib/utils/textareaResize';
+  import { buttonStyles } from '$lib/styles';
   import {
     commandData,
     addCommandCategory,
@@ -103,7 +104,7 @@
         />
         
         <button 
-          class="bg-green-600/50 hover:bg-green-600 text-white px-2 py-1 rounded"
+          class={buttonStyles.greenButton}
           onclick={() => addCommandSubcategory(category.id)}
         >
           +
@@ -141,7 +142,7 @@
               />
               
               <button 
-                class="bg-green-600/50 hover:bg-green-700 text-white px-2 py-1 rounded"
+                class={buttonStyles.greenButton}
                 onclick={() => addCommandTask(category.id, subcategory.id)}
               >
                 +
@@ -176,7 +177,7 @@
                     ></textarea>
                     
                     <button 
-                      class="bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded text-lg"
+                      class="bg-white/20 hover:bg-white/30 hover:text-white/80 text-white/50 px-3 py-1 rounded text-lg"
                       onclick={() => handleCopy(task.text)}
                     >
                       Copy

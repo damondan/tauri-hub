@@ -44,6 +44,58 @@ export function deleteHowToCategory(categoryId: string): void {
 	howtoData.update((categories) => categories.filter((c) => c.id !== categoryId));
 }
 
+export function deleteHowToSubCategory(
+	categoryId: string,
+	subcategoryId: string,
+): void {
+	howtoData.update((categories) =>
+		categories.map((category) => {
+			if (category.id !== categoryId) {
+				return category;
+			}
+
+			return {
+				...category,
+				subcategories: category.subcategories.filter(
+					(subcategory) => subcategory.id !== subcategoryId,
+				),
+			};
+		}),
+	);
+}
+
+export function deleteHowToTopic(
+	categoryId: string,
+	subcategoryId: string,
+	topicId: string,
+): void {
+	howtoData.update((categories) =>
+		categories.map((category) => {
+			if (category.id !== categoryId) {
+				return category;
+			}
+
+			return {
+				...category,
+				subcategories: category.subcategories.map((subcategory) => {
+					if (subcategory.id !== subcategoryId) {
+						return subcategory;
+					}
+
+					return {
+						...subcategory,
+						topics: subcategory.topics.filter(
+							(topic) => topic.id !== topicId,
+						),
+					};
+				}),
+			};
+		}),
+	);
+}
+
+
+
 // Update HowTo category name
 export function updateHowToCategoryName(categoryId: string, name: string): void {
 	howtoData.update((categories) =>
@@ -70,11 +122,11 @@ export function updateHowToSubcategoryName(categoryId: string, subcategoryId: st
 		categories.map((c) =>
 			c.id === categoryId
 				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId ? { ...sub, name } : sub
-						)
-				  }
+					...c,
+					subcategories: c.subcategories.map((sub) =>
+						sub.id === subcategoryId ? { ...sub, name } : sub
+					)
+				}
 				: c
 		)
 	);
@@ -87,13 +139,13 @@ export function addHowToTopic(categoryId: string, subcategoryId: string): string
 		categories.map((c) =>
 			c.id === categoryId
 				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? { ...sub, topics: [...sub.topics, { id, name: '', tasks: [] }] }
-								: sub
-						)
-				  }
+					...c,
+					subcategories: c.subcategories.map((sub) =>
+						sub.id === subcategoryId
+							? { ...sub, topics: [...sub.topics, { id, name: '', tasks: [] }] }
+							: sub
+					)
+				}
 				: c
 		)
 	);
@@ -111,18 +163,18 @@ export function updateHowToTopicName(
 		categories.map((c) =>
 			c.id === categoryId
 				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? {
-										...sub,
-										topics: sub.topics.map((topic) =>
-											topic.id === topicId ? { ...topic, name } : topic
-										)
-								  }
-								: sub
-						)
-				  }
+					...c,
+					subcategories: c.subcategories.map((sub) =>
+						sub.id === subcategoryId
+							? {
+								...sub,
+								topics: sub.topics.map((topic) =>
+									topic.id === topicId ? { ...topic, name } : topic
+								)
+							}
+							: sub
+					)
+				}
 				: c
 		)
 	);
@@ -135,20 +187,20 @@ export function addHowToTask(categoryId: string, subcategoryId: string, topicId:
 		categories.map((c) =>
 			c.id === categoryId
 				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? {
-										...sub,
-										topics: sub.topics.map((topic) =>
-											topic.id === topicId
-												? { ...topic, tasks: [...topic.tasks, { id, text: '' }] }
-												: topic
-										)
-								  }
-								: sub
-						)
-				  }
+					...c,
+					subcategories: c.subcategories.map((sub) =>
+						sub.id === subcategoryId
+							? {
+								...sub,
+								topics: sub.topics.map((topic) =>
+									topic.id === topicId
+										? { ...topic, tasks: [...topic.tasks, { id, text: '' }] }
+										: topic
+								)
+							}
+							: sub
+					)
+				}
 				: c
 		)
 	);
@@ -167,25 +219,25 @@ export function updateHowToTaskText(
 		categories.map((c) =>
 			c.id === categoryId
 				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? {
-										...sub,
-										topics: sub.topics.map((topic) =>
-											topic.id === topicId
-												? {
-														...topic,
-														tasks: topic.tasks.map((task) =>
-															task.id === taskId ? { ...task, text } : task
-														)
-												  }
-												: topic
-										)
-								  }
-								: sub
-						)
-				  }
+					...c,
+					subcategories: c.subcategories.map((sub) =>
+						sub.id === subcategoryId
+							? {
+								...sub,
+								topics: sub.topics.map((topic) =>
+									topic.id === topicId
+										? {
+											...topic,
+											tasks: topic.tasks.map((task) =>
+												task.id === taskId ? { ...task, text } : task
+											)
+										}
+										: topic
+								)
+							}
+							: sub
+					)
+				}
 				: c
 		)
 	);
@@ -202,20 +254,20 @@ export function deleteHowToTask(
 		categories.map((c) =>
 			c.id === categoryId
 				? {
-						...c,
-						subcategories: c.subcategories.map((sub) =>
-							sub.id === subcategoryId
-								? {
-										...sub,
-										topics: sub.topics.map((topic) =>
-											topic.id === topicId
-												? { ...topic, tasks: topic.tasks.filter((task) => task.id !== taskId) }
-												: topic
-										)
-								  }
-								: sub
-						)
-				  }
+					...c,
+					subcategories: c.subcategories.map((sub) =>
+						sub.id === subcategoryId
+							? {
+								...sub,
+								topics: sub.topics.map((topic) =>
+									topic.id === topicId
+										? { ...topic, tasks: topic.tasks.filter((task) => task.id !== taskId) }
+										: topic
+								)
+							}
+							: sub
+					)
+				}
 				: c
 		)
 	);

@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount, tick } from "svelte";
   import { autoResize } from "$lib/utils/textareaResize";
+  import { buttonStyles } from "$lib/styles";
   import {
     howtoData,
     addHowToCategory,
@@ -17,6 +18,8 @@
     howtoExpandedCategories,
     howtoExpandedSubcategories,
     howtoExpandedTopics,
+    deleteHowToSubCategory,
+    deleteHowToTopic,
   } from "$lib/stores/howto";
 
   import {
@@ -50,8 +53,8 @@
     return setupTextareaResizeListener();
   });
 
-  function openAllRows(){
-     howtoExpandedCategories.update((howto) => {
+  function openAllRows() {
+    howtoExpandedCategories.update((howto) => {
       const updated: Record<string, boolean> = {};
 
       for (const key in howto) {
@@ -78,9 +81,7 @@
 
       return updated;
     });
-
   }
-
 </script>
 
 <button
@@ -133,7 +134,7 @@
         />
 
         <button
-          class="bg-green-600/50 hover:bg-green-600 text-white px-2 py-1 rounded"
+          class={buttonStyles.greenButton}
           onclick={() => addHowToSubcategory(category.id)}
         >
           +
@@ -176,10 +177,17 @@
               />
 
               <button
-                class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+                class={buttonStyles.greenButton}
                 onclick={() => addHowToTopic(category.id, subcategory.id)}
               >
                 +
+              </button>
+              <button
+                class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
+                onclick={() =>
+                  deleteHowToSubCategory(category.id, subcategory.id)}
+              >
+                Del
               </button>
             </div>
           </div>
@@ -217,11 +225,18 @@
                       }}
                     ></textarea>
                     <button
-                      class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
+                      class={buttonStyles.greenButton}
                       onclick={() =>
                         addHowToTask(category.id, subcategory.id, topic.id)}
                     >
                       +
+                    </button>
+                    <button
+                      class="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
+                      onclick={() =>
+                        deleteHowToTopic(category.id, subcategory.id, topic.id)}
+                    >
+                      Del
                     </button>
                   </div>
 
@@ -238,11 +253,16 @@
                           text-white text-3xl resize-none overflow-hidden leading-tight break-words whitespace-normal"
                             placeholder="How To Descriptor..."
                             value={task.text}
-                            use:autoResize={[task.text,$howtoExpandedTopics[topicKey]]}
+                            use:autoResize={[
+                              task.text,
+                              $howtoExpandedTopics[topicKey],
+                            ]}
                             oninput={(el) => {
-                              const targetTask = el.target as HTMLTextAreaElement;
-                              targetTask.style.height = 'auto';
-                              targetTask.style.height = targetTask.scrollHeight + 'px';
+                              const targetTask =
+                                el.target as HTMLTextAreaElement;
+                              targetTask.style.height = "auto";
+                              targetTask.style.height =
+                                targetTask.scrollHeight + "px";
                               updateHowToTaskText(
                                 category.id,
                                 subcategory.id,

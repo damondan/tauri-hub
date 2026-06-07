@@ -16,9 +16,11 @@
     updateDetailHighlightPattern,
     updateDialogM,
     updateDialogO,
-    profGoalExpandedYears,//name makes no sense presently TODO but is functional
+    profGoalExpandedYears, //name makes no sense presently TODO but is functional
+    updateDetailHighlightImagePattern,
   } from "$lib/stores/profgoal";
   import PatternComponent from "./PatternComponent.svelte";
+  import ImagePattern from "./ImagePattern.svelte";
 
   let editingDay = $state<{
     eid: string;
@@ -48,8 +50,7 @@
   }
 
   function togglethirdlevel(childid: string) {
-    $profGoalExpandedYears[childid] =
-      !$profGoalExpandedYears[childid];
+    $profGoalExpandedYears[childid] = !$profGoalExpandedYears[childid];
   }
 
   function openAllProfRows() {
@@ -181,7 +182,14 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
   hover:bg-black/70 hover:text-white/80 float-left rounded text-xl w-auto pl-2 pr-2 h-10 ml-2 mt-3"
               onclick={() => updateDetailHighlightPattern(id, childid)}
             >
-              Pattern
+              P
+            </button>
+            <button
+              class="bg-white/3 text-white/10
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-xl w-auto pl-2 pr-2 h-10 ml-2 mt-3"
+              onclick={() => updateDetailHighlightImagePattern(id, childid)}
+            >
+              IP
             </button>
           </div>
 
@@ -200,10 +208,10 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 <textarea
                   class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
                   focus:outline-none focus:ring-1 {levelThree.one
-                  ? "bg-white/40 text-black border border-white/30 focus:ring-white/80"
-                  : levelThree.me
-                    ? "bg-black/20 text-white/70 border border-white/20 focus:ring-white/60"
-                    : "bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80"}"
+                    ? 'bg-white/40 text-black border border-white/30 focus:ring-white/80'
+                    : levelThree.me
+                      ? 'bg-black/20 text-white/70 border border-white/20 focus:ring-white/60'
+                      : 'bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80'}"
                   use:autoResize={[
                     levelThree.text,
                     appProfState.expandedRowsTexArea[detailid],
@@ -278,6 +286,10 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             {/each}
             {#if $profGoalExpandedYears[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
               <PatternComponent {id} {childid} {levelTwo} />
+            {/if}
+
+            {#if $profGoalExpandedYears[childid] && Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
+              <ImagePattern {id} {childid} {levelTwo} />
             {/if}
           {/if}
         </div>

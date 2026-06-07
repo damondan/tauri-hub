@@ -3,6 +3,7 @@
   import {
     projectsData,
     deleteProject,
+    deleteSubProject,
     deleteTask,
     projectExpandedProjects,
     projectExpandedSubprojects,
@@ -191,17 +192,29 @@
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each Object.values(project.subprojects) as subproject (subproject.name)}
           {@const subKey = `${project.name}-${subproject.name}`}
-          <div
-            class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15"
-            onclick={() => toggleSubproject(subKey)}
-          >
-            <div class="flex items-center gap-3">
-              <span class="text-white text-3xl w-6"
-                >{$projectExpandedSubprojects[subKey] ? "▼" : "▷"}</span
-              >
-              <span class="text-white text-3xl">{subproject.name}</span>
-            </div>
+          <div class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15"
+          onclick={() => toggleSubproject(subKey)}
+        >
+          <div class="flex items-center">
+            <span class="text-white text-3xl w-6">
+              {$projectExpandedSubprojects[subKey] ? "▼" : "▷"}
+            </span>
+
+            <span class="text-white text-3xl ml-3">
+              {subproject.name}
+            </span>
+
+            <button
+              class="ml-auto bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
+              onclick={(e) => {
+                e.stopPropagation();
+                deleteSubProject(project.name,subproject.name);
+              }}
+            >
+              Del
+            </button>
           </div>
+        </div>
 
           <!-- Level 3: Tasks (only show when subproject expanded) -->
           {#if $projectExpandedSubprojects[subKey]}

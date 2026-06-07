@@ -27,9 +27,12 @@
     }
 </script>
 
-<div class="flex flex-col w-[75%] mx-auto">
+<div class="ml-15 flex items-center px-16 w-[90%] mt-0">
+	<div class="w-6 mr-2 flex-none"></div>
+
+	<div class="flex-1 flex flex-col">
 	{#each Object.entries(levelTwo.patterns ?? {}) as [patternId, values]}
-		<div class="flex flex-row flex-wrap gap-2 items-center border-2 border-y border-white/10 py-3 my-2">
+		<div class="flex flex-row flex-wrap gap-2 items-center py-3 my-2">
 			{#if patternId != ""}
 				<div class="flex flex-col mr-6">
 					<button
@@ -85,4 +88,5 @@
 			{/each}
 		</div>
 	{/each}
+</div>
 </div>

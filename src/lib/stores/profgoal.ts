@@ -2,7 +2,7 @@ import { writable } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 
-type ProfImage = {
+export type ProfImage = {
     id: string;
     dataUrl: string;
 };
@@ -900,3 +900,107 @@ export function updateDialogO( parentId: string,
         }
     }));
 }
+
+export function updateDetailHighlightImagePattern(
+  id: string,
+  childid: string
+): void {
+  profGoalHighlights.update((data) => {
+    const levelTwo = data[id]?.children?.[childid];
+
+    if (!levelTwo) return data;
+
+    levelTwo.imagePatterns ??= {};
+
+    levelTwo.imagePatterns[crypto.randomUUID()] = [];
+
+    return { ...data };
+  });
+}
+
+export function addImagePatternStep(
+  id: string,
+  childid: string,
+  imagePatternId: string,
+  image: ProfImage
+): void {
+  profGoalHighlights.update((data) => {
+    const levelTwo = data[id]?.children?.[childid];
+
+    if (!levelTwo) return data;
+
+    if (!levelTwo.imagePatterns) {
+      levelTwo.imagePatterns = {};
+    }
+
+    if (!levelTwo.imagePatterns[imagePatternId]) {
+      levelTwo.imagePatterns[imagePatternId] = [];
+    }
+
+    levelTwo.imagePatterns[imagePatternId] = [
+      ...levelTwo.imagePatterns[imagePatternId],
+      image
+    ];
+
+    return data;
+  });
+}
+
+export function removeImagePatternStep(
+  parentId: string,
+  childId: string,
+  imagePatternId: string
+) {
+  profGoalHighlights.update((currentHighlights) => {
+    const existingPattern =
+      currentHighlights[parentId]
+        .children[childId]
+        .imagePatterns?.[imagePatternId] ?? [];
+
+    const updatedPattern = [...existingPattern];
+
+    updatedPattern.pop();
+
+    const childImagePatterns =
+      currentHighlights[parentId]
+        .children[childId]
+        .imagePatterns ?? {};
+
+    if (updatedPattern.length === 0) {
+      const { [imagePatternId]: _, ...remainingImagePatterns } =
+        childImagePatterns;
+
+      return {
+        ...currentHighlights,
+        [parentId]: {
+          ...currentHighlights[parentId],
+          children: {
+            ...currentHighlights[parentId].children,
+            [childId]: {
+              ...currentHighlights[parentId].children[childId],
+              imagePatterns: remainingImagePatterns
+            }
+          }
+        }
+      };
+    }
+
+    return {
+      ...currentHighlights,
+      [parentId]: {
+        ...currentHighlights[parentId],
+        children: {
+          ...currentHighlights[parentId].children,
+          [childId]: {
+            ...currentHighlights[parentId].children[childId],
+            imagePatterns: {
+              ...childImagePatterns,
+              [imagePatternId]: updatedPattern
+            }
+          }
+        }
+      }
+    };
+  });
+}
+

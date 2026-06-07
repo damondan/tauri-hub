@@ -447,3 +447,31 @@ export function updateRealGoalEntry(
 			});
 		});
 	}
+
+	export function hasPendingGoalForDate(
+	threads: GoalThread[],
+	date: Date,
+): boolean {
+	const yearNumber = date.getFullYear();
+	const monthIndex = date.getMonth();
+	const dayIndex = date.getDate() - 1;
+
+	for (const thread of threads) {
+		const year = thread.goalCalendar[yearNumber];
+		if (!year) continue;
+
+		const month = year.months[monthIndex];
+		if (!month) continue;
+
+		const day = month.days[dayIndex];
+		if (!day) continue;
+
+		const hasPendingEntry = day.entries.some(
+			(entry) => entry.status === "pending",
+		);
+
+		if (hasPendingEntry) return true;
+	}
+
+	return false;
+}

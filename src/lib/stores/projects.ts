@@ -38,6 +38,31 @@ export function deleteProject(projectName: string): void {
 	});
 }
 
+export function deleteSubProject(
+	projectName: string,
+	subProjectName: string,
+): void {
+	projectsData.update((projects) => {
+		const project = projects[projectName];
+
+		if (!project) return projects;
+
+		const next = {
+			...projects,
+			[projectName]: {
+				...project,
+				subprojects: {
+					...project.subprojects,
+				},
+			},
+		};
+
+		delete next[projectName].subprojects[subProjectName];
+
+		return next;
+	});
+}
+
 // deleteTask(projectName: string, subprojectName: string, taskId: string): void
 export function deleteTask(projectName: string, subprojectName: string, taskId: string): void {
 	projectsData.update((projects) => {
