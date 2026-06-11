@@ -1,30 +1,33 @@
 <script lang="ts">
-    import {
-        type HighlightLevel2,
-        updatePatternSteps,
-        initStep,
-        removeStep,
-    } from "$lib/stores/profgoal";
+   import type { HighlightLevel2 } from "$lib/stores/profgoal";
     import  ChevronRight from "@lucide/svelte/icons/chevron-right";
 
     interface Props {
-        id: string;
-        childid: string;
-        levelTwo: HighlightLevel2;
-    }
-    let showSaved = $state(false);
+    id: string;
+    childid: string;
+    levelTwo: HighlightLevel2;
 
-    let { id, childid, levelTwo }: Props = $props();
+    updatePatternSteps: (
+        id: string,
+        childid: string,
+        patternId: string,
+        valueIndex: number,
+        value: string,
+    ) => void;
 
-    let tempValues = $state<string[]>([]);
+    initStep: (id: string, childid: string, patternId: string) => void;
+    removeStep: (id: string, childid: string, patternId: string) => void;
+}
 
-    function showSavedFunc() {
-        showSaved = true;
-
-        setTimeout(() => {
-            showSaved = false;
-        }, 1000);
-    }
+let {
+    id,
+    childid,
+    levelTwo,
+    updatePatternSteps,
+    initStep,
+    removeStep,
+}: Props = $props();
+ 
 </script>
 
 <div class="ml-15 flex items-center px-16 w-[90%] mt-0">

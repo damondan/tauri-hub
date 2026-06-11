@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+ import { writable } from 'svelte/store';
 
 export type GoalMeasurementType = 'time' | 'count' | 'none';
 
@@ -21,6 +21,7 @@ export interface GoalEntry {
 	description?: string;
 
 	status?: GoalEntryStatus;
+	progressMarker?: boolean;
 
 	consequenceDescription?: string;
 	isConsequenceActive?: boolean;
@@ -73,6 +74,7 @@ export interface Goal {
 	lowLimit?: number;
 
 	maxFailuresAllowed?: number;
+	failureCount?: number;
 
 	consequenceDescription?: string;
 
@@ -148,6 +150,7 @@ export function createEmptyGoal(): Goal {
 		lowLimit: 0,
 
 		maxFailuresAllowed: 10,
+		failureCount: 10,
 
 		consequenceDescription: '',
 
@@ -475,3 +478,110 @@ export function updateRealGoalEntry(
 
 	return false;
 }
+
+export function updateGoalFailureCount(
+	threadId: string,
+	goalId: string,
+	nextFailureCount: number,
+): void {
+	goalData.update((threads) => {
+		return threads.map((thread) => {
+			if (thread.threadId !== threadId) return thread;
+
+			return {
+				...thread,
+				goals: thread.goals.map((goal) => {
+					if (goal.goalId !== goalId) return goal;
+
+					return {
+						...goal,
+						failureCount: nextFailureCount,
+						hasFailed: nextFailureCount <= 0,
+					};
+				}),
+			};
+		});
+	});
+}
+
+export function decreaseGoalFailureCount(
+	threadId: string,
+	goalId: string,
+): number {
+	let nextFailureCountResult = 0;
+
+	goalData.update((threads) => {
+		return threads.map((thread) => {
+			if (thread.threadId !== threadId) return thread;
+
+			return {
+				...thread,
+				goals: thread.goals.map((goal) => {
+					if (goal.goalId !== goalId) return goal;
+
+					const currentFailureCount = Number(goal.failureCount ?? 0);
+					const nextFailureCount = Math.max(currentFailureCount - 1, 0);
+
+					nextFailureCountResult = nextFailureCount;
+
+					return {
+						...goal,
+						failureCount: nextFailureCount,
+						hasFailed: nextFailureCount <= 0,
+						isCompleted: nextFailureCount <= 0 ? true : goal.isCompleted,
+					};
+				}),
+			};
+		});
+	});
+
+	return nextFailureCountResult;
+}
+
+export function updateFutureConsequenceState(
+		threadId: string,
+		goalId: string,
+		fromDateString: string,
+		isConsequenceActive: boolean,
+	): void {
+		goalData.update((threads) => {
+			return threads.map((thread) => {
+				if (thread.threadId !== threadId) return thread;
+
+				const updatedCalendar = { ...thread.goalCalendar };
+
+				for (const yearKey of Object.keys(updatedCalendar)) {
+					const year = updatedCalendar[Number(yearKey)];
+
+					year.months = year.months.map((month) => {
+						return {
+							...month,
+							days: month.days.map((day) => {
+								return {
+									...day,
+									entries: day.entries.map((entry) => {
+										if (entry.goalId !== goalId)
+											return entry;
+										if (!entry.createdAt) return entry;
+										if (entry.createdAt < fromDateString)
+											return entry;
+
+										return {
+											...entry,
+											isConsequenceActive,
+											updatedAt: new Date().toISOString(),
+										};
+									}),
+								};
+							}),
+						};
+					});
+				}
+
+				return {
+					...thread,
+					goalCalendar: updatedCalendar,
+				};
+			});
+		});
+	}

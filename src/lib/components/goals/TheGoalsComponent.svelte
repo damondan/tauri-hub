@@ -2,10 +2,13 @@
 	import { onMount } from "svelte";
 	import { fly } from "svelte/transition";
 	import { buttonStyles } from "$lib/styles";
-
+	import InfoModal from "$lib/components/util/InfoModal.svelte";
 	import GoalEntryNode from "$lib/components/goals/GoalEntryNode.svelte";
 	import GoalEntryEditor from "$lib/components/goals/GoalEntryEditor.svelte";
-
+	import {
+		logGoalToProjects,
+		type ProjectTaskStatus,
+	} from "$lib/stores/projects";
 	import {
 		goalData,
 		addGoalThread,
@@ -19,6 +22,9 @@
 		initGoal,
 		updateGoalField,
 		generateTheGoalStructureToDate,
+		updateGoalFailureCount,
+		updateFutureConsequenceState,
+		decreaseGoalFailureCount,
 		type GoalMonth,
 		type GoalThread,
 		type Goal,
@@ -31,6 +37,159 @@
 	let displayDay: number = $state(0);
 	let todayDate: Date = $state(new Date());
 
+	//InfoModal
+	let showInfoModal = $state(false);
+	let infoModalTitle = $state("Notice");
+	let infoModalMessage = $state("");
+	let infoModalReason = $state<
+		"dateEnd" | "isCompleted" | "failureCount" | ""
+	>("");
+
+	function openInfoModal(
+		reason: "dateEnd" | "isCompleted" | "failureCount",
+		title: string,
+		message: string,
+	): void {
+		infoModalReason = reason;
+		infoModalTitle = title;
+		infoModalMessage = message;
+		showInfoModal = true;
+	}
+
+	function closeInfoModal(): void {
+		showInfoModal = false;
+		infoModalTitle = "Notice";
+		infoModalMessage = "";
+		infoModalReason = "";
+	}
+
+	function triggerDateEndInfoModal(): void {
+		openInfoModal(
+			"dateEnd",
+			"Goal Ended",
+			"This goal has reached its end date. It will be logged in the Log component.",
+		);
+	}
+
+	function triggerGoalCompletedInfoModal(): void {
+		openInfoModal(
+			"isCompleted",
+			"Goal Completed",
+			"This goal has been completed and will be logged in the Log component.",
+		);
+	}
+
+	function triggerFailureCountInfoModal(): void {
+		openInfoModal(
+			"failureCount",
+			"Failure Count Updated",
+			"Your failure count has gone down.",
+		);
+	}
+
+	function triggerGoalFailedInfoModal(): void {
+		openInfoModal(
+			"failureCount",
+			"Goal Failed",
+			"You have reached the maximum failure rates. This goal has ended and will be logged in the Log component. Have a good day.",
+		);
+	}
+
+	function getNextFailureCount(goal: Goal): number {
+		const currentFailureCount = Number(goal.failureCount ?? 0);
+
+		return Math.max(currentFailureCount - 1, 0);
+	}
+
+	function didEntryGoBelowLowLimit(
+		thread: GoalThread,
+		goal: Goal,
+		value: number,
+	): boolean {
+		if (thread.measurementType === "none") return false;
+
+		const lowLimit = Number(goal.lowLimit ?? 0);
+
+		return value < lowLimit;
+	}
+
+	function handleFailureCountModal(
+		thread: GoalThread,
+		goal: Goal,
+		nextFailureCount: number,
+	): void {
+		if (nextFailureCount <= 0) {
+			failGoalAndLog(thread, goal);
+			return;
+		}
+
+		triggerFailureCountInfoModal();
+	}
+
+	function handleGoalCompletedChange(
+		threadId: string,
+		goalId: string,
+		isCompleted: boolean,
+	): void {
+		const thread = $goalData.find(
+			(existingThread) => existingThread.threadId === threadId,
+		);
+
+		if (!thread) return;
+
+		const goal = thread.goals.find(
+			(existingGoal) => existingGoal.goalId === goalId,
+		);
+
+		if (!goal) return;
+
+		if (isCompleted) {
+			completeGoalAndLog(thread, goal);
+			return;
+		}
+
+		updateGoalField(threadId, goalId, "isCompleted", isCompleted);
+	}
+
+	function completeGoalAndLog(thread: GoalThread, goal: Goal): void {
+		logAndRemoveGoal(thread, goal, "completed");
+		triggerGoalCompletedInfoModal();
+	}
+
+	function endGoalAndLog(thread: GoalThread, goal: Goal): void {
+		logAndRemoveGoal(thread, goal, "ended");
+		triggerDateEndInfoModal();
+	}
+
+	function logAndRemoveGoal(
+		thread: GoalThread,
+		goal: Goal,
+		status: ProjectTaskStatus,
+	): void {
+		const wasLogged = logGoalToProjects(
+			"Goals",
+			goal.title ?? "",
+			goal,
+			status,
+		);
+
+		if (!wasLogged) {
+			openInfoModal(
+				"failureCount",
+				"Logging Failed",
+				"This goal could not be logged. Make sure the goal title uses #Project @Subproject Description.",
+			);
+
+			return;
+		}
+		deleteGoalFromThread(thread.threadId, goal.goalId);
+	}
+
+	function failGoalAndLog(thread: GoalThread, goal: Goal): void {
+		logAndRemoveGoal(thread, goal, "failed");
+		triggerGoalFailedInfoModal();
+	}
+
 	function getTodayDate(): Date {
 		return todayDate;
 	}
@@ -40,6 +199,27 @@
 		goal: Goal;
 		entry: GoalEntry;
 	} | null>(null);
+
+	function threadHasPendingGoalForToday(thread: GoalThread): boolean {
+		const year = todayDate.getFullYear();
+		const monthNumber = todayDate.getMonth() + 1;
+		const dayNumber = todayDate.getDate();
+
+		const goalYear = thread.goalCalendar?.[year];
+		if (!goalYear) return false;
+
+		const goalMonth = goalYear.months.find(
+			(month) => month.monthNumber === monthNumber,
+		);
+		if (!goalMonth) return false;
+
+		const goalDay = goalMonth.days.find(
+			(day) => day.dayNumber === dayNumber,
+		);
+		if (!goalDay) return false;
+
+		return goalDay.entries.some((entry) => entry.status === "pending");
+	}
 
 	onMount(() => {
 		const currentDate = getTodayDate();
@@ -154,9 +334,29 @@
 				const day = month.days[dayIndex];
 				if (!day) return thread;
 
+				let didGoalStatusChange = false;
+
+				const updatedGoals = thread.goals.map((goal) => {
+					const dateEndReached = checkGoalDateEndReached(goal, date);
+
+					if (dateEndReached && !goal.isCompleted) {
+						didGoalStatusChange = true;
+						endGoalAndLog(thread, goal);
+
+						return {
+							...goal,
+							isCompleted: true,
+						};
+					}
+
+					return goal;
+				});
+
 				const entriesToAdd: GoalEntry[] = [];
 
-				for (const goal of thread.goals) {
+				for (const goal of updatedGoals) {
+					if (goal.isCompleted) continue;
+
 					if (!isGoalScheduledForDate(goal, date)) continue;
 
 					const alreadyExists = day.entries.some(
@@ -170,7 +370,18 @@
 					);
 				}
 
-				if (entriesToAdd.length === 0) return thread;
+				const didAddEntries = entriesToAdd.length > 0;
+
+				if (!didGoalStatusChange && !didAddEntries) {
+					return thread;
+				}
+
+				if (!didAddEntries) {
+					return {
+						...thread,
+						goals: updatedGoals,
+					};
+				}
 
 				const updatedDay = {
 					...day,
@@ -193,6 +404,7 @@
 
 				return {
 					...thread,
+					goals: updatedGoals,
 					goalCalendar: {
 						...thread.goalCalendar,
 						[yearNumber]: updatedYear,
@@ -200,6 +412,29 @@
 				};
 			});
 		});
+	}
+
+	function checkGoalDateEndReached(goal: Goal, date: Date): boolean {
+		if (!goal.dateEnd) return false;
+
+		// Persisted means the goal has no end date.
+		if (goal.isPersisted) return false;
+
+		const endDate = new Date(goal.dateEnd + "T00:00:00");
+
+		const currentDateOnly = new Date(
+			date.getFullYear(),
+			date.getMonth(),
+			date.getDate(),
+		);
+
+		const endDateOnly = new Date(
+			endDate.getFullYear(),
+			endDate.getMonth(),
+			endDate.getDate(),
+		);
+
+		return currentDateOnly >= endDateOnly;
 	}
 
 	function getLastGoalValueBeforeDate(
@@ -328,7 +563,18 @@
 	}
 
 	function getYPercent(value: number, axisLimit: number): number {
-		return ((axisLimit - value) / (axisLimit * 2)) * 100;
+		const zeroLinePercent = 75;
+
+		if (!axisLimit || axisLimit <= 0) return zeroLinePercent;
+
+		if (value >= 0) {
+			return zeroLinePercent - (value / axisLimit) * zeroLinePercent;
+		}
+
+		return (
+			zeroLinePercent +
+			(Math.abs(value) / axisLimit) * (100 - zeroLinePercent)
+		);
 	}
 
 	function getXPercent(dayNumber: number, totalDays: number): number {
@@ -481,16 +727,28 @@
 		value: number,
 		description: string,
 		isConsequenceActive: boolean,
+		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
 
 		const { thread, goal } = selectedGoalEntryData;
 
-		const recordedValue = isConsequenceActive ? value / 2 : value;
+		const recordedValue =
+			isConsequenceActive && thread.measurementType !== "none"
+				? value / 2
+				: value;
+
+		const wentBelowLowLimit = didEntryGoBelowLowLimit(
+			thread,
+			goal,
+			recordedValue,
+		);
+
 		const lowerLimit = Number(goal.lowLimit ?? 0);
 
 		const shouldActivateConsequence =
-			isConsequenceActive || recordedValue < lowerLimit;
+			thread.measurementType !== "none" &&
+			(isConsequenceActive || recordedValue < lowerLimit);
 
 		if (entry.entryId.startsWith("start-")) {
 			updateGoalField(
@@ -511,7 +769,17 @@
 			hasFailed: false,
 			status: thread.measurementType === "none" ? "yes" : "done",
 			isConsequenceActive: shouldActivateConsequence,
+			progressMarker,
 		});
+
+		if (wentBelowLowLimit) {
+			const nextFailureCount = decreaseGoalFailureCount(
+				thread.threadId,
+				goal.goalId,
+			);
+
+			handleFailureCountModal(thread, goal, nextFailureCount);
+		}
 
 		if (entry.createdAt) {
 			updateFutureConsequenceState(
@@ -529,6 +797,46 @@
 		entry: GoalEntry,
 		description: string,
 		isConsequenceActive: boolean,
+		progressMarker: boolean,
+	) {
+		if (!selectedGoalEntryData) return;
+
+		const { thread, goal } = selectedGoalEntryData;
+
+		if (entry.entryId.startsWith("start-")) {
+			closeGoalEntryEditor();
+			return;
+		}
+
+		const wasAlreadyFailed = entry.hasFailed === true;
+
+		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
+			description,
+			isCompleted: true,
+			isSucceeded: false,
+			hasFailed: true,
+			status: thread.measurementType === "none" ? "no" : "not_done",
+			isConsequenceActive: true,
+			progressMarker,
+		});
+
+		if (!wasAlreadyFailed) {
+			const nextFailureCount = decreaseGoalFailureCount(
+				thread.threadId,
+				goal.goalId,
+			);
+
+			handleFailureCountModal(thread, goal, nextFailureCount);
+		}
+
+		closeGoalEntryEditor();
+	}
+
+	function handleEntryUpdate(
+		entry: GoalEntry,
+		description: string,
+		isConsequenceActive: boolean,
+		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
 
@@ -541,12 +849,18 @@
 
 		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
 			description,
-			isCompleted: true,
-			isSucceeded: false,
-			hasFailed: true,
-			status: thread.measurementType === "none" ? "no" : "not_done",
-			isConsequenceActive: true,
+			isConsequenceActive,
+			progressMarker,
 		});
+
+		if (entry.createdAt) {
+			updateFutureConsequenceState(
+				thread.threadId,
+				goal.goalId,
+				entry.createdAt,
+				isConsequenceActive,
+			);
+		}
 
 		closeGoalEntryEditor();
 	}
@@ -577,52 +891,18 @@
 		return lastState;
 	}
 
-	function updateFutureConsequenceState(
-		threadId: string,
-		goalId: string,
-		fromDateString: string,
-		isConsequenceActive: boolean,
-	): void {
-		goalData.update((threads) => {
-			return threads.map((thread) => {
-				if (thread.threadId !== threadId) return thread;
+	function getGoalLabelYOffset(thread: GoalThread, goal: Goal): number {
+		if (thread.iterateGoalMode) {
+			return 0;
+		}
 
-				const updatedCalendar = { ...thread.goalCalendar };
+		const index = thread.goals.findIndex(
+			(existingGoal) => existingGoal.goalId === goal.goalId,
+		);
 
-				for (const yearKey of Object.keys(updatedCalendar)) {
-					const year = updatedCalendar[Number(yearKey)];
+		const offsets = [0, -18, 18, -36, 36];
 
-					year.months = year.months.map((month) => {
-						return {
-							...month,
-							days: month.days.map((day) => {
-								return {
-									...day,
-									entries: day.entries.map((entry) => {
-										if (entry.goalId !== goalId)
-											return entry;
-										if (!entry.createdAt) return entry;
-										if (entry.createdAt < fromDateString)
-											return entry;
-
-										return {
-											...entry,
-											isConsequenceActive,
-											updatedAt: new Date().toISOString(),
-										};
-									}),
-								};
-							}),
-						};
-					});
-				}
-
-				return {
-					...thread,
-					goalCalendar: updatedCalendar,
-				};
-			});
-		});
+		return offsets[index % offsets.length];
 	}
 
 	function getActiveGoal(thread: GoalThread): Goal | undefined {
@@ -726,7 +1006,11 @@
 		<div class="rounded-xl bg-white/10 p-3">
 			<div class="flex items-center gap-3">
 				<button
-					class="w-8 text-3xl text-white"
+					class="w-8 border text-3xl text-white {threadHasPendingGoalForToday(
+						thread,
+					)
+						? 'border-green-400/70'
+						: 'border-white/10'}"
 					onclick={() => toggleGoalThread(thread.threadId)}
 				>
 					{thread.isExpanded ? "▼" : "▷"}
@@ -1122,7 +1406,7 @@
 									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
 									placeholder="Max"
 									value={goal.maxFailuresAllowed}
-									oninput={(e) =>
+									oninput={(e) => {
 										updateGoalField(
 											thread.threadId,
 											goal.goalId,
@@ -1131,7 +1415,17 @@
 												(e.target as HTMLInputElement)
 													.value,
 											),
-										)}
+										);
+										updateGoalField(
+											thread.threadId,
+											goal.goalId,
+											"failureCount",
+											Number(
+												(e.target as HTMLInputElement)
+													.value,
+											),
+										);
+									}}
 								/>
 							</div>
 
@@ -1167,10 +1461,9 @@
 										type="checkbox"
 										checked={goal.isCompleted}
 										onchange={(e) =>
-											updateGoalField(
+											handleGoalCompletedChange(
 												thread.threadId,
 												goal.goalId,
-												"isCompleted",
 												(e.target as HTMLInputElement)
 													.checked,
 											)}
@@ -1280,7 +1573,8 @@
 
 									{#if thread.iterateGoalMode}
 										<button
-											class="rounded border border-white/20 bg-white/10 px-3 py-1 text-white/70 hover:bg-white/20 hover:text-white"
+											class="rounded border border-white/20 bg-white/10 px-3 py-1
+											text-white/70 hover:bg-white/20 hover:text-white"
 											onclick={() =>
 												cycleActiveGoal(thread)}
 										>
@@ -1291,6 +1585,11 @@
 											Viewing:
 											{getActiveGoal(thread)?.title ||
 												"Untitled Goal"}
+										</div>
+										<div class="text-white/50">
+											Failures Remaining:
+											{getActiveGoal(thread)
+												?.failureCount ?? 0}
 										</div>
 									{:else}
 										<div class="text-white/40">
@@ -1315,15 +1614,15 @@
 						<div class="grid grid-cols-[4rem_1fr] gap-2">
 							<!-- Y-axis labels -->
 							<div
-								class="relative h-[27rem] border-r border-white/20 pr-2"
+								class="relative h-[37rem] border-r border-white/20 pr-2"
 							>
 								{#each yAxisLabels as label}
 									<div
-										class="absolute right-2 -translate-y-1/2 text-lg text-white/50"
-										style:top={((axisLimit - label) /
-											(axisLimit * 2)) *
-											100 +
-											"%"}
+										class="absolute right-2 -translate-y-1/2 text-xs text-white/50"
+										style:top={getYPercent(
+											label,
+											axisLimit,
+										) + "%"}
 									>
 										{label}
 									</div>
@@ -1332,22 +1631,23 @@
 
 							<!-- Grid area -->
 							<div
-								class="relative h-[27rem] border border-white/20 bg-white/5"
+								class="relative h-[37rem] border border-white/20 bg-white/5"
 							>
 								<!-- Horizontal grid lines -->
 								{#each yAxisLabels as label}
 									<div
 										class="absolute left-0 w-full border-t border-white/10"
-										style:top={((axisLimit - label) /
-											(axisLimit * 2)) *
-											100 +
-											"%"}
+										style:top={getYPercent(
+											label,
+											axisLimit,
+										) + "%"}
 									></div>
 								{/each}
 
 								<!-- Zero line -->
 								<div
-									class="absolute left-0 top-1/2 w-full border-t-2 border-white/40"
+									class="absolute left-0 w-full border-t-2 border-white/40"
+									style:top={getYPercent(0, axisLimit) + "%"}
 								></div>
 
 								<!-- Vertical day lines -->
@@ -1381,37 +1681,66 @@
 										Number(plottedGoal.lowLimit ?? 0),
 										axisLimit,
 									)}
+									{@const measurementAmountPercent =
+										getYPercent(
+											Number(
+												plottedGoal.measurementAmount ??
+													0,
+											),
+											axisLimit,
+										)}
+									{@const goalLabelYOffset =
+										getGoalLabelYOffset(
+											thread,
+											plottedGoal,
+										)}
+
 									{#if thread.iterateGoalMode && thread.measurementType !== "none"}
+										<!-- Goal amount guide -->
+										<div
+											class="pointer-events-none absolute left-0 w-full border-t border-green-500 opacity-80"
+											style:top={measurementAmountPercent +
+												"%"}
+										></div>
+
+										<div
+											class="pointer-events-none absolute left-2 rounded bg-black/80 px-2 py-0.5 text-sm text-green-500"
+											style:top={"calc(" +
+												measurementAmountPercent +
+												"% + " +
+												goalLabelYOffset +
+												"px)"}
+										>
+											Goal {plottedGoal.measurementAmount}
+										</div>
 										<!-- High limit guide -->
 										<div
-											class="pointer-events-none absolute left-0 w-full border-t border-dashed opacity-60"
+											class="pointer-events-none absolute left-0 w-full border-2 border-dashed opacity-60"
 											style:top={highLimitPercent + "%"}
 											style:border-color={plottedGoal.color ??
 												"#ffffff"}
 										></div>
 
 										<div
-											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-xs"
+											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm"
 											style:top={highLimitPercent + "%"}
-											style:color={plottedGoal.color ??
-												"#ffffff"}
+											style:color="#ffffff"
 										>
 											High {plottedGoal.highLimit}
 										</div>
 
 										<!-- Low limit guide -->
 										<div
-											class="pointer-events-none absolute left-0 w-full border-t border-dashed opacity-60"
+											class="pointer-events-none absolute left-0 w-full border-2 border-dashed opacity-60"
 											style:top={lowLimitPercent + "%"}
 											style:border-color={plottedGoal.color ??
 												"#ffffff"}
 										></div>
 
 										<div
-											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-xs"
+											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm"
 											style:top={lowLimitPercent + "%"}
-											style:color={plottedGoal.color ??
-												"#ffffff"}
+											style:color="#ffffff"
 										>
 											Low {plottedGoal.lowLimit}
 										</div>
@@ -1421,13 +1750,13 @@
 									{#if latestNode}
 										<!-- Latest value horizontal guide -->
 										<div
-											class="pointer-events-none absolute left-0 w-full border-t border-white/10 border-dashed"
+											class="pointer-events-none absolute left-0 w-full"
 											style:top={latestNode.yPercent +
 												"%"}
 										></div>
 
 										<div
-											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-xs text-white/80"
+											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm text-white"
 											style:top={latestNode.yPercent +
 												"%"}
 										>
@@ -1506,6 +1835,23 @@
 
 									<!-- Node layer -->
 									{#each plottedNodes as node (node.key)}
+										{#if node.entry.progressMarker && thread.measurementType !== "none"}
+											<div
+												class="pointer-events-none absolute top-0 h-full w-px bg-white/30"
+												style:left={node.xPercent + "%"}
+											></div>
+
+											<div
+												class="pointer-events-none absolute -translate-x-1/2 rounded-full bg-black/80 px-2 py-0.5 text-md font-bold text-white"
+												style:left={node.xPercent + "%"}
+												style:top={"calc(" +
+													node.yPercent +
+													"% - 70px)"}
+											>
+												{node.entry.value ?? 0}
+											</div>
+										{/if}
+
 										<GoalEntryNode
 											entry={node.entry}
 											xPercent={node.xPercent}
@@ -1561,6 +1907,14 @@
 		entry={selectedGoalEntryData.entry}
 		onDone={handleEntryDone}
 		onNotDone={handleEntryNotDone}
+		onUpdate={handleEntryUpdate}
 		onCancel={closeGoalEntryEditor}
+	/>
+{/if}
+{#if showInfoModal}
+	<InfoModal
+		title={infoModalTitle}
+		message={infoModalMessage}
+		onClose={closeInfoModal}
 	/>
 {/if}

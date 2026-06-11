@@ -12,10 +12,10 @@
     removeTodoItem,
     todoField1,
     todoField2,
-    sendTodoToProjects,
     todoExpandedState,
     updateActiveTodo,
   } from "$lib/stores/todo";
+  import { sendTodoToProjects } from "$lib/stores/projects";
   import {
     resizeTextarea,
     resizeAllTextareas,
@@ -163,10 +163,11 @@
 {#if Object.keys($todosByDate).length === 0}
   <div class="text-white/70 italic p-10">No todos yet. Click + to start.</div>
 {/if}
-
+<!--items is TodoItem[]-->
 {#each Object.entries($todosByDate) as [date, items] (date)}
   {#if items.length > 0}
     <div class="w-full flex flex-col gap-2 py-2 px-6 border-b border-white/10">
+    <!--item is rows:TodoRow[]-->
       {#each items as item (item.id)}
         <div
           role="listitem"
@@ -226,6 +227,7 @@
             />
 
             <div class="flex gap-2" onclick={(e) => e.stopPropagation()}>
+            <!--item.id is the TodoItem.id and item is the rows:TodoRow[] for that item.id-->
               <button
                 class="px-4 py-1 rounded-lg text-white font-medium transition-colors {allRowsCompleted(
                   item,

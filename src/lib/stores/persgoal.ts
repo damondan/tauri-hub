@@ -20,6 +20,11 @@ export const persLockState = writable<PersLockState>(LockState.NOT_SET);
 type DirtyType = "year" | "month" | "week" | "day";
 export const dirtyNodes = writable<Set<string>>(new Set());
 
+export type ProfImage = {
+    id: string;
+    dataUrl: string;
+};
+
 interface HighlightLevel3 {
     text: string;
     one: boolean;
@@ -29,6 +34,8 @@ interface HighlightLevel3 {
 interface HighlightLevel2 {
     text: string;
     children: Record<string, HighlightLevel3>;
+    patterns?: Record<string, string[]>;
+    imagePatterns?: Record<string, ProfImage[]>;
 }
 
 export interface HighlightLevel1 {
@@ -37,7 +44,7 @@ export interface HighlightLevel1 {
 }
 
 export const persGoalHighlights = writable<Record<string, HighlightLevel1>>({});
-
+//export const persOrder = writable<string[]>([]);
 export type PersLockState = typeof LockState[keyof typeof LockState];
 
 type PersImage = {
@@ -873,7 +880,7 @@ export function addDetailHighlight(
                             .children![childId]
                             .children,
                         [id]: {
-                            text: "",one:false,me:false
+                            text: "", one: false, me: false
                         }
                     }
                 }
@@ -1082,11 +1089,11 @@ export function migratePersGoal(
     return data as PersGoalYear[];
 }
 
-export function updateDialogM( parentId: string,
+export function updateDialogM(parentId: string,
     childId: string,
     detailId: string,
-    value: boolean){
-     persGoalHighlights.update((highlights) => ({
+    value: boolean) {
+    persGoalHighlights.update((highlights) => ({
         ...highlights,
         [parentId]: {
             ...highlights[parentId],
@@ -1112,11 +1119,11 @@ export function updateDialogM( parentId: string,
     }));
 }
 
-export function updateDialogO( parentId: string,
+export function updateDialogO(parentId: string,
     childId: string,
     detailId: string,
-    value: boolean){
-     persGoalHighlights.update((highlights) => ({
+    value: boolean) {
+    persGoalHighlights.update((highlights) => ({
         ...highlights,
         [parentId]: {
             ...highlights[parentId],
@@ -1140,4 +1147,290 @@ export function updateDialogO( parentId: string,
             }
         }
     }));
+}
+
+export function updateDetailHighlightPattern(
+    parentId: string,
+    childId: string,
+) {
+    console.log(`In updateDetailhighlightPattern`);
+    const newPatternId = makeId();
+
+    persGoalHighlights.update((highlights) => ({
+        ...highlights,
+
+        [parentId]: {
+            ...highlights[parentId],
+
+            children: {
+                ...highlights[parentId].children,
+
+                [childId]: {
+                    ...highlights[parentId].children[childId],
+
+                    patterns: {
+                        ...(highlights[parentId]
+                            .children[childId]
+                            .patterns ?? {}),
+
+                        [newPatternId]: [""]
+                    }
+                }
+            }
+        }
+    }));
+}
+
+export function updateDetailHighlightImagePattern(
+    id: string,
+    childid: string
+): void {
+    persGoalHighlights.update((data) => {
+        const levelTwo = data[id]?.children?.[childid];
+
+        if (!levelTwo) return data;
+
+        levelTwo.imagePatterns ??= {};
+
+        levelTwo.imagePatterns[crypto.randomUUID()] = [];
+
+        return { ...data };
+    });
+}
+
+export function updatePatternSteps(
+    parentId: string,
+    childId: string,
+    patternId: string,
+    index: number,
+    stepValue: string
+) {
+    persGoalHighlights.update((currentHighlights) => {
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns?.[patternId] ?? [];
+
+        const updatedPattern = [...existingPattern];
+
+        updatedPattern[index] = stepValue;
+
+        return {
+            ...currentHighlights,
+
+            [parentId]: {
+                ...currentHighlights[parentId],
+
+                children: {
+                    ...currentHighlights[parentId].children,
+
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+
+                        patterns: {
+                            ...(currentHighlights[parentId]
+                                .children[childId]
+                                .patterns ?? {}),
+
+                            [patternId]: updatedPattern
+                        }
+                    }
+                }
+            }
+        };
+    });
+}
+
+export function initStep(parentId: string,
+    childId: string,
+    patternId: string) {
+    persGoalHighlights.update((currentHighlights) => {
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns?.[patternId] ?? [];
+
+        const updatedPattern = [...existingPattern];
+
+        updatedPattern.push("");
+
+        return {
+            ...currentHighlights,
+
+            [parentId]: {
+                ...currentHighlights[parentId],
+
+                children: {
+                    ...currentHighlights[parentId].children,
+
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+
+                        patterns: {
+                            ...(currentHighlights[parentId]
+                                .children[childId]
+                                .patterns ?? {}),
+
+                            [patternId]: updatedPattern
+                        }
+                    }
+                }
+            }
+        };
+    });
+}
+
+export function removeStep(
+    parentId: string,
+    childId: string,
+    patternId: string
+) {
+    persGoalHighlights.update((currentHighlights) => {
+
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns?.[patternId] ?? [];
+
+        const updatedPattern = [...existingPattern];
+
+        updatedPattern.pop();
+
+        const childPatterns =
+            currentHighlights[parentId]
+                .children[childId]
+                .patterns ?? {};
+
+        // 👇 IF EMPTY → REMOVE KEY
+        if (updatedPattern.length === 0) {
+
+            const { [patternId]: _, ...remainingPatterns } = childPatterns;
+
+            return {
+                ...currentHighlights,
+
+                [parentId]: {
+                    ...currentHighlights[parentId],
+
+                    children: {
+                        ...currentHighlights[parentId].children,
+
+                        [childId]: {
+                            ...currentHighlights[parentId].children[childId],
+
+                            patterns: remainingPatterns
+                        }
+                    }
+                }
+            };
+        }
+
+        // 👇 ELSE → KEEP KEY UPDATED
+        return {
+            ...currentHighlights,
+
+            [parentId]: {
+                ...currentHighlights[parentId],
+
+                children: {
+                    ...currentHighlights[parentId].children,
+
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+
+                        patterns: {
+                            ...childPatterns,
+                            [patternId]: updatedPattern
+                        }
+                    }
+                }
+            }
+        };
+    });
+}
+
+export function addImagePatternStep(
+  id: string,
+  childid: string,
+  imagePatternId: string,
+  image: ProfImage
+): void {
+  persGoalHighlights.update((data) => {
+    const levelTwo = data[id]?.children?.[childid];
+
+    if (!levelTwo) return data;
+
+    if (!levelTwo.imagePatterns) {
+      levelTwo.imagePatterns = {};
+    }
+
+    if (!levelTwo.imagePatterns[imagePatternId]) {
+      levelTwo.imagePatterns[imagePatternId] = [];
+    }
+
+    levelTwo.imagePatterns[imagePatternId] = [
+      ...levelTwo.imagePatterns[imagePatternId],
+      image
+    ];
+
+    return data;
+  });
+}
+
+export function removeImagePatternStep(
+  parentId: string,
+  childId: string,
+  imagePatternId: string
+) {
+  persGoalHighlights.update((currentHighlights) => {
+    const existingPattern =
+      currentHighlights[parentId]
+        .children[childId]
+        .imagePatterns?.[imagePatternId] ?? [];
+
+    const updatedPattern = [...existingPattern];
+
+    updatedPattern.pop();
+
+    const childImagePatterns =
+      currentHighlights[parentId]
+        .children[childId]
+        .imagePatterns ?? {};
+
+    if (updatedPattern.length === 0) {
+      const { [imagePatternId]: _, ...remainingImagePatterns } =
+        childImagePatterns;
+
+      return {
+        ...currentHighlights,
+        [parentId]: {
+          ...currentHighlights[parentId],
+          children: {
+            ...currentHighlights[parentId].children,
+            [childId]: {
+              ...currentHighlights[parentId].children[childId],
+              imagePatterns: remainingImagePatterns
+            }
+          }
+        }
+      };
+    }
+
+    return {
+      ...currentHighlights,
+      [parentId]: {
+        ...currentHighlights[parentId],
+        children: {
+          ...currentHighlights[parentId].children,
+          [childId]: {
+            ...currentHighlights[parentId].children[childId],
+            imagePatterns: {
+              ...childImagePatterns,
+              [imagePatternId]: updatedPattern
+            }
+          }
+        }
+      }
+    };
+  });
 }

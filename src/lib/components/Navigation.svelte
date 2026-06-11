@@ -26,12 +26,12 @@
 
 	const tabs = [
 		{ path: "/", label: "Services" },
+		{ path: "/personal", label: "Pers" },
+		{ path: "/articulate", label: "Artic" },
+		{ path: "/professional", label: "Prof" },
+		{ path: "/projects", label: "Logs" },
 		{ path: "/finances", label: "Finance" },
 		{ path: "/todo", label: "ToDo" },
-		{ path: "/projects", label: "Logs" },
-		{ path: "/personal", label: "Pers" },
-		{ path: "/professional", label: "Prof" },
-		{ path: "/articulate", label: "Artic" },
 		{ path: "/thegoals", label: "Goals" },
 		{ path: "/commands", label: "Commands" },
 		{ path: "/howto", label: "HowTo" },
@@ -41,8 +41,11 @@
 	];
 
 	onMount(() => {
-		const today = new Date();
-		hasPendingGoalToday = hasPendingGoalForDate(get(goalData), today);
+		$effect(() => {
+			const today = new Date();
+
+			hasPendingGoalToday = hasPendingGoalForDate($goalData, today);
+		});
 	});
 
 	export function cancelAuth() {

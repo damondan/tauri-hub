@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { buttonStyles } from "$lib/styles";
   import { autoResize } from "$lib/utils/textareaResize";
   import { appPersState } from "$lib/stores/state.svelte";
+  import { onMount } from "svelte";
   import {
     persGoalHighlights,
-    updateTopHighlight,
     addHighlightItem,
+    updateTopHighlight,
     addSubHighlight,
     addDetailHighlight,
     removeHighlight,
@@ -13,12 +13,26 @@
     removeDetailHighlight,
     updateSubHighlight,
     updateDetailHighlight,
+    updateDetailHighlightPattern,
     updateDialogM,
     updateDialogO,
+    persGoalExpandedYears, //name makes no sense presently TODO but is functional
+    updateDetailHighlightImagePattern,
+    updatePatternSteps,
+    initStep,
+    removeStep,
   } from "$lib/stores/persgoal";
-  // let { showTop } = $props();
+  import PatternComponent from "./PatternComponent.svelte";
+  import ImagePattern from "./ImagePattern.svelte";
 
-  let selectedGoalId: string | null = null;
+  let editingDay = $state<{
+    eid: string;
+    echildid: string;
+    edetailid: string;
+    etext: string;
+  } | null>(null);
+
+  onMount(() => {});
 
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRowsTexArea[dayId] ?? false;
@@ -35,26 +49,37 @@
   }
 
   function togglesublevel(id: string) {
-    appPersState.expandedRows[id] = !appPersState.expandedRows[id];
+    $persGoalExpandedYears[id] = !$persGoalExpandedYears[id];
   }
 
   function togglethirdlevel(childid: string) {
-    appPersState.expandedRows[childid] = !appPersState.expandedRows[childid];
+    $persGoalExpandedYears[childid] = !$persGoalExpandedYears[childid];
+  }
+
+  function openAllPersRows() {
+    for (const key in $persGoalExpandedYears) {
+      console.log(`In openAllPersRows ${key}`);
+      $persGoalExpandedYears[key] = true;
+    }
   }
 </script>
 
 <div class="m-0 p-0">
   <button
-    class="bg-white/10 text-white/30 m-0 p-0
-          hover:bg-black/70 hover:text-white/80
-          float-left rounded text-md w-6 h-full
-          border border-white/30"
+    class="domainsAddButton bg-white/20 hover:bg-white/40 text-white/50
+    hover:text-white px-3 py-1 rounded-lg transition-colors float-left"
     onclick={() => addHighlightItem()}
   >
     +
   </button>
 </div>
-
+<button
+  class="ml-10 rounded text-sm bg-white/10 text-white/30
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
+  onclick={openAllPersRows}
+>
+  Open All
+</button>
 <!-- Top level -->
 {#each Object.entries($persGoalHighlights) as [id, levelOne] (id)}
   <div class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono">
@@ -64,7 +89,7 @@
       hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => {
           addSubHighlight(id);
-          appPersState.expandedRows[id] = true;
+          $persGoalExpandedYears[id] = true;
         }}
       >
         +
@@ -74,7 +99,7 @@
         class="text-white/20 text-3xl w-6"
         onclick={() => togglesublevel(id)}
       >
-        {appPersState.expandedRows[id] ? "▼" : "▷"}
+        {$persGoalExpandedYears[id] ? "▼" : "▷"}
       </button>
 
       <textarea
@@ -97,17 +122,15 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
       </button>
     </div>
 
-    <!-- Middle level: only render when this top row is expanded -->
-    {#if appPersState.expandedRows[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
-      {#each Object.entries(levelOne.children ?? {}) as [childid, levelTwo] (childid)}
-        <div class="px-6 flex flex-col w-full gap-3 mt-4">
-          <div class="flex flex-row gap-2">
-            <button
-              class="bg-white/5 text-white/10
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
+   <!-- Middle level: only render when this top row is expanded --> 
+    {#if $persGoalExpandedYears[id] && levelOne.children && Object.keys(levelOne.children).length > 0} 
+    {#each Object.entries(levelOne.children ?? {}) as [childid, levelTwo] (childid)} 
+    <div class="px-6 flex flex-col w-full gap-3 mt-4"> 
+      <div class="flex flex-row gap-2">
+      <button class="bg-white/5 text-white/10 hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => {
                 addDetailHighlight(id, childid);
-                appPersState.expandedRowsTexArea[childid] = true;
+                $persGoalExpandedYears[childid] = true;
               }}
             >
               +
@@ -126,11 +149,11 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
               class="text-white/20 text-3xl w-6"
               onclick={() => togglethirdlevel(childid)}
             >
-              {appPersState.expandedRows[childid] ? "▼" : "▷"}
+              {$persGoalExpandedYears[childid] ? "▼" : "▷"}
             </button>
 
             <textarea
-              class="flex-1 pb-3 pt-3 mb-2 bg-sky-400/20 rounded-2xl px-3 py-1 text-sky-200/70 text-3xl resize-none overflow-hidden
+              class="flex-1 min-w-0 pb-3 pt-3 mb-2 bg-sky-400/20 rounded-2xl px-3 py-1 text-sky-200/70 text-3xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-sky-300/80"
               use:autoResize={[
                 levelTwo.text,
@@ -148,23 +171,36 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             />
 
             <button
-              class="bg-white/5 text-white/10
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
+              class="bg-white/5 text-white/10 hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => removeSubHighlight(id, childid)}
             >
               -
             </button>
+            <button
+              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-10 mt-3"
+              onclick={() => updateDetailHighlightPattern(id, childid)}
+            >
+              P
+            </button>
+
+            <button
+              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-10 mt-3"
+              onclick={() => updateDetailHighlightImagePattern(id, childid)}
+            >
+              IP
+            </button>
+            <!-- <div class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
+          >
+            ⠿
+          </div> -->
           </div>
 
           <!-- Lower level: only render when this middle row is expanded -->
-          {#if appPersState.expandedRows[childid] && levelTwo.children && Object.keys(levelTwo.children).length > 0}
+          {#if $persGoalExpandedYears[childid] && levelTwo.children && Object.keys(levelTwo.children).length > 0}
             {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
               <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
                 <button
-                  onclick={() => {
-                    toggleExpand(detailid);
-                    appPersState.expandedRowsTexArea[detailid] = true; 
-                  }}
+                  onclick={() => toggleExpand(detailid)}
                   class="mt-0 mr-2 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
                   title="Toggle Expand"
                 >
@@ -174,14 +210,22 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 <textarea
                   class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
                   focus:outline-none focus:ring-1 {levelThree.one
-                  ? "bg-white/40 text-black border border-white/30 focus:ring-white/80"
-                  : levelThree.me
-                    ? "bg-black/20 text-white/70 border border-white/20 focus:ring-white/60"
-                    : "bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80"}"
+                    ? 'bg-white/70 text-black border border-white/30 focus:ring-white/80'
+                    : levelThree.me
+                      ? 'bg-black/20 text-white/70 border border-white/20 focus:ring-white/60'
+                      : 'bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80'}"
                   use:autoResize={[
                     levelThree.text,
                     appPersState.expandedRowsTexArea[detailid],
                   ]}
+                  ondblclick={() => {
+                    editingDay = {
+                      eid: id,
+                      echildid: childid,
+                      edetailid: detailid,
+                      etext: levelThree.text || "",
+                    };
+                  }}
                   value={levelThree.text}
                   rows="1"
                   oninput={(e) => {
@@ -203,7 +247,7 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 </button>
                 <div class="flex flex-col float-end">
                   <label class="flex gap-1 cursor-pointer">
-                    <span class="text-teal-100/20 text-sm leading-tight">
+                    <span class="text-teal-100/50 text-sm leading-tight">
                       M
                     </span>
 
@@ -217,12 +261,12 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                           detailid,
                           (e.target as HTMLInputElement).checked,
                         )}
-                      class="w-4 h-4 accent-teal-500 opacity-10"
+                      class="w-4 h-4 accent-teal-500 opacity-20"
                     />
                   </label>
 
                   <label class="flex gap-1 cursor-pointer">
-                    <span class="text-cyan-100/20 text-sm leading-tight">
+                    <span class="text-cyan-100/50 text-sm leading-tight">
                       O
                     </span>
 
@@ -236,15 +280,88 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                           detailid,
                           (e.target as HTMLInputElement).checked,
                         )}
-                      class="w-4 h-4 accent-cyan-500 opacity-10"
+                      class="w-4 h-4 accent-cyan-500 opacity-20"
                     />
                   </label>
                 </div>
               </div>
             {/each}
+            {#if $persGoalExpandedYears[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
+               <PatternComponent 
+                  {id} 
+                  {childid} 
+                  {levelTwo} 
+                  {updatePatternSteps} 
+                  {initStep} 
+                  {removeStep}
+                  />
+            {/if}
+
+            {#if $persGoalExpandedYears[childid] && Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
+              <ImagePattern {id} {childid} {levelTwo} />
+            {/if}
           {/if}
         </div>
       {/each}
     {/if}
   </div>
 {/each}
+
+{#if editingDay}
+  <div class="fixed inset-0 z-[100] flex items-center justify-center">
+    <div
+      class="absolute inset-0 bg-black/80 backdrop-blur-md"
+      onclick={() => (editingDay = null)}
+    ></div>
+
+    <div
+      class="relative w-[95vw] md:w-[90vw] lg:w-[85vw] h-[80vh] bg-[#1a1a1a] border border-white/20 rounded-3xl flex flex-col shadow-2xl"
+    >
+      <div
+        class="p-4 border-b border-white/10 flex justify-between items-center text-white/50 font-mono"
+      >
+        <span>EDITOR</span>
+        <span class="text-xs">Through Perseverance We Conquer</span>
+      </div>
+
+      <textarea
+        class="flex-1 bg-transparent p-4 text-white text-2xl font-mono outline-none resize-none overflow-y-auto"
+        style="padding-top: 5vh; padding-bottom: 5vh;"
+        bind:value={editingDay.etext}
+        autofocus
+      ></textarea>
+
+      <div class="p-6 border-t border-white/10 flex">
+        <div class="flex mr-4">
+          <button
+            onclick={() => {
+              const current = editingDay;
+              if (!current) return;
+              updateDetailHighlight(
+                current.eid,
+                current.echildid,
+                current.edetailid,
+                current.etext,
+              );
+
+              // saveUserEncryptionData();
+              editingDay = null;
+            }}
+            class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
+          >
+            Save
+          </button>
+
+          <button
+            onclick={() => {
+              editingDay = null;
+            }}
+            class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}

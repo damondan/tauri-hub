@@ -9,24 +9,40 @@
 			entry: GoalEntry,
 			value: number,
 			description: string,
-			isConsequenceActive: boolean,
+			consequenceCompleted: boolean,
+			progressMarker:boolean
 		) => void;
-
 		onNotDone: (
 			entry: GoalEntry,
 			description: string,
-			isConsequenceActive: boolean,
+			consequenceCompleted: boolean,
+			progressMarker: boolean
+		) => void;
+		onUpdate: (
+			entry: GoalEntry,
+			description: string,
+			consequenceCompleted: boolean,
+			progressMarker: boolean
 		) => void;
 		onCancel: () => void;
 	}
 
-	let { thread, goal, entry, onDone, onNotDone, onCancel }: Props = $props();
+	let {
+	thread,
+	goal,
+	entry,
+	onDone,
+	onNotDone,
+	onUpdate,
+	onCancel
+}: Props = $props();
 
 	let entryValue = $state<number>(Number(entry.value ?? 0));
 	let entryDescription = $state<string>(entry.description ?? "");
 	let isConsequenceActive = $state<boolean>(
 		entry.isConsequenceActive ?? false,
 	);
+	let isMarkerOn = $state<boolean>(entry.progressMarker ?? false);
 
 	const isNoneGoal = $derived(thread.measurementType === "none");
 	const isCountGoal = $derived(thread.measurementType === "count");
@@ -109,34 +125,53 @@
 					readonly
 				></textarea>
 			</div>
-			<label
-				class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70"
-			>
-				<input type="checkbox" bind:checked={isConsequenceActive} />
+			<div class="flex flex-row">
+				<label
+					class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70 mx-auto"
+				>
+					<input type="checkbox" bind:checked={isConsequenceActive} />
 
-				Consequence Active?
-			</label>
+					Consequence Active?
+				</label>
+				<label
+					class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70 mx-auto"
+				>
+					<input type="checkbox" bind:checked={isMarkerOn} />
+
+					Set Progress Marker?
+				</label>
+			</div>
 		</div>
 
 		<div class="mt-5 flex justify-end gap-3">
-			<button
-				type="button"
-				class="rounded bg-white/10 px-4 py-2 text-white/60 hover:bg-white/20 hover:text-white"
-				onclick={onCancel}
-			>
-				Cancel
-			</button>
+	<button
+		type="button"
+		class="rounded bg-blue-500/20 px-4 py-2 text-blue-200 hover:bg-blue-500 hover:text-white"
+		onclick={() =>
+			onUpdate(
+				entry,
+				entryDescription,
+				isConsequenceActive,
+				isMarkerOn
+			)}
+	>
+		Update
+	</button>
+
+	<button
+		type="button"
+		class="rounded bg-white/10 px-4 py-2 text-white/60 hover:bg-white/20 hover:text-white"
+		onclick={onCancel}
+	>
+		Cancel
+	</button>
 
 			{#if isNoneGoal}
 				<button
 					type="button"
 					class="rounded bg-red-500/20 px-4 py-2 text-red-300 hover:bg-red-500 hover:text-white"
 					onclick={() =>
-						onNotDone(
-							entry,
-							entryDescription,
-							true,
-						)}
+						onNotDone(entry, entryDescription, true, isMarkerOn)}
 				>
 					No
 				</button>
@@ -150,6 +185,7 @@
 							0,
 							entryDescription,
 							isConsequenceActive,
+							isMarkerOn,
 						)}
 				>
 					Yes
@@ -159,11 +195,7 @@
 					type="button"
 					class="rounded bg-red-500/20 px-4 py-2 text-red-300 hover:bg-red-500 hover:text-white"
 					onclick={() =>
-						onNotDone(
-							entry,
-							entryDescription,
-							true,
-						)}
+						onNotDone(entry, entryDescription, true, isMarkerOn)}
 				>
 					Not Done
 				</button>
@@ -177,6 +209,7 @@
 							Number(entryValue),
 							entryDescription,
 							isConsequenceActive,
+							isMarkerOn,
 						)}
 				>
 					Done

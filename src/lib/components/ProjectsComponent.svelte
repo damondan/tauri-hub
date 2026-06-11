@@ -10,7 +10,6 @@
     projectExpandedTasks,
     projectOrder,
   } from "$lib/stores/projects";
-  import { stopPropagation } from "svelte/legacy";
 
   //Dragging functionality
   let draggingId = $state<string | null>(null);

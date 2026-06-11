@@ -18,6 +18,9 @@
     updateDialogO,
     profGoalExpandedYears, //name makes no sense presently TODO but is functional
     updateDetailHighlightImagePattern,
+    updatePatternSteps,
+    initStep,
+    removeStep,
   } from "$lib/stores/profgoal";
   import PatternComponent from "./PatternComponent.svelte";
   import ImagePattern from "./ImagePattern.svelte";
@@ -285,7 +288,14 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
               </div>
             {/each}
             {#if $profGoalExpandedYears[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
-              <PatternComponent {id} {childid} {levelTwo} />
+              <PatternComponent 
+                  {id} 
+                  {childid} 
+                  {levelTwo} 
+                  {updatePatternSteps} 
+                  {initStep} 
+                  {removeStep}
+                  />
             {/if}
 
             {#if $profGoalExpandedYears[childid] && Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
