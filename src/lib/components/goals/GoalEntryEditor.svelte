@@ -10,18 +10,21 @@
 			value: number,
 			description: string,
 			consequenceCompleted: boolean,
+			entryConsequenceDescr: string,
 			progressMarker:boolean
 		) => void;
 		onNotDone: (
 			entry: GoalEntry,
 			description: string,
 			consequenceCompleted: boolean,
+			entryConsequenceDescr: string,
 			progressMarker: boolean
 		) => void;
 		onUpdate: (
 			entry: GoalEntry,
 			description: string,
 			consequenceCompleted: boolean,
+			entryConsequenceDescr: string,
 			progressMarker: boolean
 		) => void;
 		onCancel: () => void;
@@ -39,6 +42,7 @@
 
 	let entryValue = $state<number>(Number(entry.value ?? 0));
 	let entryDescription = $state<string>(entry.description ?? "");
+	let entryConsequenceDescr = $state<string>(entry.consequenceDescription ?? "");
 	let isConsequenceActive = $state<boolean>(
 		entry.isConsequenceActive ?? false,
 	);
@@ -85,12 +89,12 @@
 
 		<div class="space-y-4">
 			<div class="flex flex-col">
-				<label class="mb-1 text-sm text-white/50"> Description </label>
+				<label class="mb-1 text-sm text-white/50"> Notes/Goal Mods </label>
 
 				<textarea
 					rows="3"
 					class="resize-none rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/30"
-					placeholder="Add notes about this entry..."
+					placeholder="Add notes or mod goals for today..."
 					bind:value={entryDescription}
 				></textarea>
 			</div>
@@ -121,8 +125,8 @@
 				<textarea
 					rows="2"
 					class="resize-none rounded border border-white/20 bg-white/5 px-3 py-2 text-white/70 placeholder-white/30"
-					value={goal.consequenceDescription ?? ""}
-					readonly
+					bind:value={entryConsequenceDescr}
+					placeholder="Refine Consequence for today..."
 				></textarea>
 			</div>
 			<div class="flex flex-row">
@@ -152,6 +156,7 @@
 				entry,
 				entryDescription,
 				isConsequenceActive,
+				entryConsequenceDescr,
 				isMarkerOn
 			)}
 	>
@@ -171,7 +176,7 @@
 					type="button"
 					class="rounded bg-red-500/20 px-4 py-2 text-red-300 hover:bg-red-500 hover:text-white"
 					onclick={() =>
-						onNotDone(entry, entryDescription, true, isMarkerOn)}
+						onNotDone(entry, entryDescription, true, entryConsequenceDescr, isMarkerOn)}
 				>
 					No
 				</button>
@@ -185,6 +190,7 @@
 							0,
 							entryDescription,
 							isConsequenceActive,
+							entryConsequenceDescr,
 							isMarkerOn,
 						)}
 				>
@@ -195,7 +201,7 @@
 					type="button"
 					class="rounded bg-red-500/20 px-4 py-2 text-red-300 hover:bg-red-500 hover:text-white"
 					onclick={() =>
-						onNotDone(entry, entryDescription, true, isMarkerOn)}
+						onNotDone(entry, entryDescription, true, entryConsequenceDescr, isMarkerOn)}
 				>
 					Not Done
 				</button>
@@ -209,6 +215,7 @@
 							Number(entryValue),
 							entryDescription,
 							isConsequenceActive,
+							entryConsequenceDescr,
 							isMarkerOn,
 						)}
 				>

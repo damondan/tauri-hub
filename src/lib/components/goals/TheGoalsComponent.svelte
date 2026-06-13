@@ -727,10 +727,11 @@
 		value: number,
 		description: string,
 		isConsequenceActive: boolean,
+		goalEntryConsequence: string,
 		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
-
+		
 		const { thread, goal } = selectedGoalEntryData;
 
 		const recordedValue =
@@ -769,6 +770,7 @@
 			hasFailed: false,
 			status: thread.measurementType === "none" ? "yes" : "done",
 			isConsequenceActive: shouldActivateConsequence,
+			consequenceDescription: goalEntryConsequence,
 			progressMarker,
 		});
 
@@ -797,6 +799,7 @@
 		entry: GoalEntry,
 		description: string,
 		isConsequenceActive: boolean,
+		goalEntryConsequence: string,
 		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
@@ -817,6 +820,7 @@
 			hasFailed: true,
 			status: thread.measurementType === "none" ? "no" : "not_done",
 			isConsequenceActive: true,
+			consequenceDescription: goalEntryConsequence,
 			progressMarker,
 		});
 
@@ -836,6 +840,7 @@
 		entry: GoalEntry,
 		description: string,
 		isConsequenceActive: boolean,
+		goalEntryConsequence: string,
 		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
@@ -850,6 +855,7 @@
 		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
 			description,
 			isConsequenceActive,
+			consequenceDescription: goalEntryConsequence,
 			progressMarker,
 		});
 

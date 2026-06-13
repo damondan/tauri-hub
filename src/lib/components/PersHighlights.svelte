@@ -2,6 +2,7 @@
   import { autoResize } from "$lib/utils/textareaResize";
   import { appPersState } from "$lib/stores/state.svelte";
   import { onMount } from "svelte";
+  import { persOrder } from "$lib/stores/projects";
   import {
     persGoalHighlights,
     addHighlightItem,
@@ -21,6 +22,8 @@
     updatePatternSteps,
     initStep,
     removeStep,
+    initPersOrder,
+    type HighlightLevel2,
   } from "$lib/stores/persgoal";
   import PatternComponent from "./PatternComponent.svelte";
   import ImagePattern from "./ImagePattern.svelte";
@@ -32,7 +35,9 @@
     etext: string;
   } | null>(null);
 
-  onMount(() => {});
+  onMount(() => {
+    initPersOrder($persGoalHighlights);
+  });
 
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRowsTexArea[dayId] ?? false;
@@ -61,6 +66,134 @@
       console.log(`In openAllPersRows ${key}`);
       $persGoalExpandedYears[key] = true;
     }
+  }
+
+  // Drag and Drop functionality for HighlightLevel2 rows
+  let draggingParentId = $state<string | null>(null);
+  let draggingChildId = $state<string | null>(null);
+
+  type LevelTwoChildren = Record<string, HighlightLevel2>;
+
+  function getOrderedLevelTwoEntries(
+    parentId: string,
+    children: LevelTwoChildren,
+  ): [string, HighlightLevel2][] {
+    const childIds = Object.keys(children);
+    const orderedIds = $persOrder[parentId] ?? [];
+
+    // Keep ids that still exist.
+    // Then append any new ids that are not yet in persOrder.
+    const normalizedOrder = [
+      ...orderedIds.filter((childid) => childid in children),
+      ...childIds.filter((childid) => !orderedIds.includes(childid)),
+    ];
+
+    return normalizedOrder.map((childid) => [childid, children[childid]]);
+  }
+
+  function onDragStart(e: DragEvent, parentId: string, childid: string) {
+    draggingParentId = parentId;
+    draggingChildId = childid;
+
+    if (!e.dataTransfer) return;
+
+    e.dataTransfer.effectAllowed = "move";
+
+    e.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        parentId,
+        childid,
+      }),
+    );
+
+    e.dataTransfer.setData("text/plain", childid);
+  }
+
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+  }
+
+  function onDrop(
+    e: DragEvent,
+    targetParentId: string,
+    targetChildId: string,
+    children: LevelTwoChildren,
+  ) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    let sourceParentId = draggingParentId;
+    let sourceChildId = draggingChildId;
+
+    if ((!sourceParentId || !sourceChildId) && e.dataTransfer) {
+      try {
+        const payload = JSON.parse(
+          e.dataTransfer.getData("application/json"),
+        ) as {
+          parentId?: string;
+          childid?: string;
+        };
+
+        sourceParentId = payload.parentId ?? null;
+        sourceChildId = payload.childid ?? null;
+      } catch {
+        sourceChildId = e.dataTransfer.getData("text/plain") || null;
+      }
+    }
+
+    if (!sourceParentId || !sourceChildId) return;
+
+    // This keeps dragging limited to children inside the same parent.
+    // If later you want cross-parent drag/drop, this condition changes.
+    if (sourceParentId !== targetParentId) {
+      draggingParentId = null;
+      draggingChildId = null;
+      return;
+    }
+
+    if (sourceChildId === targetChildId) {
+      draggingParentId = null;
+      draggingChildId = null;
+      return;
+    }
+
+    persOrder.update((order) => {
+      const existingOrder = order[targetParentId] ?? [];
+      const childIds = Object.keys(children);
+
+      const normalizedOrder = [
+        ...existingOrder.filter((childid) => childid in children),
+        ...childIds.filter((childid) => !existingOrder.includes(childid)),
+      ];
+
+      const updatedOrder = [...normalizedOrder];
+
+      const fromIndex = updatedOrder.indexOf(sourceChildId);
+      const toIndex = updatedOrder.indexOf(targetChildId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const [movedId] = updatedOrder.splice(fromIndex, 1);
+      updatedOrder.splice(toIndex, 0, movedId);
+
+      return {
+        ...order,
+        [targetParentId]: updatedOrder,
+      };
+    });
+
+    draggingParentId = null;
+    draggingChildId = null;
+  }
+
+  function onDragEnd() {
+    draggingParentId = null;
+    draggingChildId = null;
   }
 </script>
 
@@ -122,12 +255,19 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
       </button>
     </div>
 
-   <!-- Middle level: only render when this top row is expanded --> 
-    {#if $persGoalExpandedYears[id] && levelOne.children && Object.keys(levelOne.children).length > 0} 
-    {#each Object.entries(levelOne.children ?? {}) as [childid, levelTwo] (childid)} 
-    <div class="px-6 flex flex-col w-full gap-3 mt-4"> 
-      <div class="flex flex-row gap-2">
-      <button class="bg-white/5 text-white/10 hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
+    <!-- Middle level: only render when this top row is expanded -->
+    <!--Drag and Drop add here-->
+    {#if $persGoalExpandedYears[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
+      {#each getOrderedLevelTwoEntries(id, levelOne.children ?? {}) as [childid, levelTwo] (childid)}
+        <div
+          class="px-6 flex flex-col w-full gap-3 mt-4
+  {draggingChildId === childid ? 'opacity-40' : ''}"
+          ondragover={onDragOver}
+          ondrop={(e) => onDrop(e, id, childid, levelOne.children ?? {})}
+        >
+          <div class="flex flex-row gap-2 items-start">
+            <button
+              class="bg-white/5 text-white/10 hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => {
                 addDetailHighlight(id, childid);
                 $persGoalExpandedYears[childid] = true;
@@ -176,23 +316,32 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             >
               -
             </button>
+            <div class="flex flex-col">
             <button
-              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-10 mt-3"
+              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-1"
               onclick={() => updateDetailHighlightPattern(id, childid)}
             >
               P
             </button>
 
             <button
-              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-10 mt-3"
+              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-3"
               onclick={() => updateDetailHighlightImagePattern(id, childid)}
             >
               IP
             </button>
-            <!-- <div class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
-          >
-            ⠿
-          </div> -->
+            </div>
+            <div class="flex gap-10 ml-auto mt-3">
+              <div
+                draggable="true"
+                ondragstart={(e) => onDragStart(e, id, childid)}
+                ondragend={onDragEnd}
+                class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl select-none"
+                title="Drag to reorder"
+              >
+                ⠿
+              </div>
+            </div>
           </div>
 
           <!-- Lower level: only render when this middle row is expanded -->
@@ -287,14 +436,14 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
               </div>
             {/each}
             {#if $persGoalExpandedYears[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
-               <PatternComponent 
-                  {id} 
-                  {childid} 
-                  {levelTwo} 
-                  {updatePatternSteps} 
-                  {initStep} 
-                  {removeStep}
-                  />
+              <PatternComponent
+                {id}
+                {childid}
+                {levelTwo}
+                {updatePatternSteps}
+                {initStep}
+                {removeStep}
+              />
             {/if}
 
             {#if $persGoalExpandedYears[childid] && Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
