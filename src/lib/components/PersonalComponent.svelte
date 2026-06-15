@@ -500,7 +500,8 @@
                             : borderNTextNBg.collapseRows}
                         >
                           <!-- Day entry -->
-                          <div class="flex items-center gap-3">
+                          <div class="flex items-center gap-3"
+                            title={Array.isArray(day.dayTags) ? day.dayTags.join(", ") : (day.dayTags ?? "")}>
                             <!-- Day label -->
                             <div
                               class="text-white text-2xl font-semibold whitespace-nowrap w-38"
@@ -635,7 +636,6 @@
                   {/if}
                 </div>
               {/each}
-              <!--week -->
             </div>
           {/if}
         {/each}
@@ -665,7 +665,7 @@
           class="bg-transparent border border-white/10 rounded px-2 py-1 text-center
            text-white outline-none focus:border-white/30 w-94"
         />
-        <span class="text-xs">Through Perseverance We Conquer</span>
+        <span class="text-lg">Through Perseverance We Conquer</span>
       </div>
 
       <textarea
@@ -704,8 +704,6 @@
               current.title,
               current.tags,
             );
-
-            //saveUserEncryptionData();
             editingDay = null;
           }}
           class="border hover:border-white bg-black/50 text-white/30 hover:text-white px-3 py-1 rounded-lg transition-colors"

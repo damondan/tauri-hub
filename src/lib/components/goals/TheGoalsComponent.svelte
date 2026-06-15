@@ -1563,7 +1563,7 @@
 									{displayYear}
 								</div>
 
-								<div class="flex items-center gap-3 text-sm">
+								<div class="flex items-center gap-3 text-2xl">
 									<label
 										class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-1 text-white/70"
 									>
@@ -1587,15 +1587,15 @@
 											Next Goal
 										</button>
 
-										<div class="text-white/50">
+										<div class="text-blue-500/60">
 											Viewing:
 											{getActiveGoal(thread)?.title ||
-												"Untitled Goal"}
+												"Untitled Goal"},
 										</div>
-										<div class="text-white/50">
+										<div class="text-red-500/60">
 											Failures Remaining:
 											{getActiveGoal(thread)
-												?.failureCount ?? 0}
+												?.failureCount ?? 0},
 										</div>
 									{:else}
 										<div class="text-white/40">
