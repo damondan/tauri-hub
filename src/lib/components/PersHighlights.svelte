@@ -22,6 +22,8 @@
     updatePatternSteps,
     initStep,
     removeStep,
+    addImagePatternStep,
+    removeImagePatternStep,
     initPersOrder,
     type HighlightLevel2,
   } from "$lib/stores/persgoal";
@@ -345,7 +347,8 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
           </div>
 
           <!-- Lower level: only render when this middle row is expanded -->
-          {#if $persGoalExpandedYears[childid] && levelTwo.children && Object.keys(levelTwo.children).length > 0}
+          {#if $persGoalExpandedYears[childid]}
+           {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
             {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
               <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
                 <button
@@ -435,7 +438,8 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 </div>
               </div>
             {/each}
-            {#if $persGoalExpandedYears[childid] && Object.keys(levelTwo.patterns ?? {}).length !== 0}
+            {/if}
+            {#if Object.keys(levelTwo.patterns ?? {}).length !== 0}
               <PatternComponent
                 {id}
                 {childid}
@@ -446,8 +450,13 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
               />
             {/if}
 
-            {#if $persGoalExpandedYears[childid] && Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
-              <ImagePattern {id} {childid} {levelTwo} />
+            {#if Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
+              <ImagePattern 
+                {id} 
+                {childid} 
+                {levelTwo}
+                {addImagePatternStep}
+                {removeImagePatternStep} />
             {/if}
           {/if}
         </div>

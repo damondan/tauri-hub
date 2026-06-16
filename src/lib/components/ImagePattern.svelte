@@ -1,18 +1,30 @@
 <script lang="ts">
-  import type { HighlightLevel2 } from "$lib/stores/profgoal";
-  import {
-    addImagePatternStep,
-    removeImagePatternStep,
-  } from "$lib/stores/persgoal";
+  import type { HighlightLevel2, ProfImage } from "$lib/stores/profgoal";
   import ChevronRight from "@lucide/svelte/icons/chevron-right";
+
   let {
     id,
     childid,
     levelTwo,
+    addImagePatternStep,
+    removeImagePatternStep,
   }: {
     id: string;
     childid: string;
     levelTwo: HighlightLevel2;
+
+    addImagePatternStep: (
+      id: string,
+      childid: string,
+      imagePatternId: string,
+      image: ProfImage,
+    ) => void;
+
+    removeImagePatternStep: (
+      id: string,
+      childid: string,
+      imagePatternId: string,
+    ) => void;
   } = $props();
 
   let imageInput: HTMLInputElement;

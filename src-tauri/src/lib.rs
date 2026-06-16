@@ -198,6 +198,136 @@ fn save_registry(
     fs::write(&registry_path, content).map_err(|e| format!("Failed to write registry: {}", e))
 }
 
+
+fn home_dir() -> Result<String, String> {
+    std::env::var("HOME").map_err(|e| format!("Failed to get HOME: {}", e))
+}
+
+fn expand_tilde_path(path: &Path) -> Result<PathBuf, String> {
+    let path_str = path.to_string_lossy();
+
+    if path_str == "~" {
+        return Ok(PathBuf::from(home_dir()?));
+    }
+
+    if let Some(rest) = path_str.strip_prefix("~/") {
+        return Ok(PathBuf::from(home_dir()?).join(rest));
+    }
+
+    Ok(path.to_path_buf())
+}
+
+fn external_command_path() -> String {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/home/dd".to_string());
+
+    let mut entries = vec![
+        format!("{}/.cargo/bin", home),
+        format!("{}/.local/bin", home),
+        format!("{}/.pyenv/shims", home),
+        format!("{}/.pyenv/bin", home),
+        "/usr/local/sbin".to_string(),
+        "/usr/local/bin".to_string(),
+        "/usr/sbin".to_string(),
+        "/usr/bin".to_string(),
+        "/sbin".to_string(),
+        "/bin".to_string(),
+    ];
+
+    if let Ok(existing_path) = std::env::var("PATH") {
+        for entry in existing_path.split(':') {
+            if !entry.is_empty() && !entries.iter().any(|e| e == entry) {
+                entries.push(entry.to_string());
+            }
+        }
+    }
+
+    entries.join(":")
+}
+
+fn split_command_line(input: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+
+    for c in input.chars() {
+        if escaped {
+            current.push(c);
+            escaped = false;
+            continue;
+        }
+
+        if c == '\\' {
+            escaped = true;
+            continue;
+        }
+
+        if let Some(q) = quote {
+            if c == q {
+                quote = None;
+            } else {
+                current.push(c);
+            }
+            continue;
+        }
+
+        match c {
+            '\'' | '"' => quote = Some(c),
+            c if c.is_whitespace() => {
+                if !current.is_empty() {
+                    parts.push(current.clone());
+                    current.clear();
+                }
+            }
+            _ => current.push(c),
+        }
+    }
+
+    if escaped {
+        current.push('\\');
+    }
+
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    parts
+}
+
+fn resolve_program_path(program: &str) -> PathBuf {
+    let program_path = PathBuf::from(program);
+
+    if program_path.is_absolute() || program.contains('/') {
+        return program_path;
+    }
+
+    for dir in external_command_path().split(':') {
+        let candidate = Path::new(dir).join(program);
+        if candidate.exists() {
+            return candidate;
+        }
+    }
+
+    program_path
+}
+
+fn command_with_clean_env<P: AsRef<std::ffi::OsStr>>(program: P) -> Command {
+    let mut cmd = Command::new(program);
+    apply_clean_child_env(&mut cmd);
+    cmd
+}
+
+fn apply_clean_child_env(cmd: &mut Command) -> &mut Command {
+    cmd.env("PATH", external_command_path())
+        .env("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+        .env_remove("APPIMAGE")
+        .env_remove("APPDIR")
+        .env_remove("ARGV0")
+        .env_remove("LD_LIBRARY_PATH")
+        .env_remove("PYTHONHOME")
+        .env_remove("PYTHONPATH")
+}
+
 #[tauri::command]
 async fn get_registered_apps(registry: State<'_, AppRegistry>) -> Result<Vec<TauriApp>, String> {
     let apps = registry.lock().map_err(|e| e.to_string())?;
@@ -225,45 +355,61 @@ async fn launch_app(
     let mut apps = registry.lock().map_err(|e| e.to_string())?;
 
     if let Some(app) = apps.get_mut(&app_id) {
-        // Expand '~' in path if present
-        let mut workdir = app.path.clone();
-        let workdir_str = workdir.to_string_lossy();
-        if workdir_str.starts_with("~") {
-            if let Ok(home) = std::env::var("HOME") {
-                let rest = workdir_str.trim_start_matches('~');
-                workdir = PathBuf::from(home).join(rest.trim_start_matches('/'));
-            }
+        let workdir = expand_tilde_path(&app.path)?;
+
+        if !workdir.exists() {
+            app.status = AppStatus::Error;
+            save_registry(&app_handle, &apps)?;
+            return Err(format!("App working directory does not exist: {:?}", workdir));
         }
 
-        // Parse executable into command and arguments
-        // Supports both single-word (e.g. "cargo") and full commands (e.g. "cargo tauri dev")
-        let parts: Vec<&str> = app.executable.split_whitespace().collect();
+        let parts = split_command_line(&app.executable);
         if parts.is_empty() {
             return Err("Executable is empty".to_string());
         }
-        let (program, extra_args) = (parts[0], &parts[1..]);
 
-        let mut cmd = Command::new(program);
+        let program = parts[0].clone();
+        let extra_args = &parts[1..];
+        let program_path = resolve_program_path(&program);
+        let program_name = Path::new(&program)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or(&program);
+
+        let mut cmd = command_with_clean_env(program_path.as_os_str());
 
         if extra_args.is_empty() {
-            // Only apply special-case defaults when no explicit args provided
-            match program {
-                // Support running package.json scripts like: pnpm run tauri:dev
+            // Only apply special-case defaults when no explicit args are provided.
+            match program_name {
                 "pnpm" => {
                     cmd.arg("run").arg("tauri:dev");
                 }
-                // Support cargo tauri dev
                 "cargo" => {
                     cmd.arg("tauri").arg("dev");
                 }
                 _ => {}
             }
         } else {
-            // User provided explicit arguments in the executable string
             for arg in extra_args {
                 cmd.arg(arg);
             }
         }
+
+        std::fs::write(
+            "/tmp/taurihub-launch-debug.log",
+            format!(
+                "Launching registered app\napp_id: {}\nname: {}\nworkdir: {:?}\nprogram: {}\nprogram_path: {:?}\nargs: {:?}\nPATH: {}\n",
+                app.id,
+                app.name,
+                workdir,
+                program,
+                program_path,
+                extra_args,
+                external_command_path()
+            ),
+        )
+        .ok();
+
         let result = cmd.current_dir(&workdir).spawn();
 
         match result {
@@ -275,7 +421,10 @@ async fn launch_app(
             Err(e) => {
                 app.status = AppStatus::Error;
                 save_registry(&app_handle, &apps)?;
-                Err(format!("Failed to launch app: {}", e))
+                Err(format!(
+                    "Failed to launch app using {:?} from {:?}: {}",
+                    program_path, workdir, e
+                ))
             }
         }
     } else {
@@ -349,7 +498,7 @@ async fn start_recording(recording: State<'_, RecordingRegistry>) -> Result<(), 
 
     // Start arecord process with high quality settings
     // 48kHz, 16-bit, mono WAV format for best Whisper quality
-    let child = Command::new("/usr/bin/arecord")
+    let child = command_with_clean_env("/usr/bin/arecord")
         .args(["-f", "S16_LE", "-r", "48000", "-c", "1", &filename])
         .stdout(Stdio::null())
         .stderr(Stdio::null())
@@ -376,7 +525,7 @@ async fn pause_recording(recording: State<'_, RecordingRegistry>) -> Result<(), 
 
     if let Some(pid) = state.pid {
         // Send SIGSTOP to pause the process
-        Command::new("/user/bin/kill")
+        command_with_clean_env("/usr/bin/kill")
             .args(["-STOP", &pid.to_string()])
             .output()
             .map_err(|e| format!("Failed to pause recording: {}", e))?;
@@ -398,7 +547,7 @@ async fn resume_recording(recording: State<'_, RecordingRegistry>) -> Result<(),
 
     if let Some(pid) = state.pid {
         // Send SIGCONT to resume the process
-        Command::new("/user/bin/kill")
+        command_with_clean_env("/usr/bin/kill")
             .args(["-CONT", &pid.to_string()])
             .output()
             .map_err(|e| format!("Failed to resume recording: {}", e))?;
@@ -416,19 +565,18 @@ async fn stop_recording_and_transcribe(
     output_lang: String,
     recording: State<'_, RecordingRegistry>,
 ) -> Result<String, String> {
-
     let mut state = recording.lock().map_err(|e| e.to_string())?;
 
     if matches!(state.status, RecordingStatus::Idle) {
         return Err("No recording in progress".to_string());
     }
 
-    // Kill the arecord process
+    // Stop the arecord process.
     if let Some(mut child) = state.process.take() {
         child
             .kill()
             .map_err(|e| format!("Failed to stop recording: {}", e))?;
-        child.wait().ok(); // Wait for process to fully terminate
+        child.wait().ok();
     }
 
     let audio_file = state
@@ -437,25 +585,29 @@ async fn stop_recording_and_transcribe(
         .ok_or("No recording file found")?;
 
     state.status = RecordingStatus::Processing;
-    drop(state); // Release lock during long transcription
+    drop(state); // Release lock during long transcription.
 
-    // Get home directory for whisper path
-    let home = std::env::var("HOME").map_err(|e| format!("Failed to get HOME: {}", e))?;
+    // Use the pyenv Python directly instead of the `whisper` launcher script.
+    // This is more reliable from an AppImage/KDE environment.
+    let home = home_dir()?;
     let whisper_python = format!("{}/.pyenv/versions/whisper-py312/bin/python", home);
     let pyenv_root = format!("{}/.pyenv", home);
     let whisper_bin_dir = format!("{}/.pyenv/versions/whisper-py312/bin", home);
     let pyenv_shims = format!("{}/.pyenv/shims", home);
 
+    if !Path::new(&whisper_python).exists() {
+        let mut state = recording.lock().map_err(|e| e.to_string())?;
+        state.status = RecordingStatus::Idle;
+        state.pid = None;
+        state.current_file = None;
+        return Err(format!("Whisper Python not found at: {}", whisper_python));
+    }
+
     let clean_path = format!(
-        "{}:{}:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin",
+        "{}:{}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
         whisper_bin_dir, pyenv_shims
     );
 
-    // Determine Whisper task and language based on input/output combination
-    // Valid combinations:
-    // 1. en -> en: transcribe with language=en
-    // 3. es -> es: transcribe with language=es
-    // 4. es -> en: translate (transcribe + translate to English)
     let (task, language) = match (input_lang.as_str(), output_lang.as_str()) {
         ("en", "en") => ("transcribe", "en"),
         ("es", "es") => ("transcribe", "es"),
@@ -463,53 +615,93 @@ async fn stop_recording_and_transcribe(
         _ => return Err("Invalid language combination".to_string()),
     };
 
-    // Run Whisper transcription/translationlet model = "small";
-let model = "small";    
-let device = "cuda";
-   let output_dir = std::env::temp_dir();
+    let model = "small";
+    let device = "cuda";
+    let output_dir = std::env::temp_dir();
 
-std::fs::write(
-	"/tmp/taurihub-version-check.log",
-	"NEW WHISPER CODE IS RUNNING\n",
-).ok();
+    std::fs::write(
+        "/tmp/taurihub-whisper-debug.log",
+        format!(
+            "audio_file: {}\nwhisper_python: {}\npyenv_root: {}\nclean_path: {}\nmodel: {}\ndevice: {}\ntask: {}\nlanguage: {}\noutput_dir: {:?}\nPYTHONHOME before remove: {:?}\nPYTHONPATH before remove: {:?}\nLD_LIBRARY_PATH before remove: {:?}\nAPPIMAGE before remove: {:?}\nAPPDIR before remove: {:?}\n",
+            audio_file,
+            whisper_python,
+            pyenv_root,
+            clean_path,
+            model,
+            device,
+            task,
+            language,
+            output_dir,
+            std::env::var("PYTHONHOME"),
+            std::env::var("PYTHONPATH"),
+            std::env::var("LD_LIBRARY_PATH"),
+            std::env::var("APPIMAGE"),
+            std::env::var("APPDIR"),
+        ),
+    )
+    .ok();
 
-let output = Command::new(&whisper_python)
-	.args([
-		"-m", "whisper",
-		&audio_file,
-		"--model", model,
-		"--device", device,
-		"--task", task,
-		"--language", language,
-		"--output_format", "txt",
-		"--output_dir",
-		output_dir
-			.to_str()
-			.ok_or("Invalid temp directory path")?,
-	])
-	.env_remove("PYTHONHOME")
-	.env_remove("PYTHONPATH")
-	.env("PYENV_ROOT", &pyenv_root)
-	.env("PATH", &clean_path)
-	.output()
-	.map_err(|e| format!("Failed to run Whisper: {}", e))?;
+    let output = Command::new(whisper_python.as_str())
+        .args([
+            "-m",
+            "whisper",
+            &audio_file,
+            "--model",
+            model,
+            "--device",
+            device,
+            "--task",
+            task,
+            "--language",
+            language,
+            "--output_format",
+            "txt",
+            "--output_dir",
+            output_dir
+                .to_str()
+                .ok_or("Invalid temp directory path")?,
+        ])
+        .env_remove("PYTHONHOME")
+        .env_remove("PYTHONPATH")
+        .env_remove("LD_LIBRARY_PATH")
+        .env_remove("APPIMAGE")
+        .env_remove("APPDIR")
+        .env_remove("ARGV0")
+        .env("PYENV_ROOT", &pyenv_root)
+        .env("PATH", &clean_path)
+        .output()
+        .map_err(|e| format!("Failed to run Whisper: {}", e))?;
 
     if !output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("Whisper failed: {}", stderr));
+
+        std::fs::write(
+            "/tmp/taurihub-whisper-error.log",
+            format!("STDOUT:\n{}\n\nSTDERR:\n{}\n", stdout, stderr),
+        )
+        .ok();
+
+        let mut state = recording.lock().map_err(|e| e.to_string())?;
+        state.status = RecordingStatus::Idle;
+        state.pid = None;
+        state.current_file = None;
+
+        return Err(format!(
+            "Whisper failed. See /tmp/taurihub-whisper-error.log\n{}",
+            stderr
+        ));
     }
 
-   let txt_file = audio_file.replace(".wav", ".txt");
+    let txt_file = audio_file.replace(".wav", ".txt");
+    let txt_filename = Path::new(&txt_file)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or("Invalid filename")?;
+    let txt_path = output_dir.join(txt_filename);
 
-let txt_filename = std::path::Path::new(&txt_file)
-	.file_name()
-	.and_then(|n| n.to_str())
-	.ok_or("Invalid filename")?;
-
-let txt_path = output_dir.join(txt_filename);
-
-  let mut text = std::fs::read_to_string(&txt_path)
-	.map_err(|e| format!("Failed to read transcription at {:?}: {}", txt_path, e))?;
+    let mut text = std::fs::read_to_string(&txt_path)
+        .map_err(|e| format!("Failed to read transcription at {:?}: {}", txt_path, e))?;
 
     // Remove timestamps like [00:00.000 --> 00:05.000]
     let timestamp_regex = Regex::new(r"\[\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}\.\d{3}\]")
@@ -518,9 +710,9 @@ let txt_path = output_dir.join(txt_filename);
 
     // Remove standalone date patterns (various formats)
     let date_patterns = vec![
-        r"\d{1,2}/\d{1,2}/\d{2,4}", // MM/DD/YYYY or DD/MM/YYYY
-        r"\d{4}-\d{2}-\d{2}",       // YYYY-MM-DD
-        r"\d{1,2}-\d{1,2}-\d{2,4}", // MM-DD-YYYY or DD-MM-YYYY
+        r"\d{1,2}/\d{1,2}/\d{2,4}",
+        r"\d{4}-\d{2}-\d{2}",
+        r"\d{1,2}-\d{1,2}-\d{2,4}",
         r"(?i)(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2},?\s+\d{4}",
     ];
 
@@ -534,17 +726,18 @@ let txt_path = output_dir.join(txt_filename);
     let whitespace_regex = Regex::new(r"\s+").unwrap();
     text = whitespace_regex.replace_all(&text, " ").to_string();
 
-    // Copy to clipboard using xclip (X11) or wl-copy (Wayland)
-    let clipboard_cmd = if std::path::Path::new("/usr/bin/xclip").exists() {
-        "xclip"
-    } else if std::path::Path::new("/usr/bin/wl-copy").exists() {
-        "wl-copy"
+    // Copy to clipboard using xclip (X11) or wl-copy (Wayland).
+    let clipboard_program = if Path::new("/usr/bin/xclip").exists() {
+        Some("/usr/bin/xclip")
+    } else if Path::new("/usr/bin/wl-copy").exists() {
+        Some("/usr/bin/wl-copy")
     } else {
-        return Err("No clipboard tool found (xclip or wl-copy required)".to_string());
-    };
+        None
+    }
+    .ok_or("No clipboard tool found (xclip or wl-copy required)".to_string())?;
 
-    let mut cmd = Command::new(clipboard_cmd);
-    if clipboard_cmd == "xclip" {
+    let mut cmd = command_with_clean_env(clipboard_program);
+    if clipboard_program.ends_with("xclip") {
         cmd.args(["-selection", "clipboard"]);
     }
 
@@ -563,11 +756,13 @@ let txt_path = output_dir.join(txt_filename);
         return Err("Failed to copy to clipboard".to_string());
     }
 
-    // Play notification sound (using system bell)
-    Command::new("paplay")
-        .arg("/usr/share/sounds/freedesktop/stereo/complete.oga")
-        .spawn()
-        .ok(); // Don't fail if sound doesn't play
+    // Play notification sound. Do not fail if the sound cannot play.
+    if Path::new("/usr/bin/paplay").exists() {
+        command_with_clean_env("/usr/bin/paplay")
+            .arg("/usr/share/sounds/freedesktop/stereo/complete.oga")
+            .spawn()
+            .ok();
+    }
 
     // Reset state
     let mut state = recording.lock().map_err(|e| e.to_string())?;
@@ -583,7 +778,7 @@ let txt_path = output_dir.join(txt_filename);
 #[tauri::command]
 async fn check_ossec_status() -> Result<bool, String> {
     // Check if OSSEC is running by looking for ossec processes
-    let output = Command::new("pgrep")
+    let output = command_with_clean_env("/usr/bin/pgrep")
         .arg("-f")
         .arg("ossec")
         .output()
@@ -599,8 +794,8 @@ async fn toggle_ossec(start: bool) -> Result<(), String> {
     // Use sh -c so the path resolution happens after privilege escalation
     let command_str = format!("/var/ossec/bin/ossec-control {}", action);
 
-    let output = Command::new("pkexec")
-        .arg("sh")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/sh")
         .arg("-c")
         .arg(&command_str)
         .output()
@@ -625,8 +820,8 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
     if needs_sudo {
         // For privileged files, use pkexec to run the nano command
         // pkexec will prompt for password and then open the file
-        Command::new("pkexec")
-            .arg("nano")
+        command_with_clean_env("/usr/bin/pkexec")
+            .arg("/usr/bin/nano")
             .arg(&file_path)
             .spawn()
             .map_err(|e| format!("Failed to open file: {}", e))?;
@@ -643,17 +838,18 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
     ];
 
     for (terminal, args) in terminals {
-        if Command::new("which")
+        if command_with_clean_env("/usr/bin/which")
             .arg(terminal)
             .output()
             .map(|o| o.status.success())
             .unwrap_or(false)
         {
-            let mut cmd = Command::new(terminal);
+            let terminal_path = resolve_program_path(terminal);
+            let mut cmd = command_with_clean_env(terminal_path.as_os_str());
             for arg in &args {
                 cmd.arg(arg);
             }
-            cmd.arg("nano");
+            cmd.arg("/usr/bin/nano");
             cmd.arg(&file_path);
 
             cmd.spawn()
@@ -679,8 +875,8 @@ async fn check_alerts_log_modified(ossec_state: State<'_, OssecRegistry>) -> Res
             .unwrap_or(0)
     } else {
         // If we can't read it, try with elevated privileges
-        let output = Command::new("pkexec")
-            .arg("stat")
+        let output = command_with_clean_env("/usr/bin/pkexec")
+            .arg("/usr/bin/stat")
             .arg("-c")
             .arg("%Y")
             .arg(log_path)
@@ -906,7 +1102,7 @@ fn start_alert_monitor(app_handle: AppHandle, ossec_state: Arc<OssecRegistry>) {
 
 #[tauri::command]
 async fn aide_check() -> Result<String, String> {
-    let output = Command::new("pkexec")
+    let output = command_with_clean_env("/usr/bin/pkexec")
         .arg("/usr/bin/aide")
         .arg("--check")
         .output()
@@ -928,8 +1124,8 @@ async fn aide_check() -> Result<String, String> {
 async fn aide_update() -> Result<String, String> {
     // Run aide --update - note: AIDE returns non-zero when differences are found
     // So we need to check if the new database was created, not the exit code
-    let output = Command::new("pkexec")
-        .arg("sh")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/sh")
         .arg("-c")
         .arg("/usr/bin/aide --update 2>&1; if [ -f /var/lib/aide/aide.db.new.gz ]; then mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz 2>&1; echo 'Database moved successfully'; else echo 'Error: New database not created'; exit 1; fi")
         .output()
@@ -956,7 +1152,7 @@ async fn aide_update() -> Result<String, String> {
 #[tauri::command]
 async fn check_opensnitch_status() -> Result<bool, String> {
     // Check if OpenSnitch is running by checking systemd service
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("is-active")
         .arg("opensnitchd")
         .output()
@@ -970,8 +1166,8 @@ async fn check_opensnitch_status() -> Result<bool, String> {
 async fn toggle_opensnitch(start: bool) -> Result<(), String> {
     let action = if start { "start" } else { "stop" };
 
-    let output = Command::new("pkexec")
-        .arg("systemctl")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/systemctl")
         .arg(action)
         .arg("opensnitchd")
         .output()
@@ -989,7 +1185,7 @@ async fn toggle_opensnitch(start: bool) -> Result<(), String> {
 #[tauri::command]
 async fn check_openwebui_status() -> Result<bool, String> {
     // Check if Open WebUI is running by checking systemd service
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("is-active")
         .arg("open-webui")
         .output()
@@ -1003,8 +1199,8 @@ async fn check_openwebui_status() -> Result<bool, String> {
 async fn toggle_openwebui(start: bool) -> Result<(), String> {
     let action = if start { "start" } else { "stop" };
 
-    let output = Command::new("pkexec")
-        .arg("systemctl")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/systemctl")
         .arg(action)
         .arg("open-webui")
         .output()
@@ -1023,7 +1219,7 @@ async fn toggle_openwebui(start: bool) -> Result<(), String> {
 #[tauri::command]
 async fn check_lmstudio_status() -> Result<bool, String> {
     // Check if LM Studio is running by looking for its process
-    let output = Command::new("pgrep")
+    let output = command_with_clean_env("/usr/bin/pgrep")
         .arg("-f")
         .arg("LM-Studio")
         .output()
@@ -1053,7 +1249,7 @@ async fn toggle_lmstudio(start: bool) -> Result<(), String> {
         }
 
         // Launch the AppImage
-        Command::new(&appimage_path)
+        command_with_clean_env(appimage_path.as_str())
             .current_dir(&prog_dir)
             .spawn()
             .map_err(|e| format!("Failed to launch LM Studio: {}", e))?;
@@ -1062,7 +1258,7 @@ async fn toggle_lmstudio(start: bool) -> Result<(), String> {
     } else {
         // To stop LM Studio, we need to find and kill its process
         // Look for the LM Studio process by name
-        let output = Command::new("pkill")
+        let output = command_with_clean_env("/usr/bin/pkill")
             .arg("-f")
             .arg("LM-Studio")
             .output()
@@ -1082,7 +1278,7 @@ async fn toggle_lmstudio(start: bool) -> Result<(), String> {
 #[tauri::command]
 async fn check_ollama_status() -> Result<bool, String> {
     // Check if Ollama service is active
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("is-active")
         .arg("ollama")
         .output()
@@ -1097,8 +1293,8 @@ async fn check_ollama_status() -> Result<bool, String> {
 async fn toggle_ollama(start: bool) -> Result<(), String> {
     let action = if start { "start" } else { "stop" };
 
-    let output = Command::new("pkexec")
-        .arg("systemctl")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/systemctl")
         .arg(action)
         .arg("ollama")
         .output()
@@ -1117,7 +1313,7 @@ async fn toggle_ollama(start: bool) -> Result<(), String> {
 #[tauri::command]
 async fn check_warp_status() -> Result<bool, String> {
     // Check if warp is running by looking for its process
-    let output = Command::new("pgrep")
+    let output = command_with_clean_env("/usr/bin/pgrep")
         .arg("-f")
         .arg("Warp")
         .output()
@@ -1144,7 +1340,7 @@ async fn toggle_warp(start: bool) -> Result<(), String> {
         }
 
         // Launch the AppImage
-        Command::new(&appimage_path)
+        command_with_clean_env(appimage_path.as_str())
             .current_dir(&prog_dir)
             .spawn()
             .map_err(|e| format!("Failed to launch Warp AI: {}", e))?;
@@ -1153,7 +1349,7 @@ async fn toggle_warp(start: bool) -> Result<(), String> {
     } else {
         // To stop Warp, we need to find and kill its process
         // Look for the Warp process by name
-        let output = Command::new("pkill")
+        let output = command_with_clean_env("/usr/bin/pkill")
             .arg("-f")
             .arg("Warp")
             .output()
@@ -1172,7 +1368,7 @@ async fn toggle_warp(start: bool) -> Result<(), String> {
 #[tauri::command]
 async fn check_docker_enabled() -> Result<bool, String> {
     // Check if Docker service is enabled
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("is-enabled")
         .arg("docker")
         .output()
@@ -1185,7 +1381,7 @@ async fn check_docker_enabled() -> Result<bool, String> {
 #[tauri::command]
 async fn check_docker_active() -> Result<bool, String> {
     // Check if Docker service is active (running)
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("is-active")
         .arg("docker")
         .output()
@@ -1199,8 +1395,8 @@ async fn check_docker_active() -> Result<bool, String> {
 async fn toggle_docker_enable(enable: bool) -> Result<(), String> {
     let action = if enable { "enable" } else { "disable" };
 
-    let output = Command::new("pkexec")
-        .arg("systemctl")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/systemctl")
         .arg(action)
         .arg("docker")
         .output()
@@ -1218,8 +1414,8 @@ async fn toggle_docker_enable(enable: bool) -> Result<(), String> {
 async fn toggle_docker_active(start: bool) -> Result<(), String> {
     let action = if start { "start" } else { "stop" };
 
-    let output = Command::new("pkexec")
-        .arg("systemctl")
+    let output = command_with_clean_env("/usr/bin/pkexec")
+        .arg("/usr/bin/systemctl")
         .arg(action)
         .arg("docker")
         .output()
@@ -1277,7 +1473,8 @@ fn get_ram_usage() -> Result<(f64, f64, f64), String> {
 fn get_gpu_usage() -> Result<(f64, f64, f64), String> {
     // Returns (used_gb, total_gb, percent)
     // Use nvidia-smi to get GPU memory usage
-    let output = Command::new("nvidia-smi")
+    let nvidia_smi = resolve_program_path("nvidia-smi");
+    let output = command_with_clean_env(nvidia_smi.as_os_str())
         .arg("--query-gpu=memory.used,memory.total")
         .arg("--format=csv,noheader,nounits")
         .output()
@@ -1335,7 +1532,7 @@ fn get_disk_usage() -> Result<(u64, u64, u64), String> {
 #[tauri::command]
 async fn check_docker_desktop_enabled() -> Result<bool, String> {
     // Check if Docker Desktop user service is enabled
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("--user")
         .arg("is-enabled")
         .arg("docker-desktop.service")
@@ -1348,7 +1545,7 @@ async fn check_docker_desktop_enabled() -> Result<bool, String> {
 #[tauri::command]
 async fn check_docker_desktop_active() -> Result<bool, String> {
     // Check if Docker Desktop user service is active (running)
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("--user")
         .arg("is-active")
         .arg("docker-desktop.service")
@@ -1362,7 +1559,7 @@ async fn check_docker_desktop_active() -> Result<bool, String> {
 async fn toggle_docker_desktop_enable(enable: bool) -> Result<(), String> {
     let action = if enable { "enable" } else { "disable" };
 
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("--user")
         .arg(action)
         .arg("docker-desktop.service")
@@ -1381,7 +1578,7 @@ async fn toggle_docker_desktop_enable(enable: bool) -> Result<(), String> {
 async fn toggle_docker_desktop_active(start: bool) -> Result<(), String> {
     let action = if start { "start" } else { "stop" };
 
-    let output = Command::new("systemctl")
+    let output = command_with_clean_env("/usr/bin/systemctl")
         .arg("--user")
         .arg(action)
         .arg("docker-desktop.service")
