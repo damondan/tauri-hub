@@ -135,7 +135,10 @@
 
         <button
           class={buttonStyles.greenButton}
-          onclick={() => addHowToSubcategory(category.id)}
+          onclick={() => { 
+                          addHowToSubcategory(category.id);
+                          $howtoExpandedCategories[category.id] = true;
+          }}
         >
           +
         </button>
@@ -178,7 +181,10 @@
 
               <button
                 class={buttonStyles.greenButton}
-                onclick={() => addHowToTopic(category.id, subcategory.id)}
+                onclick={() => { 
+                                addHowToTopic(category.id, subcategory.id);
+                                $howtoExpandedSubcategories[subKey] = true;
+                        }}
               >
                 +
               </button>
@@ -226,9 +232,9 @@
                     ></textarea>
                     <button
                       class={buttonStyles.greenButton}
-                      onclick={() =>
-                        addHowToTask(category.id, subcategory.id, topic.id)}
-                    >
+                      onclick={() => {
+                        addHowToTask(category.id, subcategory.id, topic.id);
+                        $howtoExpandedTopics[topicKey] = true               }}>        
                       +
                     </button>
                     <button

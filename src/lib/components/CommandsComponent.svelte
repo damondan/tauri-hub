@@ -105,7 +105,7 @@
         
         <button 
           class={buttonStyles.greenButton}
-          onclick={() => addCommandSubcategory(category.id)}
+          onclick={() => {addCommandSubcategory(category.id); $commandExpandedCategories[category.id] = true;}}
         >
           +
         </button>
@@ -143,7 +143,7 @@
               
               <button 
                 class={buttonStyles.greenButton}
-                onclick={() => addCommandTask(category.id, subcategory.id)}
+                onclick={() => {addCommandTask(category.id, subcategory.id); $commandExpandedSubcategories[subKey] = true; }}
               >
                 +
               </button>

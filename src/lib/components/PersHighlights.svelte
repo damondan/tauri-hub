@@ -321,14 +321,16 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             <div class="flex flex-col">
             <button
               class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-1"
-              onclick={() => updateDetailHighlightPattern(id, childid)}
+              onclick={() => { updateDetailHighlightPattern(id, childid);
+                                 $persGoalExpandedYears[childid] = true; }}
             >
               P
             </button>
 
             <button
               class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-3"
-              onclick={() => updateDetailHighlightImagePattern(id, childid)}
+              onclick={() => { updateDetailHighlightImagePattern(id, childid);
+                                $persGoalExpandedYears[childid] = true; }}
             >
               IP
             </button>

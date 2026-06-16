@@ -37,7 +37,9 @@
     etext: string;
   } | null>(null);
 
-  onMount(() => {initProfOrder($profGoalHighlights)});
+  onMount(() => {
+    initProfOrder($profGoalHighlights);
+  });
 
   function toggleExpand(dayId: string) {
     const currentState = appProfState.expandedRowsTexArea[dayId] ?? false;
@@ -195,7 +197,6 @@
     draggingParentId = null;
     draggingChildId = null;
   }
-
 </script>
 
 <div class="m-0 p-0">
@@ -318,21 +319,26 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             >
               -
             </button>
- <div class="flex flex-col">
-            <button
-              class="bg-white/3 text-white/10
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-xl w-auto pl-2 pr-2 h-5 ml-2 mt-1"
-              onclick={() => updateDetailHighlightPattern(id, childid)}
-            >
-              P
-            </button>
-            <button
-              class="bg-white/3 text-white/10
-  hover:bg-black/70 hover:text-white/80 float-left rounded text-xl w-auto pl-2 pr-2 h-5 ml-2 mt-3"
-              onclick={() => updateDetailHighlightImagePattern(id, childid)}
-            >
-              IP
-            </button>
+            <div class="flex flex-col">
+              <button
+                class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-1"
+                onclick={() => {
+                  updateDetailHighlightPattern(id, childid);
+                  $profGoalExpandedYears[childid] = true;
+                }}
+              >
+                P
+              </button>
+
+              <button
+                class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-3"
+                onclick={() => {
+                  updateDetailHighlightImagePattern(id, childid);
+                  $profGoalExpandedYears[childid] = true;
+                }}
+              >
+                IP
+              </button>
             </div>
             <div class="flex gap-10 ml-auto mt-3">
               <div
@@ -349,115 +355,116 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
 
           <!-- Lower level: only render when this middle row is expanded -->
           {#if $profGoalExpandedYears[childid]}
-           {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
-            {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
-              <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
-                <button
-                  onclick={() => toggleExpand(detailid)}
-                  class="mt-0 mr-2 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
-                  title="Toggle Expand"
-                >
-                  {appProfState.expandedRowsTexArea[detailid] ? "S" : "E"}
-                </button>
+            {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
+              {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
+                <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
+                  <button
+                    onclick={() => toggleExpand(detailid)}
+                    class="mt-0 mr-2 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
+                    title="Toggle Expand"
+                  >
+                    {appProfState.expandedRowsTexArea[detailid] ? "S" : "E"}
+                  </button>
 
-                <textarea
-                  class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
+                  <textarea
+                    class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
                   focus:outline-none focus:ring-1 {levelThree.one
-                    ? 'bg-white/40 text-black border border-white/30 focus:ring-white/80'
-                    : levelThree.me
-                      ? 'bg-black/20 text-white/70 border border-white/20 focus:ring-white/60'
-                      : 'bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80'}"
-                  use:autoResize={[
-                    levelThree.text,
-                    appProfState.expandedRowsTexArea[detailid],
-                  ]}
-                  ondblclick={() => {
-                    editingDay = {
-                      eid: id,
-                      echildid: childid,
-                      edetailid: detailid,
-                      etext: levelThree.text || "",
-                    };
-                  }}
-                  value={levelThree.text}
-                  rows="1"
-                  oninput={(e) => {
-                    updateDetailHighlight(
-                      id,
-                      childid,
-                      detailid,
-                      (e.target as HTMLTextAreaElement).value,
-                    );
-                  }}
-                />
+                      ? 'bg-white/40 text-black border border-white/30 focus:ring-white/80'
+                      : levelThree.me
+                        ? 'bg-black/20 text-white/70 border border-white/20 focus:ring-white/60'
+                        : 'bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80'}"
+                    use:autoResize={[
+                      levelThree.text,
+                      appProfState.expandedRowsTexArea[detailid],
+                    ]}
+                    ondblclick={() => {
+                      editingDay = {
+                        eid: id,
+                        echildid: childid,
+                        edetailid: detailid,
+                        etext: levelThree.text || "",
+                      };
+                    }}
+                    value={levelThree.text}
+                    rows="1"
+                    oninput={(e) => {
+                      updateDetailHighlight(
+                        id,
+                        childid,
+                        detailid,
+                        (e.target as HTMLTextAreaElement).value,
+                      );
+                    }}
+                  />
 
-                <button
-                  class="bg-white/10 text-white/30
+                  <button
+                    class="bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6 ml-2 mr-25"
-                  onclick={() => removeDetailHighlight(id, childid, detailid)}
-                >
-                  -
-                </button>
-                <div class="flex flex-col float-end">
-                  <label class="flex gap-1 cursor-pointer">
-                    <span class="text-teal-100/20 text-sm leading-tight">
-                      M
-                    </span>
+                    onclick={() => removeDetailHighlight(id, childid, detailid)}
+                  >
+                    -
+                  </button>
+                  <div class="flex flex-col float-end">
+                    <label class="flex gap-1 cursor-pointer">
+                      <span class="text-teal-100/20 text-sm leading-tight">
+                        M
+                      </span>
 
-                    <input
-                      type="checkbox"
-                      bind:checked={levelThree.me}
-                      onchange={(e) =>
-                        updateDialogM(
-                          id,
-                          childid,
-                          detailid,
-                          (e.target as HTMLInputElement).checked,
-                        )}
-                      class="w-4 h-4 accent-teal-500 opacity-10"
-                    />
-                  </label>
+                      <input
+                        type="checkbox"
+                        bind:checked={levelThree.me}
+                        onchange={(e) =>
+                          updateDialogM(
+                            id,
+                            childid,
+                            detailid,
+                            (e.target as HTMLInputElement).checked,
+                          )}
+                        class="w-4 h-4 accent-teal-500 opacity-10"
+                      />
+                    </label>
 
-                  <label class="flex gap-1 cursor-pointer">
-                    <span class="text-cyan-100/20 text-sm leading-tight">
-                      O
-                    </span>
+                    <label class="flex gap-1 cursor-pointer">
+                      <span class="text-cyan-100/20 text-sm leading-tight">
+                        O
+                      </span>
 
-                    <input
-                      type="checkbox"
-                      bind:checked={levelThree.one}
-                      onchange={(e) =>
-                        updateDialogO(
-                          id,
-                          childid,
-                          detailid,
-                          (e.target as HTMLInputElement).checked,
-                        )}
-                      class="w-4 h-4 accent-cyan-500 opacity-10"
-                    />
-                  </label>
+                      <input
+                        type="checkbox"
+                        bind:checked={levelThree.one}
+                        onchange={(e) =>
+                          updateDialogO(
+                            id,
+                            childid,
+                            detailid,
+                            (e.target as HTMLInputElement).checked,
+                          )}
+                        class="w-4 h-4 accent-cyan-500 opacity-10"
+                      />
+                    </label>
+                  </div>
                 </div>
-              </div>
-            {/each}
+              {/each}
             {/if}
             {#if Object.keys(levelTwo.patterns ?? {}).length !== 0}
-              <PatternComponent 
-                  {id} 
-                  {childid} 
-                  {levelTwo} 
-                  {updatePatternSteps} 
-                  {initStep} 
-                  {removeStep}
-                  />
+              <PatternComponent
+                {id}
+                {childid}
+                {levelTwo}
+                {updatePatternSteps}
+                {initStep}
+                {removeStep}
+              />
             {/if}
 
             {#if Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
-             <ImagePattern 
-                {id} 
-                {childid} 
+              <ImagePattern
+                {id}
+                {childid}
                 {levelTwo}
                 {addImagePatternStep}
-                {removeImagePatternStep} />
+                {removeImagePatternStep}
+              />
             {/if}
           {/if}
         </div>
