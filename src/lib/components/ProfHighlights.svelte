@@ -287,7 +287,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
             </button>
 
             <button
-              class="text-white/20 text-3xl w-6"
+              class="text-white/20 text-3xl w-6 mt-3"
               onclick={() => togglethirdlevel(childid)}
             >
               {$profGoalExpandedYears[childid] ? "▼" : "▷"}
