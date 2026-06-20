@@ -734,6 +734,7 @@
 		
 		const { thread, goal } = selectedGoalEntryData;
 
+		//If isConsequenceActive half the value
 		const recordedValue =
 			isConsequenceActive && thread.measurementType !== "none"
 				? value / 2
