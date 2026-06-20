@@ -748,10 +748,14 @@
 
 		const lowerLimit = Number(goal.lowLimit ?? 0);
 
+		//**The only behavior which triggers isConsequenceActive to be true, is 
+		// 1. when the value is lower than the lowerLimit and the lowerLimit is not 0
+		// 2. Pertaining to this function, if isConsequenceActive is true - keep that value
 		const shouldActivateConsequence =
 			thread.measurementType !== "none" &&
 			(isConsequenceActive || recordedValue < lowerLimit);
 
+		//**What is this start referring to
 		if (entry.entryId.startsWith("start-")) {
 			updateGoalField(
 				thread.threadId,
@@ -784,6 +788,7 @@
 			handleFailureCountModal(thread, goal, nextFailureCount);
 		}
 
+		//**What is entry.createdAt ? What is this conditional saying ?
 		if (entry.createdAt) {
 			updateFutureConsequenceState(
 				thread.threadId,
