@@ -36,6 +36,7 @@
 	let displayMonth: number = $state(0);
 	let displayDay: number = $state(0);
 	let todayDate: Date = $state(new Date());
+	let missingHighLimitWarnings = $state<Record<string, boolean>>({});
 
 	//InfoModal
 	let showInfoModal = $state(false);
@@ -522,71 +523,93 @@
 		}
 	}
 
-const TIME_THREAD_AXIS_LIMIT = 8;
-const TIME_ITERATIVE_AXIS_PADDING = 2;
+	const TIME_THREAD_AXIS_LIMIT = 10;
+	const TIME_ITERATIVE_AXIS_PADDING = 2;
 
-function roundAxisLimit(value: number): number {
-	if (!value || value <= 0) return 12;
+	const COUNT_DEFAULT_AXIS_LIMIT = 100;
+const COUNT_AXIS_PADDING = 10;
 
-	return value + 25;
+	function getTimeIterativeAxisLimit(goal: Goal | undefined): number {
+		const highLimit = Number(goal?.highLimit ?? 0);
+
+		if (!Number.isFinite(highLimit) || highLimit <= 0) {
+			return TIME_THREAD_AXIS_LIMIT;
+		}
+
+		const boundedHighLimit = Math.min(highLimit, TIME_THREAD_AXIS_LIMIT);
+		const paddedLimit = boundedHighLimit + TIME_ITERATIVE_AXIS_PADDING;
+
+		// Add the full +2 only if doing so does not go over 8.
+		// Example: highLimit 1 -> axis 3.
+		// Example: highLimit 6 -> axis 8.
+		// Example: highLimit 7 -> axis 7.
+		return paddedLimit <= TIME_THREAD_AXIS_LIMIT
+			? paddedLimit
+			: boundedHighLimit;
+	}
+
+	function getCountThreadAxisLimit(thread: GoalThread): number {
+	const highestHighLimit = Math.max(
+		0,
+		...thread.goals.map((goal) => Number(goal.highLimit ?? 0)),
+	);
+
+	if (!Number.isFinite(highestHighLimit) || highestHighLimit <= 0) {
+		return COUNT_DEFAULT_AXIS_LIMIT;
+	}
+
+	return highestHighLimit + COUNT_AXIS_PADDING;
 }
 
-function getTimeIterativeAxisLimit(goal: Goal | undefined): number {
+function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 	const highLimit = Number(goal?.highLimit ?? 0);
 
 	if (!Number.isFinite(highLimit) || highLimit <= 0) {
-		return TIME_THREAD_AXIS_LIMIT;
+		return COUNT_DEFAULT_AXIS_LIMIT;
 	}
 
-	const boundedHighLimit = Math.min(highLimit, TIME_THREAD_AXIS_LIMIT);
-	const paddedLimit = boundedHighLimit + TIME_ITERATIVE_AXIS_PADDING;
-
-	// Add the full +2 only if doing so does not go over 8.
-	// Example: highLimit 1 -> axis 3.
-	// Example: highLimit 6 -> axis 8.
-	// Example: highLimit 7 -> axis 7.
-	return paddedLimit <= TIME_THREAD_AXIS_LIMIT
-		? paddedLimit
-		: boundedHighLimit;
+	return highLimit + COUNT_AXIS_PADDING;
 }
 
-function getThreadAxisLimit(thread: GoalThread): number {
-	if (thread.measurementType === "none") {
-		return 12;
-	}
-
-	if (thread.measurementType === "time") {
-		if (thread.iterateGoalMode) {
-			return getTimeIterativeAxisLimit(getActiveGoal(thread));
+	function getThreadAxisLimit(thread: GoalThread): number {
+		if (thread.measurementType === "none") {
+			return 12;
 		}
 
-		return TIME_THREAD_AXIS_LIMIT;
+		if (thread.measurementType === "time") {
+			if (thread.iterateGoalMode) {
+				return getTimeIterativeAxisLimit(getActiveGoal(thread));
+			}
+
+			return TIME_THREAD_AXIS_LIMIT;
+		}
+
+		if (thread.measurementType === "count") {
+	if (thread.iterateGoalMode) {
+		return getCountIterativeAxisLimit(getActiveGoal(thread));
 	}
 
-	const highestValue = Math.max(
-		0,
-		...thread.goals.map((goal) =>
-			Math.max(
-				Number(goal.highLimit ?? 0),
-				Number(goal.startAmount ?? 0),
-			),
-		),
-	);
-
-	return roundAxisLimit(highestValue);
+	return getCountThreadAxisLimit(thread);
 }
 
-function getYAxisLabels(axisLimit: number): number[] {
-	return [axisLimit, axisLimit / 2, 0, -axisLimit / 2, -axisLimit];
-}
-
-function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
-	if (thread.measurementType === "time") {
-		return `Y-axis: 0h to ${axisLimit}h`;
+		return COUNT_DEFAULT_AXIS_LIMIT;
 	}
 
-	return `Y-axis: +${axisLimit} to -${axisLimit}`;
-}
+	function getYAxisLabels(axisLimit: number): number[] {
+		return [axisLimit, axisLimit / 2, 0, -axisLimit / 2, -axisLimit];
+	}
+
+	function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
+		if (thread.measurementType === "time") {
+			return `Y-axis: 0h to ${axisLimit}h`;
+		}
+
+		if (thread.measurementType === "count") {
+			return `Y-axis: +${axisLimit} to -${axisLimit}`;
+		}
+
+		return `Y-axis: +${axisLimit} to -${axisLimit}`;
+	}
 
 	function getMonthDayNumbers(thread: GoalThread): number[] {
 		const month = getGoalMonth(thread);
@@ -761,98 +784,98 @@ function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
 	}
 
 	function handleEntryDone(
-	entry: GoalEntry,
-	value: number,
-	description: string,
-	isConsequenceActive: boolean,
-	goalEntryConsequence: string,
-	progressMarker: boolean,
-) {
-	if (!selectedGoalEntryData) return;
+		entry: GoalEntry,
+		value: number,
+		description: string,
+		isConsequenceActive: boolean,
+		goalEntryConsequence: string,
+		progressMarker: boolean,
+	) {
+		if (!selectedGoalEntryData) return;
 
-	const { thread, goal } = selectedGoalEntryData;
+		const { thread, goal } = selectedGoalEntryData;
 
-	const lowerLimit = Number(goal.lowLimit ?? 0);
+		const lowerLimit = Number(goal.lowLimit ?? 0);
 
-	const hasRealLowerLimit = lowerLimit !== 0;
+		const hasRealLowerLimit = lowerLimit !== 0;
 
-	// If the consequence is already active, halve the value.
-	const recordedValue =
-		isConsequenceActive && thread.measurementType !== "none"
-			? value / 2
-			: value;
+		// If the consequence is already active, halve the value.
+		const recordedValue =
+			isConsequenceActive && thread.measurementType !== "none"
+				? value / 2
+				: value;
 
-	// Only count this as below the low limit if:
-	// 1. this is a measured goal
-	// 2. the lowerLimit is not 0
-	// 3. the recorded value actually went below the limit
-	const wentBelowLowLimit =
-		thread.measurementType !== "none" &&
-		hasRealLowerLimit &&
-		didEntryGoBelowLowLimit(thread, goal, recordedValue);
+		// Only count this as below the low limit if:
+		// 1. this is a measured goal
+		// 2. the lowerLimit is not 0
+		// 3. the recorded value actually went below the limit
+		const wentBelowLowLimit =
+			thread.measurementType !== "none" &&
+			hasRealLowerLimit &&
+			didEntryGoBelowLowLimit(thread, goal, recordedValue);
 
-	// Consequence becomes active only when:
-	// 1. it was already active
-	// 2. OR the entry went below a real lower limit
-	const shouldActivateConsequence =
-		isConsequenceActive || wentBelowLowLimit;
+		// Consequence becomes active only when:
+		// 1. it was already active
+		// 2. OR the entry went below a real lower limit
+		const shouldActivateConsequence =
+			isConsequenceActive || wentBelowLowLimit;
 
-	const consequenceDescription = shouldActivateConsequence
-		? goalEntryConsequence
-		: "";
+		const consequenceDescription = shouldActivateConsequence
+			? goalEntryConsequence
+			: "";
 
-	// "start-" entries are not normal calendar entries.
-	// They represent the goal's starting amount/start value.
-	// So this updates goal.startAmount instead of updating a GoalEntry.
-	if (entry.entryId.startsWith("start-")) {
-		updateGoalField(
-			thread.threadId,
-			goal.goalId,
-			"startAmount",
-			recordedValue,
-		);
+		// "start-" entries are not normal calendar entries.
+		// They represent the goal's starting amount/start value.
+		// So this updates goal.startAmount instead of updating a GoalEntry.
+		if (entry.entryId.startsWith("start-")) {
+			updateGoalField(
+				thread.threadId,
+				goal.goalId,
+				"startAmount",
+				recordedValue,
+			);
+
+			closeGoalEntryEditor();
+			return;
+		}
+
+		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
+			value: recordedValue,
+			description,
+			isCompleted: true,
+			isSucceeded: true,
+			hasFailed: false,
+			status: thread.measurementType === "none" ? "yes" : "done",
+			isConsequenceActive: shouldActivateConsequence,
+			consequenceDescription,
+			progressMarker,
+		});
+
+		if (wentBelowLowLimit) {
+			const nextFailureCount = decreaseGoalFailureCount(
+				thread.threadId,
+				goal.goalId,
+			);
+
+			handleFailureCountModal(thread, goal, nextFailureCount);
+		}
+
+		// entry.createdAt is the timestamp for when this GoalEntry was created.
+		// This condition says:
+		// "Only update future consequence state if this entry has a createdAt date."
+		// Without createdAt, updateFutureConsequenceState would not know which date/time
+		// to use when looking for the related future consequence entry/node.
+		if (entry.createdAt) {
+			updateFutureConsequenceState(
+				thread.threadId,
+				goal.goalId,
+				entry.createdAt,
+				shouldActivateConsequence,
+			);
+		}
 
 		closeGoalEntryEditor();
-		return;
 	}
-
-	updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
-		value: recordedValue,
-		description,
-		isCompleted: true,
-		isSucceeded: true,
-		hasFailed: false,
-		status: thread.measurementType === "none" ? "yes" : "done",
-		isConsequenceActive: shouldActivateConsequence,
-		consequenceDescription,
-		progressMarker,
-	});
-
-	if (wentBelowLowLimit) {
-		const nextFailureCount = decreaseGoalFailureCount(
-			thread.threadId,
-			goal.goalId,
-		);
-
-		handleFailureCountModal(thread, goal, nextFailureCount);
-	}
-
-	// entry.createdAt is the timestamp for when this GoalEntry was created.
-	// This condition says:
-	// "Only update future consequence state if this entry has a createdAt date."
-	// Without createdAt, updateFutureConsequenceState would not know which date/time
-	// to use when looking for the related future consequence entry/node.
-	if (entry.createdAt) {
-		updateFutureConsequenceState(
-			thread.threadId,
-			goal.goalId,
-			entry.createdAt,
-			shouldActivateConsequence,
-		);
-	}
-
-	closeGoalEntryEditor();
-}
 
 	function handleEntryNotDone(
 		entry: GoalEntry,
@@ -990,6 +1013,10 @@ function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
 		return activeGoal ? [activeGoal] : [];
 	}
 
+	function getThreadLegendGoals(thread: GoalThread): Goal[] {
+	return thread.goals.filter((goal) => goal.isInitialized);
+}
+
 	function toggleIterateGoalMode(thread: GoalThread): void {
 		const firstGoalId = thread.goals[0]?.goalId ?? "";
 
@@ -1019,6 +1046,63 @@ function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
 		const nextGoal = thread.goals[nextIndex];
 
 		updateGoalThreadField(thread.threadId, "activeGoalId", nextGoal.goalId);
+	}
+
+	function getGoalValidationKey(threadId: string, goalId: string): string {
+		return `${threadId}:${goalId}`;
+	}
+
+	function isHighLimitRequired(thread: GoalThread): boolean {
+		return (
+			thread.measurementType === "time" ||
+			thread.measurementType === "count"
+		);
+	}
+
+	function hasValidHighLimit(goal: Goal): boolean {
+		const highLimit = Number(goal.highLimit ?? 0);
+
+		return Number.isFinite(highLimit) && highLimit > 0;
+	}
+
+	function showMissingHighLimitWarning(
+		threadId: string,
+		goalId: string,
+	): void {
+		const validationKey = getGoalValidationKey(threadId, goalId);
+
+		missingHighLimitWarnings = {
+			...missingHighLimitWarnings,
+			[validationKey]: true,
+		};
+
+		window.setTimeout(() => {
+			missingHighLimitWarnings = {
+				...missingHighLimitWarnings,
+				[validationKey]: false,
+			};
+		}, 3000);
+	}
+
+	function shouldShowMissingHighLimitWarning(
+		thread: GoalThread,
+		goal: Goal,
+	): boolean {
+		const validationKey = getGoalValidationKey(
+			thread.threadId,
+			goal.goalId,
+		);
+
+		return missingHighLimitWarnings[validationKey] === true;
+	}
+
+	function handleGoalInitClick(thread: GoalThread, goal: Goal): void {
+		if (isHighLimitRequired(thread) && !hasValidHighLimit(goal)) {
+			showMissingHighLimitWarning(thread.threadId, goal.goalId);
+			return;
+		}
+
+		initGoal(thread.threadId, goal.goalId);
 	}
 
 	function isNoneMeasurementThread(thread: GoalThread): boolean {
@@ -1562,16 +1646,26 @@ function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
 							</div>
 
 							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Init</label
-								>
+								{#if shouldShowMissingHighLimitWarning(thread, goal)}
+									<div
+										class="mb-1 rounded border border-red-400/40 bg-red-500/20 px-2 py-1 text-xs text-red-200"
+									>
+										Entering a high limit is necessary.
+									</div>
+								{:else}
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+									>
+										Init
+									</label>
+								{/if}
+
 								<button
 									class={goal.isInitialized
 										? "h-10 rounded bg-green-500/60 px-3 py-1 text-green-100 hover:bg-green-500/50"
 										: "h-10 rounded bg-amber-500/30 px-3 py-1 text-amber-100 hover:bg-amber-500/50"}
 									onclick={() =>
-										initGoal(thread.threadId, goal.goalId)}
+										handleGoalInitClick(thread, goal)}
 								>
 									Init
 								</button>
@@ -1672,8 +1766,27 @@ function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
 							</button>
 						</div>
 
-						<div class="mb-2 text-md text-white/40">
-	{getYAxisSummary(thread, axisLimit)}
+						<div class="mb-2 flex w-full items-center gap-4 text-md text-white/40">
+	<div class="shrink-0">
+		{getYAxisSummary(thread, axisLimit)}
+	</div>
+
+	{#if !thread.iterateGoalMode}
+		<div class="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm text-white/70">
+			{#each getThreadLegendGoals(thread) as legendGoal (legendGoal.goalId)}
+				<div class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-2 py-1">
+					<span
+						class="h-3 w-3 rounded-full border border-white/30"
+						style:background-color={legendGoal.color ?? "#ffffff"}
+					></span>
+
+					<span>
+						{legendGoal.title || "Untitled Goal"}
+					</span>
+				</div>
+			{/each}
+		</div>
+	{/if}
 </div>
 
 						<div class="grid grid-cols-[4rem_1fr] gap-2">
