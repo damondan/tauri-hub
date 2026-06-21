@@ -522,29 +522,71 @@
 		}
 	}
 
-	function roundAxisLimit(value: number): number {
-		if (!value || value <= 0) return 12;
+const TIME_THREAD_AXIS_LIMIT = 8;
+const TIME_ITERATIVE_AXIS_PADDING = 2;
 
-		return value + 25;
+function roundAxisLimit(value: number): number {
+	if (!value || value <= 0) return 12;
+
+	return value + 25;
+}
+
+function getTimeIterativeAxisLimit(goal: Goal | undefined): number {
+	const highLimit = Number(goal?.highLimit ?? 0);
+
+	if (!Number.isFinite(highLimit) || highLimit <= 0) {
+		return TIME_THREAD_AXIS_LIMIT;
 	}
 
-	function getThreadAxisLimit(thread: GoalThread): number {
-		if (thread.measurementType === "none") {
-			return 12;
+	const boundedHighLimit = Math.min(highLimit, TIME_THREAD_AXIS_LIMIT);
+	const paddedLimit = boundedHighLimit + TIME_ITERATIVE_AXIS_PADDING;
+
+	// Add the full +2 only if doing so does not go over 8.
+	// Example: highLimit 1 -> axis 3.
+	// Example: highLimit 6 -> axis 8.
+	// Example: highLimit 7 -> axis 7.
+	return paddedLimit <= TIME_THREAD_AXIS_LIMIT
+		? paddedLimit
+		: boundedHighLimit;
+}
+
+function getThreadAxisLimit(thread: GoalThread): number {
+	if (thread.measurementType === "none") {
+		return 12;
+	}
+
+	if (thread.measurementType === "time") {
+		if (thread.iterateGoalMode) {
+			return getTimeIterativeAxisLimit(getActiveGoal(thread));
 		}
 
-		const highestValue = Math.max(
-			0,
-			...thread.goals.map((goal) =>
-				Math.max(
-					Number(goal.highLimit ?? 0),
-					Number(goal.startAmount ?? 0),
-				),
-			),
-		);
-
-		return roundAxisLimit(highestValue);
+		return TIME_THREAD_AXIS_LIMIT;
 	}
+
+	const highestValue = Math.max(
+		0,
+		...thread.goals.map((goal) =>
+			Math.max(
+				Number(goal.highLimit ?? 0),
+				Number(goal.startAmount ?? 0),
+			),
+		),
+	);
+
+	return roundAxisLimit(highestValue);
+}
+
+function getYAxisLabels(axisLimit: number): number[] {
+	return [axisLimit, axisLimit / 2, 0, -axisLimit / 2, -axisLimit];
+}
+
+function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
+	if (thread.measurementType === "time") {
+		return `Y-axis: 0h to ${axisLimit}h`;
+	}
+
+	return `Y-axis: +${axisLimit} to -${axisLimit}`;
+}
 
 	function getMonthDayNumbers(thread: GoalThread): number[] {
 		const month = getGoalMonth(thread);
@@ -552,10 +594,6 @@
 		if (!month) return [];
 
 		return month.days.map((day) => day.dayNumber);
-	}
-
-	function getYAxisLabels(axisLimit: number): number[] {
-		return [axisLimit, axisLimit / 2, 0, -axisLimit / 2, -axisLimit];
 	}
 
 	function shouldShowThreadGrid(thread: GoalThread): boolean {
@@ -1635,8 +1673,8 @@
 						</div>
 
 						<div class="mb-2 text-md text-white/40">
-							Y-axis: +{axisLimit} to -{axisLimit}
-						</div>
+	{getYAxisSummary(thread, axisLimit)}
+</div>
 
 						<div class="grid grid-cols-[4rem_1fr] gap-2">
 							<!-- Y-axis labels -->
