@@ -12,12 +12,6 @@
 	let ossecNotificationsEnabled = $state(true);
 	let showOssecTooltip = $state(false);
 	let ossecTooltipTimeout: number | null = null;
-	let showAideTooltip = $state(false);
-	let aideTooltipTimeout: number | null = null;
-	let showAideUpdateTooltip = $state(false);
-	let aideUpdateTooltipTimeout: number | null = null;
-	let aideLastCheckDate = $state("");
-	let aideRunning = false;
 	let opensnitchRunning = $state(false);
 	let showOpenSnitchTooltip = $state(false);
 	let openSnitchTooltipTimeout: number | null = null;
@@ -270,87 +264,6 @@
 		}
 	}
 
-	async function runAideCheck() {
-		if (aideRunning) {
-			alert("AIDE is already running. Please wait for it to complete.");
-			return;
-		}
-		try {
-			aideRunning = true;
-			const result = await invoke<string>("aide_check");
-			console.log("AIDE check result:", result);
-			// Update last check date
-			const now = new Date();
-			aideLastCheckDate = `${now.getMonth() + 1}/${now.getDate()}/${now.getFullYear()}`;
-			localStorage.setItem("aideLastCheckDate", aideLastCheckDate);
-			alert("AIDE check completed. Check console for details.");
-		} catch (error) {
-			console.error("Failed to run AIDE check:", error);
-			const errorMsg = String(error);
-			if (errorMsg.includes("cannot get lock")) {
-				alert(
-					"AIDE is already running. Please wait for the current operation to finish.",
-				);
-			} else {
-				alert("Failed to run AIDE check: " + error);
-			}
-		} finally {
-			aideRunning = false;
-		}
-	}
-
-	async function runAideUpdate() {
-		if (aideRunning) {
-			alert("AIDE is already running. Please wait for it to complete.");
-			return;
-		}
-		try {
-			aideRunning = true;
-			const result = await invoke<string>("aide_update");
-			alert(result);
-		} catch (error) {
-			console.error("Failed to update AIDE database:", error);
-			const errorMsg = String(error);
-			if (errorMsg.includes("cannot get lock")) {
-				alert(
-					"AIDE is already running. Please wait for the current operation to finish.",
-				);
-			} else {
-				alert("Failed to update AIDE database: " + error);
-			}
-		} finally {
-			aideRunning = false;
-		}
-	}
-
-	function handleAideTooltipEnter() {
-		aideTooltipTimeout = window.setTimeout(() => {
-			showAideTooltip = true;
-		}, 1000);
-	}
-
-	function handleAideTooltipLeave() {
-		if (aideTooltipTimeout) {
-			clearTimeout(aideTooltipTimeout);
-			aideTooltipTimeout = null;
-		}
-		showAideTooltip = false;
-	}
-
-	function handleAideUpdateTooltipEnter() {
-		aideUpdateTooltipTimeout = window.setTimeout(() => {
-			showAideUpdateTooltip = true;
-		}, 1000);
-	}
-
-	function handleAideUpdateTooltipLeave() {
-		if (aideUpdateTooltipTimeout) {
-			clearTimeout(aideUpdateTooltipTimeout);
-			aideUpdateTooltipTimeout = null;
-		}
-		showAideUpdateTooltip = false;
-	}
-
 	// OpenSnitch functions
 	async function checkOpenSnitchStatus() {
 		try {
@@ -415,13 +328,13 @@
 	}
 
 	// Open WebUI functions
-	async function checkWarpStatus() {
-		try {
-			warpRunning = await invoke<boolean>("check_warp_status");
-		} catch (error) {
-			console.error("Failed to check Warp status:", error);
-		}
-	}
+	// async function checkWarpStatus() {
+	// 	try {
+	// 		warpRunning = await invoke<boolean>("check_warp_status");
+	// 	} catch (error) {
+	// 		console.error("Failed to check Warp status:", error);
+	// 	}
+	// }
 
 	async function toggleOpenWebUI() {
 		console.log("toggle OpenWebUI");
@@ -454,15 +367,15 @@
 		}
 	}
 
-	async function toggleWarp() {
-		try {
-			await invoke("toggle_warp", { start: !warpRunning });
-			await checkWarpStatus();
-		} catch (error) {
-			console.error("Failed to toggle Warp:", error);
-			alert("Failed to toggle Warp: " + error);
-		}
-	}
+	// async function toggleWarp() {
+	// 	try {
+	// 		await invoke("toggle_warp", { start: !warpRunning });
+	// 		await checkWarpStatus();
+	// 	} catch (error) {
+	// 		console.error("Failed to toggle Warp:", error);
+	// 		alert("Failed to toggle Warp: " + error);
+	// 	}
+	// }
 
 	// Docker functions
 	async function checkDockerStatus() {
@@ -541,15 +454,12 @@
 		checkOpenWebUIStatus();
 		checkLMStudioStatus();
 		checkOllamaStatus();
-		checkWarpStatus();
+	//	checkWarpStatus();
 		checkDockerStatus();
 		checkDockerDesktopStatus();
 
 		// Load AIDE last check date from localStorage
 		const savedDate = localStorage.getItem("aideLastCheckDate");
-		if (savedDate) {
-			aideLastCheckDate = savedDate;
-		}
 
 		// Hide context menu on click anywhere
 		document.addEventListener("click", hideContextMenu);
@@ -747,6 +657,29 @@
 					AI Services
 				</h2>
 				<div class="flex flex-wrap gap-4 items-stretch">
+				<!-- Ollama  -->
+					<div
+						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 h-[82px]"
+					>
+						<div
+							class="{borderNTextNBg.lightText} text-center font-semibold text-base mb-1"
+						>
+							Ollama
+						</div>
+						<div
+							class="flex items-center gap-2 justify-center px-2"
+						>
+							<!-- Toggle Ollama Button -->
+							<button
+								onclick={toggleOllama}
+								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {ollamaRunning
+									? buttonStyles.greenButton
+									: buttonStyles.deleteButton}"
+							>
+								{ollamaRunning ? "On" : "Off"}
+							</button>
+						</div>
+					</div>
 					<!-- Open WebUI Controls -->
 					<div
 						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 h-[82px]"
@@ -790,52 +723,6 @@
 									: buttonStyles.deleteButton}"
 							>
 								{lmstudioRunning ? "On" : "Off"}
-							</button>
-						</div>
-					</div>
-					<!-- Ollama  -->
-					<div
-						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 h-[82px]"
-					>
-						<div
-							class="{borderNTextNBg.lightText} text-center font-semibold text-base mb-1"
-						>
-							OpWebUI
-						</div>
-						<div
-							class="flex items-center gap-2 justify-center px-2"
-						>
-							<!-- Toggle Ollama Button -->
-							<button
-								onclick={toggleOllama}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {ollamaRunning
-									? buttonStyles.greenButton
-									: buttonStyles.deleteButton}"
-							>
-								{ollamaRunning ? "On" : "Off"}
-							</button>
-						</div>
-					</div>
-					<!-- Warp -->
-					<div
-						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 h-[82px]"
-					>
-						<div
-							class="{borderNTextNBg.lightText} text-center font-semibold text-base mb-1"
-						>
-							WarpCancelled
-						</div>
-						<div
-							class="flex items-center gap-2 justify-center px-2"
-						>
-							<!-- Toggle Warp Button -->
-							<button
-								onclick={toggleWarp}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {warpRunning
-									? buttonStyles.greenButton
-									: buttonStyles.deleteButton}"
-							>
-								{warpRunning ? "On" : "Off"}
 							</button>
 						</div>
 					</div>
@@ -945,125 +832,6 @@
 										<!-- Tooltip arrow -->
 										<div
 											class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-gray-900"
-										></div>
-									</div>
-								{/if}
-							</div>
-						</div>
-					</div>
-
-					<!-- AIDE Controls -->
-					<div
-						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 w-64 h-[82px]"
-					>
-						<div
-							class="{borderNTextNBg.lightText} text-center font-semibold text-base mb-1"
-						>
-							AIDE{#if aideLastCheckDate}
-								- {aideLastCheckDate}{/if}
-						</div>
-						<div class="flex items-center gap-2 justify-center">
-							<!-- View Log Button with Tooltip -->
-							<div class="relative group">
-								<button
-									onclick={openAideLog}
-									onmouseenter={handleAideTooltipEnter}
-									onmouseleave={handleAideTooltipLeave}
-									class="bg-green-500/20 hover:bg-green-500 text-green-500 hover:text-white px-2 py-1 rounded-lg font-semibold 
-									text-md transition-colors flex items-center justify-center w-16 h-10"
-								>
-									View Log
-								</button>
-
-								<!-- Tooltip -->
-								{#if showAideTooltip}
-									<div
-										class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white
-											text-xl rounded-lg p-3 w-96 z-50 shadow-xl"
-									>
-										<div class="font-bold mb-2">AIDE</div>
-										<p class="text-gray-300 mb-3 italic">
-											Advanced Intrusion Detection
-											Environment creates a database of
-											file checksums and attributes to
-											detect unauthorized system changes.
-										</p>
-										<div class="space-y-1 text-left">
-											<p class="font-semibold">
-												BEFORE DOING PACMAN SYSTEM
-												UPDATE:
-											</p>
-											<p>
-												Check if AIDE has problem files
-												through /var/log/aide.log
-											</p>
-											<p class="mt-2">
-												When doing --check, if changes
-												are harmless, update database:
-											</p>
-											<p class="font-mono text-xxs">
-												sudo aide --update
-											</p>
-											<p class="font-mono text-xxs">
-												sudo mv
-												/var/lib/aide/aide.db.new.gz
-												/var/lib/aide/aide.db.gz
-											</p>
-										</div>
-										<!-- Tooltip arrow -->
-										<div
-											class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-gray-900"
-										></div>
-									</div>
-								{/if}
-							</div>
-
-							<!-- Check Button -->
-							<button
-								onclick={runAideCheck}
-								class="bg-yellow-500/20 hover:bg-yellow-500 text-yellow-500 hover:text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
-							>
-								<span class="text-center leading-tight"
-									>Check</span
-								>
-							</button>
-
-							<!-- Update Button -->
-							<div class="relative group">
-								<button
-									onclick={runAideUpdate}
-									onmouseenter={handleAideUpdateTooltipEnter}
-									onmouseleave={handleAideUpdateTooltipLeave}
-									class="bg-blue-500/20 hover:bg-blue-500 text-blue-500 hover:text-white px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center w-16 h-10"
-								>
-									<span class="text-center leading-tight"
-										>Update</span
-									>
-								</button>
-
-								<!-- Warning Tooltip -->
-								{#if showAideUpdateTooltip}
-									<div
-										class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-900 text-white
-											text-xl rounded-lg p-3 w-64 z-50 shadow-xl"
-									>
-										<p
-											class="text-gray-300 mb-2 italic text-center"
-										>
-											Updates AIDE's baseline database to
-											accept current system state as
-											legitimate.
-										</p>
-										<div class="font-bold text-center">
-											⚠️ WARNING ⚠️
-										</div>
-										<p class="text-center mt-1">
-											Only Update after possible security
-											threats have been mitigated
-										</p>
-										<!-- Tooltip arrow -->
-										<div
-											class="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-red-900"
 										></div>
 									</div>
 								{/if}

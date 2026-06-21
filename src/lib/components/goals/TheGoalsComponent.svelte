@@ -723,83 +723,98 @@
 	}
 
 	function handleEntryDone(
-		entry: GoalEntry,
-		value: number,
-		description: string,
-		isConsequenceActive: boolean,
-		goalEntryConsequence: string,
-		progressMarker: boolean,
-	) {
-		if (!selectedGoalEntryData) return;
-		
-		const { thread, goal } = selectedGoalEntryData;
+	entry: GoalEntry,
+	value: number,
+	description: string,
+	isConsequenceActive: boolean,
+	goalEntryConsequence: string,
+	progressMarker: boolean,
+) {
+	if (!selectedGoalEntryData) return;
 
-		//If isConsequenceActive half the value
-		const recordedValue =
-			isConsequenceActive && thread.measurementType !== "none"
-				? value / 2
-				: value;
+	const { thread, goal } = selectedGoalEntryData;
 
-		const wentBelowLowLimit = didEntryGoBelowLowLimit(
-			thread,
-			goal,
+	const lowerLimit = Number(goal.lowLimit ?? 0);
+
+	const hasRealLowerLimit = lowerLimit !== 0;
+
+	// If the consequence is already active, halve the value.
+	const recordedValue =
+		isConsequenceActive && thread.measurementType !== "none"
+			? value / 2
+			: value;
+
+	// Only count this as below the low limit if:
+	// 1. this is a measured goal
+	// 2. the lowerLimit is not 0
+	// 3. the recorded value actually went below the limit
+	const wentBelowLowLimit =
+		thread.measurementType !== "none" &&
+		hasRealLowerLimit &&
+		didEntryGoBelowLowLimit(thread, goal, recordedValue);
+
+	// Consequence becomes active only when:
+	// 1. it was already active
+	// 2. OR the entry went below a real lower limit
+	const shouldActivateConsequence =
+		isConsequenceActive || wentBelowLowLimit;
+
+	const consequenceDescription = shouldActivateConsequence
+		? goalEntryConsequence
+		: "";
+
+	// "start-" entries are not normal calendar entries.
+	// They represent the goal's starting amount/start value.
+	// So this updates goal.startAmount instead of updating a GoalEntry.
+	if (entry.entryId.startsWith("start-")) {
+		updateGoalField(
+			thread.threadId,
+			goal.goalId,
+			"startAmount",
 			recordedValue,
 		);
 
-		const lowerLimit = Number(goal.lowLimit ?? 0);
-
-		//**The only behavior which triggers isConsequenceActive to be true, is 
-		// 1. when the value is lower than the lowerLimit and the lowerLimit is not 0
-		// 2. Pertaining to this function, if isConsequenceActive is true - keep that value
-		const shouldActivateConsequence =
-			thread.measurementType !== "none" &&
-			(isConsequenceActive || recordedValue < lowerLimit);
-
-		//**What is this start referring to
-		if (entry.entryId.startsWith("start-")) {
-			updateGoalField(
-				thread.threadId,
-				goal.goalId,
-				"startAmount",
-				recordedValue,
-			);
-			closeGoalEntryEditor();
-			return;
-		}
-
-		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
-			value: recordedValue,
-			description,
-			isCompleted: true,
-			isSucceeded: true,
-			hasFailed: false,
-			status: thread.measurementType === "none" ? "yes" : "done",
-			isConsequenceActive: shouldActivateConsequence,
-			consequenceDescription: goalEntryConsequence,
-			progressMarker,
-		});
-
-		if (wentBelowLowLimit) {
-			const nextFailureCount = decreaseGoalFailureCount(
-				thread.threadId,
-				goal.goalId,
-			);
-
-			handleFailureCountModal(thread, goal, nextFailureCount);
-		}
-
-		//**What is entry.createdAt ? What is this conditional saying ?
-		if (entry.createdAt) {
-			updateFutureConsequenceState(
-				thread.threadId,
-				goal.goalId,
-				entry.createdAt,
-				shouldActivateConsequence,
-			);
-		}
-
 		closeGoalEntryEditor();
+		return;
 	}
+
+	updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
+		value: recordedValue,
+		description,
+		isCompleted: true,
+		isSucceeded: true,
+		hasFailed: false,
+		status: thread.measurementType === "none" ? "yes" : "done",
+		isConsequenceActive: shouldActivateConsequence,
+		consequenceDescription,
+		progressMarker,
+	});
+
+	if (wentBelowLowLimit) {
+		const nextFailureCount = decreaseGoalFailureCount(
+			thread.threadId,
+			goal.goalId,
+		);
+
+		handleFailureCountModal(thread, goal, nextFailureCount);
+	}
+
+	// entry.createdAt is the timestamp for when this GoalEntry was created.
+	// This condition says:
+	// "Only update future consequence state if this entry has a createdAt date."
+	// Without createdAt, updateFutureConsequenceState would not know which date/time
+	// to use when looking for the related future consequence entry/node.
+	if (entry.createdAt) {
+		updateFutureConsequenceState(
+			thread.threadId,
+			goal.goalId,
+			entry.createdAt,
+			shouldActivateConsequence,
+		);
+	}
+
+	closeGoalEntryEditor();
+}
 
 	function handleEntryNotDone(
 		entry: GoalEntry,

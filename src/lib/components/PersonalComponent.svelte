@@ -500,8 +500,17 @@
                             : borderNTextNBg.collapseRows}
                         >
                           <!-- Day entry -->
-                          <div class="flex items-center gap-3"
-                            title={Array.isArray(day.dayTags) ? day.dayTags.join(", ") : (day.dayTags ?? "")}>
+                          <div
+                            class="flex items-center gap-3"
+                            title={[
+                              day.title ?? "",
+                              Array.isArray(day.dayTags)
+                                ? day.dayTags.join(", ")
+                                : (day.dayTags ?? ""),
+                            ]
+                              .filter(Boolean)
+                              .join("\n")}
+                          >
                             <!-- Day label -->
                             <div
                               class="text-white text-2xl font-semibold whitespace-nowrap w-38"

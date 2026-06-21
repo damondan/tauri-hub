@@ -814,7 +814,6 @@ async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
     // Open file in nano using the user's default terminal emulator
     // Use pkexec for files that require elevated permissions
     let needs_sudo = file_path.starts_with("/var/ossec/")
-        || file_path.starts_with("/var/log/aide")
         || file_path == "/var/ossec/etc/ossec.conf";
 
     if needs_sudo {
@@ -1098,57 +1097,7 @@ fn start_alert_monitor(app_handle: AppHandle, ossec_state: Arc<OssecRegistry>) {
     });
 }
 
-// AIDE commands
-
-#[tauri::command]
-async fn aide_check() -> Result<String, String> {
-    let output = command_with_clean_env("/usr/bin/pkexec")
-        .arg("/usr/bin/aide")
-        .arg("--check")
-        .output()
-        .map_err(|e| format!("Failed to run AIDE check: {}", e))?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    // Check if pkexec was cancelled
-    if !output.status.success() && stdout.is_empty() && stderr.is_empty() {
-        return Err("Authentication cancelled or failed".to_string());
-    }
-
-    // AIDE returns non-zero exit code when changes are detected, which is not an error
-    Ok(format!("{}{}", stdout, stderr))
-}
-
-#[tauri::command]
-async fn aide_update() -> Result<String, String> {
-    // Run aide --update - note: AIDE returns non-zero when differences are found
-    // So we need to check if the new database was created, not the exit code
-    let output = command_with_clean_env("/usr/bin/pkexec")
-        .arg("/usr/bin/sh")
-        .arg("-c")
-        .arg("/usr/bin/aide --update 2>&1; if [ -f /var/lib/aide/aide.db.new.gz ]; then mv /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz 2>&1; echo 'Database moved successfully'; else echo 'Error: New database not created'; exit 1; fi")
-        .output()
-        .map_err(|e| format!("Failed to run AIDE update: {}", e))?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-
-    // Check if pkexec was cancelled
-    if !output.status.success() && stdout.is_empty() && stderr.is_empty() {
-        return Err("Authentication cancelled or failed".to_string());
-    }
-
-    // Check if database was successfully moved
-    if stdout.contains("Database moved successfully") {
-        Ok("AIDE database updated successfully".to_string())
-    } else {
-        Err(format!("AIDE update failed: {}\n{}", stdout, stderr))
-    }
-}
-
 // OpenSnitch commands
-
 #[tauri::command]
 async fn check_opensnitch_status() -> Result<bool, String> {
     // Check if OpenSnitch is running by checking systemd service
@@ -1307,62 +1256,52 @@ async fn toggle_ollama(start: bool) -> Result<(), String> {
         Err(format!("Failed to {} Ollama: {}", action, stderr))
     }
 }
+//Warp - keeping for using it for something else. 
+// #[tauri::command]
+// async fn check_warp_status() -> Result<bool, String> {
+ 
+//     let output = command_with_clean_env("/usr/bin/pgrep")
+//         .arg("-f")
+//         .arg("Warp")
+//         .output()
+//         .map_err(|e| format!("Failed to check Warp status: {}", e))?;
 
-// check_warp_status() -> Result<bool, String>
-// Checks if Warp process is running
-#[tauri::command]
-async fn check_warp_status() -> Result<bool, String> {
-    // Check if warp is running by looking for its process
-    let output = command_with_clean_env("/usr/bin/pgrep")
-        .arg("-f")
-        .arg("Warp")
-        .output()
-        .map_err(|e| format!("Failed to check Warp status: {}", e))?;
+//     Ok(output.status.success() && !output.stdout.is_empty())
+// }
 
-    Ok(output.status.success() && !output.stdout.is_empty())
-}
+// #[tauri::command]
+// async fn toggle_warp(start: bool) -> Result<(), String> {
+//     if start {
+//         let home =
+//             std::env::var("HOME").map_err(|e| format!("Failed to get HOME directory: {}", e))?;
 
-// toggle_warp(start: bool) -> Result<(), String>
-// Launches or stops Warp AppImage from ~/Prog directory
-#[tauri::command]
-async fn toggle_warp(start: bool) -> Result<(), String> {
-    if start {
-        // Get home directory
-        let home =
-            std::env::var("HOME").map_err(|e| format!("Failed to get HOME directory: {}", e))?;
+//         let prog_dir = format!("{}/Prog", home);
+//         let appimage_path = format!("{}/Warp-x86_64.AppImage", prog_dir);
 
-        let prog_dir = format!("{}/Prog", home);
-        let appimage_path = format!("{}/Warp-x86_64.AppImage", prog_dir);
+//         if !std::path::Path::new(&appimage_path).exists() {
+//             return Err(format!("Warp AppImage not found at: {}", appimage_path));
+//         }
 
-        // Check if AppImage exists
-        if !std::path::Path::new(&appimage_path).exists() {
-            return Err(format!("Warp AppImage not found at: {}", appimage_path));
-        }
+//         command_with_clean_env(appimage_path.as_str())
+//             .current_dir(&prog_dir)
+//             .spawn()
+//             .map_err(|e| format!("Failed to launch Warp AI: {}", e))?;
 
-        // Launch the AppImage
-        command_with_clean_env(appimage_path.as_str())
-            .current_dir(&prog_dir)
-            .spawn()
-            .map_err(|e| format!("Failed to launch Warp AI: {}", e))?;
+//         Ok(())
+//     } else {
+//         let output = command_with_clean_env("/usr/bin/pkill")
+//             .arg("-f")
+//             .arg("Warp")
+//             .output()
+//             .map_err(|e| format!("Failed to stop Warp: {}", e))?;
 
-        Ok(())
-    } else {
-        // To stop Warp, we need to find and kill its process
-        // Look for the Warp process by name
-        let output = command_with_clean_env("/usr/bin/pkill")
-            .arg("-f")
-            .arg("Warp")
-            .output()
-            .map_err(|e| format!("Failed to stop Warp: {}", e))?;
-
-        if output.status.success() {
-            Ok(())
-        } else {
-            // pkill returns non-zero if no process was found, which is not really an error
-            Ok(())
-        }
-    }
-}
+//         if output.status.success() {
+//             Ok(())
+//         } else {
+//             Ok(())
+//         }
+//     }
+// }
 
 // Docker commands
 #[tauri::command]
@@ -1701,8 +1640,6 @@ pub fn run() {
             reset_alerts_log_baseline,
             toggle_ossec_notifications,
             get_ossec_notifications_enabled,
-            aide_check,
-            aide_update,
             check_opensnitch_status,
             toggle_opensnitch,
             check_openwebui_status,
@@ -1711,8 +1648,8 @@ pub fn run() {
             toggle_lmstudio,
             check_ollama_status,
             toggle_ollama,
-            check_warp_status,
-            toggle_warp,
+          //  check_warp_status,
+           // toggle_warp,
             check_docker_enabled,
             check_docker_active,
             toggle_docker_enable,
