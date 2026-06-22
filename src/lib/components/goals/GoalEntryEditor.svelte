@@ -94,7 +94,7 @@
 				<textarea
 					rows="3"
 					class="resize-none rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/30"
-					placeholder="Add notes or mod goals for today..."
+					placeholder="Will you be modifying goals or have any notes for today ?"
 					bind:value={entryDescription}
 				></textarea>
 			</div>
@@ -126,7 +126,7 @@
 					rows="2"
 					class="resize-none rounded border border-white/20 bg-white/5 px-3 py-2 text-white/70 placeholder-white/30"
 					bind:value={entryConsequenceDescr}
-					placeholder="Refine Consequence for today..."
+					placeholder="Will you be modifying a consequence for this goal today ?"
 				></textarea>
 			</div>
 			<div class="flex flex-row">

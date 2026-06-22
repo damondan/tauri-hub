@@ -1661,7 +1661,7 @@
 								<input
 									type="text"
 									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/40"
-									placeholder="Consequence if not done..."
+									placeholder="Add a consequence ?"
 									value={goal.consequenceDescription}
 									oninput={(e) =>
 										updateGoalField(
