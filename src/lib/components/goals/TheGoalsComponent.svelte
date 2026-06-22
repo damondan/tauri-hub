@@ -46,6 +46,49 @@
 		"dateEnd" | "isCompleted" | "failureCount" | ""
 	>("");
 
+	let pendingCompletedGoalData = $state<{
+		thread: GoalThread;
+		goal: Goal;
+	} | null>(null);
+
+	let showGoalCompletionSummaryModal = $state(false);
+	let goalCompletionSummaryText = $state("");
+
+	function closeGoalCompletionSummaryModal(): void {
+		showGoalCompletionSummaryModal = false;
+		goalCompletionSummaryText = "";
+		pendingCompletedGoalData = null;
+	}
+
+	function completeGoalWithoutSummary(): void {
+		if (!pendingCompletedGoalData) return;
+
+		const { thread, goal } = pendingCompletedGoalData;
+
+		showGoalCompletionSummaryModal = false;
+		goalCompletionSummaryText = "";
+		pendingCompletedGoalData = null;
+
+		completeGoalAndLog(thread, goal);
+	}
+
+	function completeGoalWithSummary(): void {
+		if (!pendingCompletedGoalData) return;
+
+		const { thread, goal } = pendingCompletedGoalData;
+
+		const completedGoal: Goal = {
+			...goal,
+			lastGoalEntrySummary: goalCompletionSummaryText.trim(),
+		};
+
+		showGoalCompletionSummaryModal = false;
+		goalCompletionSummaryText = "";
+		pendingCompletedGoalData = null;
+
+		completeGoalAndLog(thread, completedGoal);
+	}
+
 	function openInfoModal(
 		reason: "dateEnd" | "isCompleted" | "failureCount",
 		title: string,
@@ -67,8 +110,8 @@
 	function triggerDateEndInfoModal(): void {
 		openInfoModal(
 			"dateEnd",
-			"Goal Ended",
-			"This goal has reached its end date. It will be logged in the Log component.",
+			"Last Day Reached",
+			"Congratulations ! This goal has been completed. Check Completed when you are ready to log it.",
 		);
 	}
 
@@ -76,7 +119,7 @@
 		openInfoModal(
 			"isCompleted",
 			"Goal Completed",
-			"This goal has been completed and will be logged in the Log component.",
+			"Congratulations ! This goal has been completed. It will be logged in the Log component.",
 		);
 	}
 
@@ -145,7 +188,13 @@
 		if (!goal) return;
 
 		if (isCompleted) {
-			completeGoalAndLog(thread, goal);
+			pendingCompletedGoalData = {
+				thread,
+				goal,
+			};
+
+			goalCompletionSummaryText = "";
+			showGoalCompletionSummaryModal = true;
 			return;
 		}
 
@@ -170,6 +219,7 @@
 		const wasLogged = logGoalToProjects(
 			"Goals",
 			goal.title ?? "",
+			thread,
 			goal,
 			status,
 		);
@@ -183,6 +233,12 @@
 
 			return;
 		}
+
+		if (thread.goals.length <= 1) {
+			deleteGoalThread(thread.threadId);
+			return;
+		}
+
 		deleteGoalFromThread(thread.threadId, goal.goalId);
 	}
 
@@ -318,102 +374,107 @@
 	}
 
 	function createGoalEntriesForDate(date: Date): void {
-		generateTheGoalStructureToDate(date);
+	generateTheGoalStructureToDate(date);
 
-		const yearNumber = date.getFullYear();
-		const monthIndex = date.getMonth();
-		const dayIndex = date.getDate() - 1;
+	const yearNumber = date.getFullYear();
+	const monthIndex = date.getMonth();
+	const dayIndex = date.getDate() - 1;
 
-		goalData.update((threads) => {
-			return threads.map((thread) => {
-				const year = thread.goalCalendar[yearNumber];
-				if (!year) return thread;
+	let shouldShowDateEndNotice = false;
 
-				const month = year.months[monthIndex];
-				if (!month) return thread;
+	goalData.update((threads) => {
+		return threads.map((thread) => {
+			const year = thread.goalCalendar[yearNumber];
+			if (!year) return thread;
 
-				const day = month.days[dayIndex];
-				if (!day) return thread;
+			const month = year.months[monthIndex];
+			if (!month) return thread;
 
-				let didGoalStatusChange = false;
+			const day = month.days[dayIndex];
+			if (!day) return thread;
 
-				const updatedGoals = thread.goals.map((goal) => {
-					const dateEndReached = checkGoalDateEndReached(goal, date);
+			let didGoalStatusChange = false;
 
-					if (dateEndReached && !goal.isCompleted) {
-						didGoalStatusChange = true;
-						endGoalAndLog(thread, goal);
+			const updatedGoals = thread.goals.map((goal) => {
+				const dateEndReached = checkGoalDateEndReached(goal, date);
 
-						return {
-							...goal,
-							isCompleted: true,
-						};
-					}
+				if (dateEndReached && !goal.isCompleted) {
+					didGoalStatusChange = true;
+					shouldShowDateEndNotice = true;
 
-					return goal;
-				});
-
-				const entriesToAdd: GoalEntry[] = [];
-
-				for (const goal of updatedGoals) {
-					if (goal.isCompleted) continue;
-
-					if (!isGoalScheduledForDate(goal, date)) continue;
-
-					const alreadyExists = day.entries.some(
-						(entry) => entry.goalId === goal.goalId,
-					);
-
-					if (alreadyExists) continue;
-
-					entriesToAdd.push(
-						createPendingGoalEntry(thread, goal, date),
-					);
-				}
-
-				const didAddEntries = entriesToAdd.length > 0;
-
-				if (!didGoalStatusChange && !didAddEntries) {
-					return thread;
-				}
-
-				if (!didAddEntries) {
 					return {
-						...thread,
-						goals: updatedGoals,
+						...goal,
 					};
 				}
 
-				const updatedDay = {
-					...day,
-					entries: [...day.entries, ...entriesToAdd],
-				};
+				return goal;
+			});
 
-				const updatedMonth = {
-					...month,
-					days: month.days.map((existingDay, index) =>
-						index === dayIndex ? updatedDay : existingDay,
-					),
-				};
+			const entriesToAdd: GoalEntry[] = [];
 
-				const updatedYear = {
-					...year,
-					months: year.months.map((existingMonth, index) =>
-						index === monthIndex ? updatedMonth : existingMonth,
-					),
-				};
+			for (const goal of updatedGoals) {
+				if (goal.isCompleted) continue;
 
+				if (!isGoalScheduledForDate(goal, date)) continue;
+
+				const alreadyExists = day.entries.some(
+					(entry) => entry.goalId === goal.goalId,
+				);
+
+				if (alreadyExists) continue;
+
+				entriesToAdd.push(
+					createPendingGoalEntry(thread, goal, date),
+				);
+			}
+
+			const didAddEntries = entriesToAdd.length > 0;
+
+			if (!didGoalStatusChange && !didAddEntries) {
+				return thread;
+			}
+
+			if (!didAddEntries) {
 				return {
 					...thread,
 					goals: updatedGoals,
-					goalCalendar: {
-						...thread.goalCalendar,
-						[yearNumber]: updatedYear,
-					},
 				};
-			});
+			}
+
+			const updatedDay = {
+				...day,
+				entries: [...day.entries, ...entriesToAdd],
+			};
+
+			const updatedMonth = {
+				...month,
+				days: month.days.map((existingDay, index) =>
+					index === dayIndex ? updatedDay : existingDay,
+				),
+			};
+
+			const updatedYear = {
+				...year,
+				months: year.months.map((existingMonth, index) =>
+					index === monthIndex ? updatedMonth : existingMonth,
+				),
+			};
+
+			return {
+				...thread,
+				goals: updatedGoals,
+				goalCalendar: {
+					...thread.goalCalendar,
+					[yearNumber]: updatedYear,
+				},
+			};
 		});
+	});
+
+	if (shouldShowDateEndNotice) {
+		triggerDateEndInfoModal();
 	}
+}
 
 	function checkGoalDateEndReached(goal: Goal, date: Date): boolean {
 		if (!goal.dateEnd) return false;
@@ -523,11 +584,12 @@
 		}
 	}
 
-	const TIME_THREAD_AXIS_LIMIT = 10;
-	const TIME_ITERATIVE_AXIS_PADDING = 2;
+	const TIME_THREAD_AXIS_LIMIT = 8;
+	const TIME_ITERATIVE_PADDING_MINUTES = 20;
+	const TIME_ITERATIVE_AXIS_PADDING = TIME_ITERATIVE_PADDING_MINUTES / 60;
 
 	const COUNT_DEFAULT_AXIS_LIMIT = 100;
-const COUNT_AXIS_PADDING = 10;
+	const COUNT_AXIS_PADDING = 10;
 
 	function getTimeIterativeAxisLimit(goal: Goal | undefined): number {
 		const highLimit = Number(goal?.highLimit ?? 0);
@@ -536,40 +598,31 @@ const COUNT_AXIS_PADDING = 10;
 			return TIME_THREAD_AXIS_LIMIT;
 		}
 
-		const boundedHighLimit = Math.min(highLimit, TIME_THREAD_AXIS_LIMIT);
-		const paddedLimit = boundedHighLimit + TIME_ITERATIVE_AXIS_PADDING;
-
-		// Add the full +2 only if doing so does not go over 8.
-		// Example: highLimit 1 -> axis 3.
-		// Example: highLimit 6 -> axis 8.
-		// Example: highLimit 7 -> axis 7.
-		return paddedLimit <= TIME_THREAD_AXIS_LIMIT
-			? paddedLimit
-			: boundedHighLimit;
+		return highLimit + TIME_ITERATIVE_AXIS_PADDING;
 	}
 
 	function getCountThreadAxisLimit(thread: GoalThread): number {
-	const highestHighLimit = Math.max(
-		0,
-		...thread.goals.map((goal) => Number(goal.highLimit ?? 0)),
-	);
+		const highestHighLimit = Math.max(
+			0,
+			...thread.goals.map((goal) => Number(goal.highLimit ?? 0)),
+		);
 
-	if (!Number.isFinite(highestHighLimit) || highestHighLimit <= 0) {
-		return COUNT_DEFAULT_AXIS_LIMIT;
+		if (!Number.isFinite(highestHighLimit) || highestHighLimit <= 0) {
+			return COUNT_DEFAULT_AXIS_LIMIT;
+		}
+
+		return highestHighLimit + COUNT_AXIS_PADDING;
 	}
 
-	return highestHighLimit + COUNT_AXIS_PADDING;
-}
+	function getCountIterativeAxisLimit(goal: Goal | undefined): number {
+		const highLimit = Number(goal?.highLimit ?? 0);
 
-function getCountIterativeAxisLimit(goal: Goal | undefined): number {
-	const highLimit = Number(goal?.highLimit ?? 0);
+		if (!Number.isFinite(highLimit) || highLimit <= 0) {
+			return COUNT_DEFAULT_AXIS_LIMIT;
+		}
 
-	if (!Number.isFinite(highLimit) || highLimit <= 0) {
-		return COUNT_DEFAULT_AXIS_LIMIT;
+		return highLimit + COUNT_AXIS_PADDING;
 	}
-
-	return highLimit + COUNT_AXIS_PADDING;
-}
 
 	function getThreadAxisLimit(thread: GoalThread): number {
 		if (thread.measurementType === "none") {
@@ -585,12 +638,12 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 		}
 
 		if (thread.measurementType === "count") {
-	if (thread.iterateGoalMode) {
-		return getCountIterativeAxisLimit(getActiveGoal(thread));
-	}
+			if (thread.iterateGoalMode) {
+				return getCountIterativeAxisLimit(getActiveGoal(thread));
+			}
 
-	return getCountThreadAxisLimit(thread);
-}
+			return getCountThreadAxisLimit(thread);
+		}
 
 		return COUNT_DEFAULT_AXIS_LIMIT;
 	}
@@ -601,7 +654,7 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 
 	function getYAxisSummary(thread: GoalThread, axisLimit: number): string {
 		if (thread.measurementType === "time") {
-			return `Y-axis: 0h to ${axisLimit}h`;
+			return `Y-axis: 0 to ${formatTimeAxisLabel(axisLimit)}`;
 		}
 
 		if (thread.measurementType === "count") {
@@ -609,6 +662,33 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 		}
 
 		return `Y-axis: +${axisLimit} to -${axisLimit}`;
+	}
+
+	function formatTimeAxisLabel(value: number): string {
+		if (!Number.isFinite(value)) return "0h";
+
+		const sign = value < 0 ? "-" : "";
+		const totalMinutes = Math.round(Math.abs(value) * 60);
+		const hours = Math.floor(totalMinutes / 60);
+		const minutes = totalMinutes % 60;
+
+		if (hours === 0) {
+			return `${sign}${minutes}m`;
+		}
+
+		if (minutes === 0) {
+			return `${sign}${hours}h`;
+		}
+
+		return `${sign}${hours}h ${minutes}m`;
+	}
+
+	function formatYAxisLabel(thread: GoalThread, value: number): string {
+		if (thread.measurementType === "time") {
+			return formatTimeAxisLabel(value);
+		}
+
+		return String(value);
 	}
 
 	function getMonthDayNumbers(thread: GoalThread): number[] {
@@ -799,11 +879,7 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 
 		const hasRealLowerLimit = lowerLimit !== 0;
 
-		// If the consequence is already active, halve the value.
-		const recordedValue =
-			isConsequenceActive && thread.measurementType !== "none"
-				? value / 2
-				: value;
+		const recordedValue = value;
 
 		// Only count this as below the low limit if:
 		// 1. this is a measured goal
@@ -1014,8 +1090,8 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 	}
 
 	function getThreadLegendGoals(thread: GoalThread): Goal[] {
-	return thread.goals.filter((goal) => goal.isInitialized);
-}
+		return thread.goals.filter((goal) => goal.isInitialized);
+	}
 
 	function toggleIterateGoalMode(thread: GoalThread): void {
 		const firstGoalId = thread.goals[0]?.goalId ?? "";
@@ -1766,28 +1842,36 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 							</button>
 						</div>
 
-						<div class="mb-2 flex w-full items-center gap-4 text-md text-white/40">
-	<div class="shrink-0">
-		{getYAxisSummary(thread, axisLimit)}
-	</div>
+						<div
+							class="mb-2 flex w-full items-center gap-4 text-md text-white/40"
+						>
+							<div class="shrink-0">
+								{getYAxisSummary(thread, axisLimit)}
+							</div>
 
-	{#if !thread.iterateGoalMode}
-		<div class="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm text-white/70">
-			{#each getThreadLegendGoals(thread) as legendGoal (legendGoal.goalId)}
-				<div class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-2 py-1">
-					<span
-						class="h-3 w-3 rounded-full border border-white/30"
-						style:background-color={legendGoal.color ?? "#ffffff"}
-					></span>
+							{#if !thread.iterateGoalMode}
+								<div
+									class="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm text-white/70"
+								>
+									{#each getThreadLegendGoals(thread) as legendGoal (legendGoal.goalId)}
+										<div
+											class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-2 py-1"
+										>
+											<span
+												class="h-3 w-3 rounded-full border border-white/30"
+												style:background-color={legendGoal.color ??
+													"#ffffff"}
+											></span>
 
-					<span>
-						{legendGoal.title || "Untitled Goal"}
-					</span>
-				</div>
-			{/each}
-		</div>
-	{/if}
-</div>
+											<span>
+												{legendGoal.title ||
+													"Untitled Goal"}
+											</span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
 
 						<div class="grid grid-cols-[4rem_1fr] gap-2">
 							<!-- Y-axis labels -->
@@ -1802,7 +1886,7 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 											axisLimit,
 										) + "%"}
 									>
-										{label}
+										{formatYAxisLabel(thread, label)}
 									</div>
 								{/each}
 							</div>
@@ -2088,6 +2172,49 @@ function getCountIterativeAxisLimit(goal: Goal | undefined): number {
 		onUpdate={handleEntryUpdate}
 		onCancel={closeGoalEntryEditor}
 	/>
+{/if}
+{#if showGoalCompletionSummaryModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+	>
+		<div
+			class="w-full max-w-lg rounded-xl border border-white/20 bg-zinc-900 p-5 text-white shadow-xl"
+		>
+			<div class="mb-3 text-xl font-semibold">
+				Do you want to provide a summary for the completion of this
+				goal?
+			</div>
+
+			<textarea
+				class="mb-4 min-h-32 w-full rounded border border-white/20 bg-black/40 p-3 text-white placeholder-white/40"
+				placeholder="Completion summary..."
+				bind:value={goalCompletionSummaryText}
+			></textarea>
+
+			<div class="flex justify-end gap-3">
+				<button
+					class="rounded bg-white/10 px-4 py-2 text-white/70 hover:bg-white/20 hover:text-white"
+					onclick={completeGoalWithoutSummary}
+				>
+					No
+				</button>
+
+				<button
+					class="rounded bg-green-600/70 px-4 py-2 text-white hover:bg-green-600"
+					onclick={completeGoalWithSummary}
+				>
+					Yes
+				</button>
+
+				<button
+					class="rounded bg-red-600/50 px-4 py-2 text-white hover:bg-red-600"
+					onclick={closeGoalCompletionSummaryModal}
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
 {#if showInfoModal}
 	<InfoModal

@@ -191,29 +191,30 @@
       <div class="ml-10 mr-10 mt-2 space-y-2">
         {#each Object.values(project.subprojects) as subproject (subproject.name)}
           {@const subKey = `${project.name}-${subproject.name}`}
-          <div class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15"
-          onclick={() => toggleSubproject(subKey)}
-        >
-          <div class="flex items-center">
-            <span class="text-white text-3xl w-6">
-              {$projectExpandedSubprojects[subKey] ? "▼" : "▷"}
-            </span>
+          <div
+            class="bg-white/10 rounded-xl p-3 cursor-pointer hover:bg-white/15"
+            onclick={() => toggleSubproject(subKey)}
+          >
+            <div class="flex items-center">
+              <span class="text-white text-3xl w-6">
+                {$projectExpandedSubprojects[subKey] ? "▼" : "▷"}
+              </span>
 
-            <span class="text-white text-3xl ml-3">
-              {subproject.name}
-            </span>
+              <span class="text-white text-3xl ml-3">
+                {subproject.name}
+              </span>
 
-            <button
-              class="ml-auto bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
-              onclick={(e) => {
-                e.stopPropagation();
-                deleteSubProject(project.name,subproject.name);
-              }}
-            >
-              Del
-            </button>
+              <button
+                class="ml-auto bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white px-3 py-1 rounded-lg transition-colors"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  deleteSubProject(project.name, subproject.name);
+                }}
+              >
+                Del
+              </button>
+            </div>
           </div>
-        </div>
 
           <!-- Level 3: Tasks (only show when subproject expanded) -->
           {#if $projectExpandedSubprojects[subKey]}
@@ -247,32 +248,79 @@
                     </button>
                   </div>
 
-                  <!-- Todo Rows (only show when task expanded) -->
+                  <!-- Task Details: Todo rows and Goal entries -->
                   {#if $projectExpandedTasks[taskKey]}
-                    <div class="mt-3 space-y-2">
-                      {#each task.rows as row (row.id)}
-                        <div
-                          class="border rounded-lg p-2 flex items-start gap-3 {row.completed
-                            ? 'border-green-500'
-                            : 'border-red-500'}"
-                        >
-                          <!-- Completion indicator -->
+                    <div class="mt-3 space-y-3">
+                      {#if task.rows && task.rows.length > 0}
+                        <div class="space-y-2">
+                          <div class="text-white/40 text-2xl">ToDo Rows</div>
 
-                          <!-- Row text -->
-                          <div
-                            class="flex-1 text-white text-3xl leading-tight break-words whitespace-normal"
-                          >
-                            {row.text}
-                          </div>
+                          {#each task.rows as row (row.id)}
+                            <div
+                              class="border rounded-lg p-2 flex items-start gap-3 {row.completed
+                                ? 'border-green-500'
+                                : 'border-red-500'}"
+                            >
+                              <div
+                                class="flex-1 text-white text-3xl leading-tight break-words whitespace-normal"
+                              >
+                                {row.text}
+                              </div>
 
-                          <!-- Timestamps -->
-                          <div class="text-white/70 text-2xl whitespace-nowrap">
-                            Start: {formatDateTime(row.startTime)} | Finish: {formatDateTime(
-                              row.finishTime,
-                            )}
-                          </div>
+                              <div
+                                class="text-white/70 text-2xl whitespace-nowrap"
+                              >
+                                Start: {formatDateTime(row.startTime)} | Finish:
+                                {formatDateTime(row.finishTime)}
+                              </div>
+                            </div>
+                          {/each}
                         </div>
-                      {/each}
+                      {/if}
+
+                      {#if task.goalEntries && task.goalEntries.length > 0}
+                        <div class="space-y-2">
+                          <div class="text-white/40 text-2xl">Goal Entries</div>
+
+                          {#each task.goalEntries as goalEntry (goalEntry.entryId)}
+                            <div
+                              class="border rounded-lg p-2 flex items-start gap-3 {goalEntry.hasFailed
+                                ? 'border-red-500'
+                                : goalEntry.isSucceeded
+                                  ? 'border-green-500'
+                                  : 'border-white/20'}"
+                            >
+                              <div
+                                class="flex-1 text-white text-3xl leading-tight break-words whitespace-normal"
+                              >
+                                {#if goalEntry.isCompleted === false && goalEntry.description}
+                                  <span class="text-blue-300">Summary:</span>
+                                  {goalEntry.description}
+                                {:else}
+                                  {goalEntry.description ||
+                                    "No entry description"}
+                                {/if}
+                              </div>
+
+                              <div
+                                class="text-white/70 text-2xl whitespace-nowrap"
+                              >
+                                {#if goalEntry.value !== undefined}
+                                  Value: {goalEntry.value} |
+                                {/if}
+
+                                {#if goalEntry.status}
+                                  Status: {goalEntry.status} |
+                                {/if}
+
+                                {#if goalEntry.createdAt}
+                                  Date: {formatDateTime(goalEntry.createdAt)}
+                                {/if}
+                              </div>
+                            </div>
+                          {/each}
+                        </div>
+                      {/if}
                     </div>
                   {/if}
                 </div>

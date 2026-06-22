@@ -143,15 +143,28 @@
 			onclick={() => {
 				console.log("tab:", tab.path);
 
-				if (
-					($persLockState == LockState.LOCKED ||
-						$persLockState == LockState.NOT_SET) &&
-					tab.label == "Pers"
-				) {
-					authTargetTab.set(tab.path);
-					showAuthModal.set(true);
-					//return exits onclick
-					return;
+				if (tab.label === "Pers") {
+					if ($persLockState === LockState.LOCKED) {
+						console.log(
+							`************Lock State is ${$persLockState}`,
+						);
+						authTargetTab.set(tab.path);
+						showAuthModal.set(true);
+						return;
+					}
+
+					if ($persLockState === LockState.NOT_SET) {
+						alert(
+							"Remember your password. Once set ... its set!",
+						);
+
+						console.log(
+							`************Lock State is ${$persLockState}`,
+						);
+						authTargetTab.set(tab.path);
+						showAuthModal.set(true);
+						return;
+					}
 				}
 
 				console.log("about to go to goto");

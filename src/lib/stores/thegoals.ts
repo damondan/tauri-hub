@@ -1,4 +1,4 @@
- import { writable } from 'svelte/store';
+import { writable } from 'svelte/store';
 
 export type GoalMeasurementType = 'time' | 'count' | 'none';
 
@@ -55,7 +55,7 @@ export interface GoalYear {
 }
 
 export interface Goal {
-    goalId: string;
+	goalId: string;
 
 	title?: string;
 	description?: string;
@@ -85,6 +85,7 @@ export interface Goal {
 	isCompleted?: boolean;
 	isSucceeded?: boolean;
 	hasFailed?: boolean;
+	lastGoalEntrySummary?: string;
 }
 
 export interface GoalThread {
@@ -409,49 +410,93 @@ export function updateGoalField<K extends keyof Goal>(
 }
 
 export function updateRealGoalEntry(
-		threadId: string,
-		goalId: string,
-		entryId: string,
-		updates: Partial<GoalEntry>,
-	) {
-		goalData.update((threads) => {
-			return threads.map((thread) => {
-				if (thread.threadId !== threadId) return thread;
+	threadId: string,
+	goalId: string,
+	entryId: string,
+	updates: Partial<GoalEntry>,
+) {
+	goalData.update((threads) => {
+		return threads.map((thread) => {
+			if (thread.threadId !== threadId) return thread;
 
-				const updatedCalendar = { ...thread.goalCalendar };
+			const updatedCalendar = { ...thread.goalCalendar };
 
-				for (const yearKey of Object.keys(updatedCalendar)) {
-					const year = updatedCalendar[Number(yearKey)];
+			for (const yearKey of Object.keys(updatedCalendar)) {
+				const year = updatedCalendar[Number(yearKey)];
 
-					for (const month of year.months) {
-						for (const day of month.days) {
-							day.entries = day.entries.map((entry) => {
-								if (
-									entry.goalId !== goalId ||
-									entry.entryId !== entryId
-								) {
-									return entry;
-								}
+				for (const month of year.months) {
+					for (const day of month.days) {
+						day.entries = day.entries.map((entry) => {
+							if (
+								entry.goalId !== goalId ||
+								entry.entryId !== entryId
+							) {
+								return entry;
+							}
 
-								return {
-									...entry,
-									...updates,
-									updatedAt: new Date().toISOString(),
-								};
-							});
-						}
+							return {
+								...entry,
+								...updates,
+								updatedAt: new Date().toISOString(),
+							};
+						});
 					}
 				}
+			}
 
-				return {
-					...thread,
-					goalCalendar: updatedCalendar,
-				};
-			});
+			return {
+				...thread,
+				goalCalendar: updatedCalendar,
+			};
 		});
+	});
+}
+
+export function collectGoalEntriesForGoal(
+	thread: GoalThread,
+	goal: Goal,
+): GoalEntry[] {
+	const goalEntries: GoalEntry[] = [];
+
+	const summaryText = goal.lastGoalEntrySummary?.trim() ?? "";
+
+	if (summaryText) {
+		const goalEntrySummary: GoalEntry = {
+			entryId: crypto.randomUUID(),
+			goalId: goal.goalId,
+			description: summaryText,
+			isCompleted: false,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+		};
+
+		goalEntries.push(goalEntrySummary);
 	}
 
-	export function hasPendingGoalForDate(
+	for (const year of Object.values(thread.goalCalendar)) {
+		for (const month of year.months) {
+			for (const day of month.days) {
+				for (const entry of day.entries) {
+					if (entry.goalId !== goal.goalId) continue;
+
+					const shouldLogEntry =
+						entry.progressMarker === true ||
+						entry.hasFailed === true;
+
+					if (!shouldLogEntry) continue;
+
+					goalEntries.push({
+						...entry,
+					});
+				}
+			}
+		}
+	}
+
+	return goalEntries;
+}
+
+export function hasPendingGoalForDate(
 	threads: GoalThread[],
 	date: Date,
 ): boolean {
@@ -539,49 +584,49 @@ export function decreaseGoalFailureCount(
 }
 
 export function updateFutureConsequenceState(
-		threadId: string,
-		goalId: string,
-		fromDateString: string,
-		isConsequenceActive: boolean,
-	): void {
-		goalData.update((threads) => {
-			return threads.map((thread) => {
-				if (thread.threadId !== threadId) return thread;
+	threadId: string,
+	goalId: string,
+	fromDateString: string,
+	isConsequenceActive: boolean,
+): void {
+	goalData.update((threads) => {
+		return threads.map((thread) => {
+			if (thread.threadId !== threadId) return thread;
 
-				const updatedCalendar = { ...thread.goalCalendar };
+			const updatedCalendar = { ...thread.goalCalendar };
 
-				for (const yearKey of Object.keys(updatedCalendar)) {
-					const year = updatedCalendar[Number(yearKey)];
+			for (const yearKey of Object.keys(updatedCalendar)) {
+				const year = updatedCalendar[Number(yearKey)];
 
-					year.months = year.months.map((month) => {
-						return {
-							...month,
-							days: month.days.map((day) => {
-								return {
-									...day,
-									entries: day.entries.map((entry) => {
-										if (entry.goalId !== goalId)
-											return entry;
-										if (!entry.createdAt) return entry;
-										if (entry.createdAt < fromDateString)
-											return entry;
+				year.months = year.months.map((month) => {
+					return {
+						...month,
+						days: month.days.map((day) => {
+							return {
+								...day,
+								entries: day.entries.map((entry) => {
+									if (entry.goalId !== goalId)
+										return entry;
+									if (!entry.createdAt) return entry;
+									if (entry.createdAt < fromDateString)
+										return entry;
 
-										return {
-											...entry,
-											isConsequenceActive,
-											updatedAt: new Date().toISOString(),
-										};
-									}),
-								};
-							}),
-						};
-					});
-				}
+									return {
+										...entry,
+										isConsequenceActive,
+										updatedAt: new Date().toISOString(),
+									};
+								}),
+							};
+						}),
+					};
+				});
+			}
 
-				return {
-					...thread,
-					goalCalendar: updatedCalendar,
-				};
-			});
+			return {
+				...thread,
+				goalCalendar: updatedCalendar,
+			};
 		});
-	}
+	});
+}

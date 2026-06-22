@@ -1,7 +1,8 @@
 import { writable,get } from 'svelte/store';
 import { todosByDate, removeTodoItem } from "./todo";
 import type { TodoItem, TodoRow } from "./todo";
-import type { Goal } from './thegoals';
+import type { GoalThread, Goal, GoalEntry } from './thegoals';
+import { collectGoalEntriesForGoal } from "./thegoals";
 export const projectExpandedProjects = writable<Record<string, boolean>>({});
 export const projectExpandedSubprojects = writable<Record<string, boolean>>({});
 export const projectExpandedTasks = writable<Record<string, boolean>>({});
@@ -18,7 +19,8 @@ export interface ProjectTask {
 	startDate: string;    // from TodoItem.date
 	endDate: string;      // timestamp when Send is clicked
 	rows?: TodoRow[];      // the actual todo rows with their completion status
-	goals?: Goal[];
+	goal?: Goal[],
+	goalEntries?: GoalEntry[];
 }
 
 export interface ProjectSubproject {
@@ -182,19 +184,21 @@ export function sendTodoToProjects(date: string, itemId: string): boolean {
 export function logGoalToProjects(
 	project: string,
 	subproject: string,
+	goalThread: GoalThread,
 	goal: Goal,
 	status: ProjectTaskStatus,
 ): boolean {
 	const endDate = new Date().toISOString();
-
+	const goalEntries = collectGoalEntriesForGoal(goalThread,goal);
 	const task: ProjectTask = {
 		id: goal.goalId,
 		sourceType: "goal",
 		status,
-		description: goal.title ?? "Untitled Goal",
+		description: goal.title ?? "Goal?",
 		startDate: goal.dateStart ?? endDate,
 		endDate,
-		goals: [goal],
+		goal: [goal],
+		goalEntries: goalEntries,
 	};
 
 	addTaskToProjects(project, subproject, task);
@@ -229,4 +233,6 @@ function parseTodoTitle(title: string): { project: string; subproject: string; d
 		description: descriptionWords.join(' ')
 	};
 }
+
+
 
