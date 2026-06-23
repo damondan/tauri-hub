@@ -1259,6 +1259,7 @@
 					class="flex-1 rounded border border-white/20 bg-white/5 px-3 py-2 text-xl text-white placeholder-white/40"
 					placeholder="Description..."
 					value={thread.description}
+					title={thread.description}
 					oninput={(e) =>
 						updateGoalThreadField(
 							thread.threadId,
@@ -1372,7 +1373,7 @@
 								/>
 							</div>
 
-							<div class="flex min-w-64 flex-1 flex-col">
+							<div class="flex min-w-[50%] flex-1 flex-col">
 								<label
 									class="invisible mb-1 text-xs text-white/40"
 									>Description</label
@@ -1382,6 +1383,7 @@
 									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-lg text-white placeholder-white/40"
 									placeholder="Goal description..."
 									value={goal.description}
+									title={goal.description}
 									oninput={(e) =>
 										updateGoalField(
 											thread.threadId,
@@ -1654,7 +1656,7 @@
 								/>
 							</div>
 
-							<div class="flex min-w-64 flex-1 flex-col">
+							<div class="flex min-w-64 max-w-[25%] flex-1 flex-col">
 								<label class="mb-1 text-xs text-white/40"
 									>Consequence</label
 								>
@@ -1663,6 +1665,7 @@
 									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/40"
 									placeholder="Add a consequence ?"
 									value={goal.consequenceDescription}
+									title={goal.consequenceDescription}
 									oninput={(e) =>
 										updateGoalField(
 											thread.threadId,
@@ -2097,20 +2100,20 @@
 
 									<!-- Node layer -->
 									{#each plottedNodes as node (node.key)}
-										{#if node.entry.progressMarker && thread.measurementType !== "none"}
+										{#if node.entry.progressMarker && thread.iterateGoalMode}
 											<div
 												class="pointer-events-none absolute top-0 h-full w-px bg-white/30"
 												style:left={node.xPercent + "%"}
 											></div>
 
 											<div
-												class="pointer-events-none absolute -translate-x-1/2 rounded-full bg-black/80 px-2 py-0.5 text-md font-bold text-white"
+												class="pointer-events-none absolute -translate-x-1/2 rounded-full bg-black/80 px-2 py-0.5 text-sm font-bold text-white w-4"
 												style:left={node.xPercent + "%"}
 												style:top={"calc(" +
 													node.yPercent +
-													"% - 70px)"}
+													"% - 190px)"}
 											>
-												{node.entry.value ?? 0}
+												{thread.measurementType === "none" ? node.entry.description : (node.entry.value ?? "")}
 											</div>
 										{/if}
 

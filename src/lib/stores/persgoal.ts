@@ -242,6 +242,24 @@ export function initHighlightLevel1(initHighLevel: string): void {
     }));
 }
 
+export function updateYearPrivateGoals(
+	yearId: string,
+	value: string,
+): void {
+	persGoalData.update((years) =>
+		years.map((y) => {
+			if (y.id === yearId) {
+				return {
+					...y,
+					yearPrivateGoals: value,
+				};
+			}
+
+			return y;
+		}),
+	);
+}
+
 // Update month private goals
 // updateMonthPrivateGoals(yearId: string, monthId: string, value: string): void
 export function updateMonthPrivateGoals(

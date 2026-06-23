@@ -120,19 +120,7 @@
     console.log(`ID: ${dayId} is now:`, appProfState.expandedRowsProf[dayId]);
   }
 
-  // handleProfessionalGoalClick(yearId: string, currentValue: string, changeCount: number): void
-  function handleProfessionalGoalClick(
-    yearId: string,
-    currentValue: string,
-    changeCount: number,
-  ) {
-    pendingProfessionalGoalChange = {
-      yearId,
-      value: currentValue,
-      changeCount,
-    };
-    showProfessionalGoalDialog = true;
-  }
+
 
   function showTopToggle() {
     appProfState.showTopProf = !appProfState.showTopProf
@@ -186,14 +174,16 @@
           class="flex-1 bg-transparent border-0 px-5 py-1 text-white text-2xl font-bold tracking-widest resize-none focus:outline-none"
           placeholder="Professional "
           rows="1"
-          readonly
           value={year.yearProfessionalGoal || ""}
-          onclick={() =>
-            handleProfessionalGoalClick(
+          oninput={(e) => {
+                  const textarea = e.target as HTMLTextAreaElement;
+                  textarea.style.height = "auto";
+                  textarea.style.height = textarea.scrollHeight + "px";
+                  updateYearProfessionalGoal(
               year.id,
-              year.yearProfessionalGoal || "",
-              year.yearProfessionalGoalChangeCount,
-            )}
+              (e.target as HTMLTextAreaElement).value,
+            );
+                }}
         ></textarea>
       </div>
     </div>
@@ -636,6 +626,23 @@
       onclick={(e) => e.stopPropagation()}
     >
       <div class="flex flex-wrap gap-3 justify-center">
+         <button
+          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
+          onclick={() => {
+            if (pendingProfessionalWeekAction) {
+              toggleWeekProfessionalCompleted(
+                pendingProfessionalWeekAction.yearId,
+                pendingProfessionalWeekAction.monthId,
+                pendingProfessionalWeekAction.weekId,
+                true,
+              );
+              pendingProfessionalWeekAction = null;
+            }
+            showProfessionalWeekDialog = false;
+          }}
+        >
+          Done
+        </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
@@ -651,24 +658,7 @@
             showProfessionalWeekDialog = false;
           }}
         >
-          Convert
-        </button>
-        <button
-          class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
-          onclick={() => {
-            if (pendingProfessionalWeekAction) {
-              toggleWeekProfessionalCompleted(
-                pendingProfessionalWeekAction.yearId,
-                pendingProfessionalWeekAction.monthId,
-                pendingProfessionalWeekAction.weekId,
-                true,
-              );
-              pendingProfessionalWeekAction = null;
-            }
-            showProfessionalWeekDialog = false;
-          }}
-        >
-          Fight
+          Undone
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
@@ -695,34 +685,36 @@
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
-            if (pendingProfessionalMonthAction) {
-              toggleMonthProfessionalCompleted(
-                pendingProfessionalMonthAction.yearId,
-                pendingProfessionalMonthAction.monthId,
-                false,
+            if (pendingProfessionalWeekAction) {
+              toggleWeekProfessionalCompleted(
+                pendingProfessionalWeekAction.yearId,
+                pendingProfessionalWeekAction.monthId,
+                pendingProfessionalWeekAction.weekId,
+                true,
               );
-              pendingProfessionalMonthAction = null;
+              pendingProfessionalWeekAction = null;
             }
-            showProfessionalMonthDialog = false;
+            showProfessionalWeekDialog = false;
           }}
         >
-          Convert
+          Done
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
           onclick={() => {
-            if (pendingProfessionalMonthAction) {
-              toggleMonthProfessionalCompleted(
-                pendingProfessionalMonthAction.yearId,
-                pendingProfessionalMonthAction.monthId,
-                true,
+            if (pendingProfessionalWeekAction) {
+              toggleWeekProfessionalCompleted(
+                pendingProfessionalWeekAction.yearId,
+                pendingProfessionalWeekAction.monthId,
+                pendingProfessionalWeekAction.weekId,
+                false,
               );
-              pendingProfessionalMonthAction = null;
+              pendingProfessionalWeekAction = null;
             }
-            showProfessionalMonthDialog = false;
+            showProfessionalWeekDialog = false;
           }}
         >
-          Fight
+          Undone
         </button>
         <button
           class="px-6 py-2 {buttonStyles.circleLightHover} text-white rounded-lg text-xl font-semibold transition-colors"
