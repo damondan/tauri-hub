@@ -26,11 +26,9 @@
 
 	const tabs = [
 		{ path: "/", label: "Services" },
-		{ path: "/personal", label: "Pers" },
-		{ path: "/articulate", label: "Artic" },
-		{ path: "/professional", label: "Prof" },
-		{ path: "/finances", label: "Finance" },
 		{ path: "/thegoals", label: "Goals" },
+		{ path: "/finances", label: "Finance" },
+		{ path: "/professional", label: "Prof" },
 		{ path: "/todo", label: "ToDo" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/commands", label: "Commands" },
@@ -38,6 +36,8 @@
 		{ path: "/projects", label: "Logs" },
 		{ path: "/workspace_a", label: "XSpaceA" },
 		{ path: "/workspace_b", label: "XSpaceB" },
+		{ path: "/personal", label: "Pers" },
+		{ path: "/articulate", label: "Artic" },
 	];
 
 	onMount(() => {
@@ -154,9 +154,7 @@
 					}
 
 					if ($persLockState === LockState.NOT_SET) {
-						alert(
-							"Remember your password. Once set ... its set!",
-						);
+						alert("Remember your password. Once set ... its set!");
 
 						console.log(
 							`************Lock State is ${$persLockState}`,
@@ -172,11 +170,19 @@
 			}}
 			ondblclick={() => setlock()}
 			class="px-6 py-3 rounded-t-lg font-semibold transition-all
-			{page.url.pathname === tab.path
-				? 'bg-white/20 border-b-2 border-white text-white'
-				: tab.label === 'Goals' && hasPendingGoalToday
-					? 'bg-green-400/10 border-b-2 border-green-400/50 text-green-100 hover:bg-green-400/15'
-					: 'bg-white/5 hover:bg-white/10 text-white/30'}"
+			{tab.label === 'Pers'
+				? page.url.pathname === tab.path
+					? 'bg-white/20 hover:bg-white/10 hover:text-blue-600 text-white border-b-2 border-blue-500/50 ml-auto'
+					: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/30 border-b-2 border-blue-500/50 ml-auto'
+				: tab.label === 'Artic'
+					? page.url.pathname === tab.path
+						? 'bg-white/20 hover:bg-white/10 hover:text-blue-600 text-white border-b-2 border-blue-500/50'
+						: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/30 border-b-2 border-blue-500/50'
+					: page.url.pathname === tab.path
+						? 'bg-white/20 border-b-2 border-white text-white'
+						: tab.label === 'Goals' && hasPendingGoalToday
+							? 'bg-green-400/10 border-b-2 border-green-400/50 text-green-100 hover:bg-green-400/15'
+							: 'bg-white/5 hover:bg-white/10 text-white/30'}"
 		>
 			{tab.label}
 		</button>
