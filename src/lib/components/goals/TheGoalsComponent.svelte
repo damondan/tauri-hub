@@ -2100,20 +2100,22 @@
 
 									<!-- Node layer -->
 									{#each plottedNodes as node (node.key)}
-										{#if node.entry.progressMarker && thread.iterateGoalMode}
+										{#if node.entry.progressMarker}
 											<div
 												class="pointer-events-none absolute top-0 h-full w-px bg-white/30"
 												style:left={node.xPercent + "%"}
 											></div>
+										{/if}
 
+										{#if thread.iterateGoalMode && thread.measurementType !== "none"}
 											<div
-												class="pointer-events-none absolute -translate-x-1/2 rounded-full bg-black/80 px-2 py-0.5 text-sm font-bold text-white w-4"
+												class="pointer-events-none absolute -translate-x-1/2 rounded bg-black/80 px-2 py-0.5 text-sm font-bold text-white/50"
 												style:left={node.xPercent + "%"}
 												style:top={"calc(" +
 													node.yPercent +
-													"% - 190px)"}
+													"% - 32px)"}
 											>
-												{thread.measurementType === "none" ? node.entry.description : (node.entry.value ?? "")}
+												{node.entry.value ?? ""}
 											</div>
 										{/if}
 
