@@ -25,6 +25,7 @@
 		updateGoalFailureCount,
 		updateFutureConsequenceState,
 		decreaseGoalFailureCount,
+		goalOrder,
 		type GoalMonth,
 		type GoalThread,
 		type Goal,
@@ -37,6 +38,53 @@
 	let displayDay: number = $state(0);
 	let todayDate: Date = $state(new Date());
 	let missingHighLimitWarnings = $state<Record<string, boolean>>({});
+
+	//Drag and Drop
+	let draggingId = $state<string | null>(null);
+	function onDragStart(e: DragEvent, goalId: string) {
+		draggingId = goalId;
+
+		if (!e.dataTransfer) return;
+
+		// fallback (browser compatibility / debugging)
+		e.dataTransfer.setData("text/plain", goalId);
+
+		e.dataTransfer.effectAllowed = "move";
+	}
+
+	function onDrop(targetGoalId: string) {
+		const draggedId = draggingId;
+
+		if (!draggedId) return;
+		if (draggedId === targetGoalId) return;
+
+		goalOrder.update((order) => {
+			const updated = [...order];
+
+			// 1. Find dragged item index
+			const fromIndex = updated.indexOf(draggedId);
+
+			if (fromIndex === -1) return order;
+
+			// 2. Remove 1 item from updated at index fromIndex
+			updated.splice(fromIndex, 1);
+
+			// 3. Find target index (after removal!)
+			const toIndex = updated.indexOf(targetGoalId);
+
+			if (toIndex === -1) {
+				// fallback: put at end
+				updated.push(draggedId);
+			} else {
+				// insert at target position
+				updated.splice(toIndex, 0, draggedId);
+			}
+
+			return updated;
+		});
+
+		draggingId = null;
+	}
 
 	//InfoModal
 	let showInfoModal = $state(false);
@@ -374,107 +422,107 @@
 	}
 
 	function createGoalEntriesForDate(date: Date): void {
-	generateTheGoalStructureToDate(date);
+		generateTheGoalStructureToDate(date);
 
-	const yearNumber = date.getFullYear();
-	const monthIndex = date.getMonth();
-	const dayIndex = date.getDate() - 1;
+		const yearNumber = date.getFullYear();
+		const monthIndex = date.getMonth();
+		const dayIndex = date.getDate() - 1;
 
-	let shouldShowDateEndNotice = false;
+		let shouldShowDateEndNotice = false;
 
-	goalData.update((threads) => {
-		return threads.map((thread) => {
-			const year = thread.goalCalendar[yearNumber];
-			if (!year) return thread;
+		goalData.update((threads) => {
+			return threads.map((thread) => {
+				const year = thread.goalCalendar[yearNumber];
+				if (!year) return thread;
 
-			const month = year.months[monthIndex];
-			if (!month) return thread;
+				const month = year.months[monthIndex];
+				if (!month) return thread;
 
-			const day = month.days[dayIndex];
-			if (!day) return thread;
+				const day = month.days[dayIndex];
+				if (!day) return thread;
 
-			let didGoalStatusChange = false;
+				let didGoalStatusChange = false;
 
-			const updatedGoals = thread.goals.map((goal) => {
-				const dateEndReached = checkGoalDateEndReached(goal, date);
+				const updatedGoals = thread.goals.map((goal) => {
+					const dateEndReached = checkGoalDateEndReached(goal, date);
 
-				if (dateEndReached && !goal.isCompleted) {
-					didGoalStatusChange = true;
-					shouldShowDateEndNotice = true;
+					if (dateEndReached && !goal.isCompleted) {
+						didGoalStatusChange = true;
+						shouldShowDateEndNotice = true;
 
+						return {
+							...goal,
+						};
+					}
+
+					return goal;
+				});
+
+				const entriesToAdd: GoalEntry[] = [];
+
+				for (const goal of updatedGoals) {
+					if (goal.isCompleted) continue;
+
+					if (!isGoalScheduledForDate(goal, date)) continue;
+
+					const alreadyExists = day.entries.some(
+						(entry) => entry.goalId === goal.goalId,
+					);
+
+					if (alreadyExists) continue;
+
+					entriesToAdd.push(
+						createPendingGoalEntry(thread, goal, date),
+					);
+				}
+
+				const didAddEntries = entriesToAdd.length > 0;
+
+				if (!didGoalStatusChange && !didAddEntries) {
+					return thread;
+				}
+
+				if (!didAddEntries) {
 					return {
-						...goal,
+						...thread,
+						goals: updatedGoals,
 					};
 				}
 
-				return goal;
-			});
+				const updatedDay = {
+					...day,
+					entries: [...day.entries, ...entriesToAdd],
+				};
 
-			const entriesToAdd: GoalEntry[] = [];
+				const updatedMonth = {
+					...month,
+					days: month.days.map((existingDay, index) =>
+						index === dayIndex ? updatedDay : existingDay,
+					),
+				};
 
-			for (const goal of updatedGoals) {
-				if (goal.isCompleted) continue;
+				const updatedYear = {
+					...year,
+					months: year.months.map((existingMonth, index) =>
+						index === monthIndex ? updatedMonth : existingMonth,
+					),
+				};
 
-				if (!isGoalScheduledForDate(goal, date)) continue;
-
-				const alreadyExists = day.entries.some(
-					(entry) => entry.goalId === goal.goalId,
-				);
-
-				if (alreadyExists) continue;
-
-				entriesToAdd.push(
-					createPendingGoalEntry(thread, goal, date),
-				);
-			}
-
-			const didAddEntries = entriesToAdd.length > 0;
-
-			if (!didGoalStatusChange && !didAddEntries) {
-				return thread;
-			}
-
-			if (!didAddEntries) {
 				return {
 					...thread,
 					goals: updatedGoals,
+					goalCalendar: {
+						...thread.goalCalendar,
+						[yearNumber]: updatedYear,
+					},
 				};
-			}
-
-			const updatedDay = {
-				...day,
-				entries: [...day.entries, ...entriesToAdd],
-			};
-
-			const updatedMonth = {
-				...month,
-				days: month.days.map((existingDay, index) =>
-					index === dayIndex ? updatedDay : existingDay,
-				),
-			};
-
-			const updatedYear = {
-				...year,
-				months: year.months.map((existingMonth, index) =>
-					index === monthIndex ? updatedMonth : existingMonth,
-				),
-			};
-
-			return {
-				...thread,
-				goals: updatedGoals,
-				goalCalendar: {
-					...thread.goalCalendar,
-					[yearNumber]: updatedYear,
-				},
-			};
+			});
 		});
-	});
 
-	if (shouldShowDateEndNotice) {
-		triggerDateEndInfoModal();
+		if (shouldShowDateEndNotice) {
+			triggerDateEndInfoModal();
+		}
 	}
-}
 
 	function checkGoalDateEndReached(goal: Goal, date: Date): boolean {
 		if (!goal.dateEnd) return false;
@@ -1225,946 +1273,991 @@
 	</div>
 {/if}
 
-{#each $goalData as thread (thread.threadId)}
-	<div class="mb-3">
-		<!-- Level 1: Goal Thread Row -->
-		<div class="rounded-xl bg-white/10 p-3">
-			<div class="flex items-center gap-3">
-				<button
-					class="w-8 border text-3xl text-white {threadHasPendingGoalForToday(
-						thread,
-					)
-						? 'border-green-400/70'
-						: 'border-white/10'}"
-					onclick={() => toggleGoalThread(thread.threadId)}
-				>
-					{thread.isExpanded ? "▼" : "▷"}
-				</button>
+{#each $goalOrder as threadId (threadId)}
+	{@const thread = $goalData.find((t) => t.threadId === threadId)}
+	{#if thread}
+		<div class="mb-3">
+			<!-- Level 1: Goal Thread Row -->
+			<div class="rounded-xl bg-white/10 p-3"
+			 ondragover={(e) => e.preventDefault()}
+      ondrop={() => onDrop(thread.threadId)}>
+				<div class="flex items-center gap-3">
+					<button
+						class="w-8 border text-3xl text-white {threadHasPendingGoalForToday(
+							thread,
+						)
+							? 'border-green-400/70'
+							: 'border-white/10'}"
+						onclick={() => toggleGoalThread(thread.threadId)}
+					>
+						{thread.isExpanded ? "▼" : "▷"}
+					</button>
 
-				<input
-					type="text"
-					class="flex-1 rounded border border-white/20 bg-white/5 px-3 py-2 text-2xl text-white placeholder-white/40"
-					placeholder="Goal thread title..."
-					value={thread.title}
-					oninput={(e) =>
-						updateGoalThreadField(
-							thread.threadId,
-							"title",
-							(e.target as HTMLInputElement).value,
-						)}
-				/>
+					<input
+						type="text"
+						class="flex-1 rounded border border-white/20 bg-white/5 px-3 py-2 text-2xl text-white placeholder-white/40"
+						placeholder="Goal thread title..."
+						value={thread.title}
+						oninput={(e) =>
+							updateGoalThreadField(
+								thread.threadId,
+								"title",
+								(e.target as HTMLInputElement).value,
+							)}
+					/>
 
-				<input
-					type="text"
-					class="flex-1 rounded border border-white/20 bg-white/5 px-3 py-2 text-xl text-white placeholder-white/40"
-					placeholder="Description..."
-					value={thread.description}
-					title={thread.description}
-					oninput={(e) =>
-						updateGoalThreadField(
-							thread.threadId,
-							"description",
-							(e.target as HTMLInputElement).value,
-						)}
-				/>
+					<input
+						type="text"
+						class="flex-1 rounded border border-white/20 bg-white/5 px-3 py-2 text-xl text-white placeholder-white/40"
+						placeholder="Description..."
+						value={thread.description}
+						title={thread.description}
+						oninput={(e) =>
+							updateGoalThreadField(
+								thread.threadId,
+								"description",
+								(e.target as HTMLInputElement).value,
+							)}
+					/>
 
-				<input
-					type="color"
-					class="h-10 w-12 rounded border border-white/20 bg-white/10"
-					value={thread.color}
-					oninput={(e) =>
-						updateGoalThreadField(
-							thread.threadId,
-							"color",
-							(e.target as HTMLInputElement).value,
-						)}
-				/>
+					<!--ToDo -->
+					<div
+            draggable="true"
+            ondragstart={(e) => onDragStart(e, thread.threadId)}
+            class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
+          >
+            ⠿
+          </div>
 
-				<select
-					class="rounded border border-white/20 bg-black/70 px-3 py-2 text-black"
-					value={thread.measurementType}
-					onchange={(e) =>
-						updateGoalThreadField(
-							thread.threadId,
-							"measurementType",
-							(e.target as HTMLSelectElement)
-								.value as GoalThread["measurementType"],
-						)}
-				>
-					<option value="time">Time</option>
-					<option value="count">Count</option>
-					<option value="none">Yes/No</option>
-				</select>
+					<select
+						class="rounded border border-white/20 bg-black/70 px-3 py-2 text-black"
+						value={thread.measurementType}
+						onchange={(e) =>
+							updateGoalThreadField(
+								thread.threadId,
+								"measurementType",
+								(e.target as HTMLSelectElement)
+									.value as GoalThread["measurementType"],
+							)}
+					>
+						<option value="time">Time</option>
+						<option value="count">Count</option>
+						<option value="none">Yes/No</option>
+					</select>
 
-				<button
-					class={thread.isInitialized
-						? "rounded bg-green-500/60 px-3 py-1 text-green-100 hover:bg-green-500/50"
-						: "rounded bg-amber-500/30 px-3 py-1 text-amber-100 hover:bg-amber-500/50"}
-					onclick={() => initGoalThread(thread.threadId)}
-				>
-					Init
-				</button>
+					<button
+						class={thread.isInitialized
+							? "rounded bg-green-500/60 px-3 py-1 text-green-100 hover:bg-green-500/50"
+							: "rounded bg-amber-500/30 px-3 py-1 text-amber-100 hover:bg-amber-500/50"}
+						onclick={() => initGoalThread(thread.threadId)}
+					>
+						Init
+					</button>
 
-				<button
-					class="rounded bg-green-600/30 px-3 py-1 text-white/50 hover:bg-green-700/80 hover:text-white"
-					onclick={() => addGoalToThread(thread.threadId)}
-				>
-					+
-				</button>
+					<button
+						class="rounded bg-green-600/30 px-3 py-1 text-white/50 hover:bg-green-700/80 hover:text-white"
+						onclick={() => addGoalToThread(thread.threadId)}
+					>
+						+
+					</button>
 
-				<button
-					class="rounded-lg bg-red-500/20 px-3 py-1 text-red-400 transition-colors hover:bg-red-500 hover:text-white"
-					onclick={() => deleteGoalThread(thread.threadId)}
-				>
-					Del
-				</button>
-			</div>
-
-			{#if thread.isPersisted}
-				<div class="mt-2 text-sm text-emerald-300/80">
-					Thread initialized
+					<button
+						class="rounded-lg bg-red-500/20 px-3 py-1 text-red-400 transition-colors hover:bg-red-500 hover:text-white"
+						onclick={() => deleteGoalThread(thread.threadId)}
+					>
+						Del
+					</button>
 				</div>
-			{/if}
-		</div>
 
-		<!-- Level 2 and Level 3 -->
-		{#if thread.isExpanded}
-			<div
-				class="ml-10 mr-10 mt-2 space-y-2"
-				in:fly={{ x: -20, duration: 250 }}
-			>
-				{#if thread.goals.length === 0}
-					<div class="rounded-lg bg-white/5 p-3 text-white/50 italic">
-						No goals inside this thread yet. Click the thread +
-						button.
+				{#if thread.isPersisted}
+					<div class="mt-2 text-sm text-emerald-300/80">
+						Thread initialized
 					</div>
 				{/if}
+			</div>
 
-				<!-- Level 2: Goal Rows -->
-				{#each thread.goals as goal (goal.goalId)}
-					<div class="rounded-xl bg-white/10 p-3">
-						<div class="flex flex-wrap items-end gap-3">
-							<button
-								class="w-8 text-3xl text-white"
-								onclick={() =>
-									toggleGoal(thread.threadId, goal.goalId)}
-							>
-								{goal.isExpanded ? "▼" : "▷"}
-							</button>
+			<!-- Level 2 and Level 3 -->
+			{#if thread.isExpanded}
+				<div
+					class="ml-10 mr-10 mt-2 space-y-2"
+					in:fly={{ x: -20, duration: 250 }}
+				>
+					{#if thread.goals.length === 0}
+						<div
+							class="rounded-lg bg-white/5 p-3 text-white/50 italic"
+						>
+							No goals inside this thread yet. Click the thread +
+							button.
+						</div>
+					{/if}
 
-							<div class="flex min-w-64 flex-1 flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Title</label
-								>
-								<input
-									type="text"
-									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-xl text-white placeholder-white/40"
-									placeholder="Goal title..."
-									value={goal.title}
-									oninput={(e) =>
-										updateGoalField(
+					<!-- Level 2: Goal Rows -->
+					{#each thread.goals as goal (goal.goalId)}
+						<div class="rounded-xl bg-white/10 p-3">
+							<div class="flex flex-wrap items-end gap-3">
+								<button
+									class="w-8 text-3xl text-white"
+									onclick={() =>
+										toggleGoal(
 											thread.threadId,
 											goal.goalId,
-											"title",
-											(e.target as HTMLInputElement)
-												.value,
-										)}
-								/>
-							</div>
-
-							<div class="flex min-w-[50%] flex-1 flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Description</label
-								>
-								<input
-									type="text"
-									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-lg text-white placeholder-white/40"
-									placeholder="Goal description..."
-									value={goal.description}
-									title={goal.description}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"description",
-											(e.target as HTMLInputElement)
-												.value,
-										)}
-								/>
-							</div>
-
-							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Color</label
-								>
-								<input
-									type="color"
-									class="h-10 w-12 rounded border border-white/20 bg-white/10"
-									value={goal.color}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"color",
-											(e.target as HTMLInputElement)
-												.value,
-										)}
-								/>
-							</div>
-
-							<div class="flex flex-col">
-								<label class="mb-1 text-xs text-white/40"
-									>Start</label
-								>
-								<input
-									type="date"
-									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									value={goal.dateStart}
-									onkeydown={escapeDateInput}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"dateStart",
-											(e.target as HTMLInputElement)
-												.value,
-										)}
-								/>
-							</div>
-
-							<div
-								class={`flex flex-col ${
-									goal.isPersisted
-										? "opacity-30 pointer-events-none"
-										: ""
-								}`}
-							>
-								<label class="mb-1 text-xs text-white/40"
-									>End</label
-								>
-								<input
-									type="date"
-									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									value={goal.dateEnd}
-									disabled={goal.isPersisted}
-									onkeydown={escapeDateInput}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"dateEnd",
-											(e.target as HTMLInputElement)
-												.value,
-										)}
-								/>
-							</div>
-
-							<div
-								class={`flex flex-col ${
-									isNoneMeasurementThread(thread)
-										? "opacity-30 pointer-events-none"
-										: ""
-								}`}
-							>
-								<label class="mb-1 text-xs text-white/40"
-									>Start Amt</label
-								>
-								<input
-									type="number"
-									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									placeholder="Start"
-									value={goal.startAmount}
-									disabled={isNoneMeasurementThread(thread)}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"startAmount",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										)}
-								/>
-							</div>
-
-							<div
-								class={`flex flex-col ${
-									isNoneMeasurementThread(thread)
-										? "opacity-30 pointer-events-none"
-										: ""
-								}`}
-							>
-								<label class="mb-1 text-xs text-white/40"
-									>Goal Amt</label
-								>
-								<input
-									type="number"
-									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									placeholder="Amount"
-									value={goal.measurementAmount}
-									disabled={isNoneMeasurementThread(thread)}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"measurementAmount",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										)}
-								/>
-							</div>
-
-							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Iteration</label
-								>
-								<select
-									class="rounded border border-white/20 bg-black/70 px-3 py-2 text-black"
-									value={goal.iterationType}
-									onchange={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"iterationType",
-											(e.target as HTMLSelectElement)
-												.value as Goal["iterationType"],
 										)}
 								>
-									<option value="day">Day</option>
-									<option value="week">Week</option>
-									<option value="month">Month</option>
-								</select>
-							</div>
+									{goal.isExpanded ? "▼" : "▷"}
+								</button>
 
-							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Every</label
-								>
-								<input
-									type="number"
-									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									placeholder="Every..."
-									value={goal.iterationAmount}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"iterationAmount",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										)}
-								/>
-							</div>
-
-							<div
-								class={`flex flex-col ${
-									isNoneMeasurementThread(thread)
-										? "opacity-30 pointer-events-none"
-										: ""
-								}`}
-							>
-								<label class="mb-1 text-xs text-white/40"
-									>Low</label
-								>
-								<input
-									type="number"
-									class="w-24 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									placeholder="Low"
-									value={goal.lowLimit}
-									disabled={isNoneMeasurementThread(thread)}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"lowLimit",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										)}
-								/>
-							</div>
-
-							<div
-								class={`flex flex-col ${
-									isNoneMeasurementThread(thread)
-										? "opacity-30 pointer-events-none"
-										: ""
-								}`}
-							>
-								<label class="mb-1 text-xs text-white/40"
-									>High</label
-								>
-								<input
-									type="number"
-									class="w-24 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									placeholder="High"
-									value={goal.highLimit}
-									disabled={isNoneMeasurementThread(thread)}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"highLimit",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										)}
-								/>
-							</div>
-
-							<div class="flex flex-col">
-								<label class="mb-1 text-xs text-white/40"
-									>Max Fails</label
-								>
-								<input
-									type="number"
-									class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
-									placeholder="Max"
-									value={goal.maxFailuresAllowed}
-									oninput={(e) => {
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"maxFailuresAllowed",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										);
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"failureCount",
-											Number(
-												(e.target as HTMLInputElement)
-													.value,
-											),
-										);
-									}}
-								/>
-							</div>
-
-							<div class="flex min-w-64 max-w-[25%] flex-1 flex-col">
-								<label class="mb-1 text-xs text-white/40"
-									>Consequence</label
-								>
-								<input
-									type="text"
-									class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/40"
-									placeholder="Add a consequence ?"
-									value={goal.consequenceDescription}
-									title={goal.consequenceDescription}
-									oninput={(e) =>
-										updateGoalField(
-											thread.threadId,
-											goal.goalId,
-											"consequenceDescription",
-											(e.target as HTMLInputElement)
-												.value,
-										)}
-								/>
-							</div>
-
-							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Completed</label
-								>
-								<label
-									class="flex h-10 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70"
-								>
+								<div class="flex min-w-64 flex-1 flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Title</label
+									>
 									<input
-										type="checkbox"
-										checked={goal.isCompleted}
-										onchange={(e) =>
-											handleGoalCompletedChange(
+										type="text"
+										class="rounded border border-white/20 bg-white/5 px-3 py-2 text-xl text-white placeholder-white/40"
+										placeholder="Goal title..."
+										value={goal.title}
+										oninput={(e) =>
+											updateGoalField(
 												thread.threadId,
 												goal.goalId,
+												"title",
 												(e.target as HTMLInputElement)
-													.checked,
+													.value,
 											)}
 									/>
-									Completed
-								</label>
-							</div>
+								</div>
 
-							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Persisting</label
-								>
-								<label
-									class="flex h-10 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70"
-								>
+								<div class="flex min-w-[50%] flex-1 flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Description</label
+									>
 									<input
-										type="checkbox"
-										checked={goal.isPersisted}
+										type="text"
+										class="rounded border border-white/20 bg-white/5 px-3 py-2 text-lg text-white placeholder-white/40"
+										placeholder="Goal description..."
+										value={goal.description}
+										title={goal.description}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"description",
+												(e.target as HTMLInputElement)
+													.value,
+											)}
+									/>
+								</div>
+
+								<div class="flex flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Color</label
+									>
+									<input
+										type="color"
+										class="h-10 w-12 rounded border border-white/20 bg-white/10"
+										value={goal.color}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"color",
+												(e.target as HTMLInputElement)
+													.value,
+											)}
+									/>
+								</div>
+
+								<div class="flex flex-col">
+									<label class="mb-1 text-xs text-white/40"
+										>Start</label
+									>
+									<input
+										type="date"
+										class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										value={goal.dateStart}
+										onkeydown={escapeDateInput}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"dateStart",
+												(e.target as HTMLInputElement)
+													.value,
+											)}
+									/>
+								</div>
+
+								<div
+									class={`flex flex-col ${
+										goal.isPersisted
+											? "opacity-30 pointer-events-none"
+											: ""
+									}`}
+								>
+									<label class="mb-1 text-xs text-white/40"
+										>End</label
+									>
+									<input
+										type="date"
+										class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										value={goal.dateEnd}
+										disabled={goal.isPersisted}
+										onkeydown={escapeDateInput}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"dateEnd",
+												(e.target as HTMLInputElement)
+													.value,
+											)}
+									/>
+								</div>
+
+								<div
+									class={`flex flex-col ${
+										isNoneMeasurementThread(thread)
+											? "opacity-30 pointer-events-none"
+											: ""
+									}`}
+								>
+									<label class="mb-1 text-xs text-white/40"
+										>Start Amt</label
+									>
+									<input
+										type="number"
+										class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										placeholder="Start"
+										value={goal.startAmount}
+										disabled={isNoneMeasurementThread(
+											thread,
+										)}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"startAmount",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											)}
+									/>
+								</div>
+
+								<div
+									class={`flex flex-col ${
+										isNoneMeasurementThread(thread)
+											? "opacity-30 pointer-events-none"
+											: ""
+									}`}
+								>
+									<label class="mb-1 text-xs text-white/40"
+										>Goal Amt</label
+									>
+									<input
+										type="number"
+										class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										placeholder="Amount"
+										value={goal.measurementAmount}
+										disabled={isNoneMeasurementThread(
+											thread,
+										)}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"measurementAmount",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											)}
+									/>
+								</div>
+
+								<div class="flex flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Iteration</label
+									>
+									<select
+										class="rounded border border-white/20 bg-black/70 px-3 py-2 text-black"
+										value={goal.iterationType}
 										onchange={(e) =>
 											updateGoalField(
 												thread.threadId,
 												goal.goalId,
-												"isPersisted",
-												(e.target as HTMLInputElement)
-													.checked,
+												"iterationType",
+												(e.target as HTMLSelectElement)
+													.value as Goal["iterationType"],
 											)}
-									/>
-									Persisting
-								</label>
-							</div>
-
-							<div class="flex flex-col">
-								{#if shouldShowMissingHighLimitWarning(thread, goal)}
-									<div
-										class="mb-1 rounded border border-red-400/40 bg-red-500/20 px-2 py-1 text-xs text-red-200"
 									>
-										Entering a high limit is necessary.
-									</div>
-								{:else}
-									<label
-										class="invisible mb-1 text-xs text-white/40"
-									>
-										Init
-									</label>
-								{/if}
-
-								<button
-									class={goal.isInitialized
-										? "h-10 rounded bg-green-500/60 px-3 py-1 text-green-100 hover:bg-green-500/50"
-										: "h-10 rounded bg-amber-500/30 px-3 py-1 text-amber-100 hover:bg-amber-500/50"}
-									onclick={() =>
-										handleGoalInitClick(thread, goal)}
-								>
-									Init
-								</button>
-							</div>
-
-							<div class="flex flex-col">
-								<label
-									class="invisible mb-1 text-xs text-white/40"
-									>Delete</label
-								>
-								<button
-									class="h-10 rounded-lg bg-red-500/20 px-3 py-1 text-red-400 transition-colors hover:bg-red-500 hover:text-white"
-									onclick={() =>
-										deleteGoalFromThread(
-											thread.threadId,
-											goal.goalId,
-										)}
-								>
-									Del
-								</button>
-							</div>
-						</div>
-					</div>
-				{/each}
-
-				<!-- Level 3: Shared lineGrid -->
-				{#if shouldShowThreadGrid(thread)}
-					{@const axisLimit = getThreadAxisLimit(thread)}
-					{@const dayNumbers = getMonthDayNumbers(thread)}
-					{@const yAxisLabels = getYAxisLabels(axisLimit)}
-
-					<div
-						class="mt-4 rounded-xl border border-white/10 bg-black/30 p-3"
-					>
-						<div
-							class="mb-3 flex items-center justify-between gap-4"
-						>
-							<button
-								class="px-2 text-xl text-white hover:text-white/70"
-								onclick={prevMonth}
-							>
-								◀
-							</button>
-
-							<div class="flex flex-col items-center gap-2">
-								<div class="text-3xl font-semibold text-white">
-									{getMonthName(displayMonth)}
-									{displayYear}
+										<option value="day">Day</option>
+										<option value="week">Week</option>
+										<option value="month">Month</option>
+									</select>
 								</div>
 
-								<div class="flex items-center gap-3 text-2xl">
+								<div class="flex flex-col">
 									<label
-										class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-1 text-white/70"
+										class="invisible mb-1 text-xs text-white/40"
+										>Every</label
+									>
+									<input
+										type="number"
+										class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										placeholder="Every..."
+										value={goal.iterationAmount}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"iterationAmount",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											)}
+									/>
+								</div>
+
+								<div
+									class={`flex flex-col ${
+										isNoneMeasurementThread(thread)
+											? "opacity-30 pointer-events-none"
+											: ""
+									}`}
+								>
+									<label class="mb-1 text-xs text-white/40"
+										>Low</label
+									>
+									<input
+										type="number"
+										class="w-24 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										placeholder="Low"
+										value={goal.lowLimit}
+										disabled={isNoneMeasurementThread(
+											thread,
+										)}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"lowLimit",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											)}
+									/>
+								</div>
+
+								<div
+									class={`flex flex-col ${
+										isNoneMeasurementThread(thread)
+											? "opacity-30 pointer-events-none"
+											: ""
+									}`}
+								>
+									<label class="mb-1 text-xs text-white/40"
+										>High</label
+									>
+									<input
+										type="number"
+										class="w-24 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										placeholder="High"
+										value={goal.highLimit}
+										disabled={isNoneMeasurementThread(
+											thread,
+										)}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"highLimit",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											)}
+									/>
+								</div>
+
+								<div class="flex flex-col">
+									<label class="mb-1 text-xs text-white/40"
+										>Max Fails</label
+									>
+									<input
+										type="number"
+										class="w-28 rounded border border-white/20 bg-white/5 px-3 py-2 text-white"
+										placeholder="Max"
+										value={goal.maxFailuresAllowed}
+										oninput={(e) => {
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"maxFailuresAllowed",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											);
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"failureCount",
+												Number(
+													(
+														e.target as HTMLInputElement
+													).value,
+												),
+											);
+										}}
+									/>
+								</div>
+
+								<div
+									class="flex min-w-64 max-w-[25%] flex-1 flex-col"
+								>
+									<label class="mb-1 text-xs text-white/40"
+										>Consequence</label
+									>
+									<input
+										type="text"
+										class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/40"
+										placeholder="Add a consequence ?"
+										value={goal.consequenceDescription}
+										title={goal.consequenceDescription}
+										oninput={(e) =>
+											updateGoalField(
+												thread.threadId,
+												goal.goalId,
+												"consequenceDescription",
+												(e.target as HTMLInputElement)
+													.value,
+											)}
+									/>
+								</div>
+
+								<div class="flex flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Completed</label
+									>
+									<label
+										class="flex h-10 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70"
 									>
 										<input
 											type="checkbox"
-											checked={thread.iterateGoalMode}
-											onchange={() =>
-												toggleIterateGoalMode(thread)}
+											checked={goal.isCompleted}
+											onchange={(e) =>
+												handleGoalCompletedChange(
+													thread.threadId,
+													goal.goalId,
+													(
+														e.target as HTMLInputElement
+													).checked,
+												)}
 										/>
-
-										Iterate Goal Mode
+										Completed
 									</label>
+								</div>
 
-									{#if thread.iterateGoalMode}
-										<button
-											class="rounded border border-white/20 bg-white/10 px-3 py-1
-											text-white/70 hover:bg-white/20 hover:text-white"
-											onclick={() =>
-												cycleActiveGoal(thread)}
+								<div class="flex flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Persisting</label
+									>
+									<label
+										class="flex h-10 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70"
+									>
+										<input
+											type="checkbox"
+											checked={goal.isPersisted}
+											onchange={(e) =>
+												updateGoalField(
+													thread.threadId,
+													goal.goalId,
+													"isPersisted",
+													(
+														e.target as HTMLInputElement
+													).checked,
+												)}
+										/>
+										Persisting
+									</label>
+								</div>
+
+								<div class="flex flex-col">
+									{#if shouldShowMissingHighLimitWarning(thread, goal)}
+										<div
+											class="mb-1 rounded border border-red-400/40 bg-red-500/20 px-2 py-1 text-xs text-red-200"
 										>
-											Next Goal
-										</button>
-
-										<div class="text-blue-500/60">
-											Viewing:
-											{getActiveGoal(thread)?.title ||
-												"Untitled Goal"},
-										</div>
-										<div class="text-red-500/60">
-											Failures Remaining:
-											{getActiveGoal(thread)
-												?.failureCount ?? 0},
+											Entering a high limit is necessary.
 										</div>
 									{:else}
-										<div class="text-white/40">
-											Thread Mode: read-only overview
-										</div>
+										<label
+											class="invisible mb-1 text-xs text-white/40"
+										>
+											Init
+										</label>
 									{/if}
+
+									<button
+										class={goal.isInitialized
+											? "h-10 rounded bg-green-500/60 px-3 py-1 text-green-100 hover:bg-green-500/50"
+											: "h-10 rounded bg-amber-500/30 px-3 py-1 text-amber-100 hover:bg-amber-500/50"}
+										onclick={() =>
+											handleGoalInitClick(thread, goal)}
+									>
+										Init
+									</button>
+								</div>
+
+								<div class="flex flex-col">
+									<label
+										class="invisible mb-1 text-xs text-white/40"
+										>Delete</label
+									>
+									<button
+										class="h-10 rounded-lg bg-red-500/20 px-3 py-1 text-red-400 transition-colors hover:bg-red-500 hover:text-white"
+										onclick={() =>
+											deleteGoalFromThread(
+												thread.threadId,
+												goal.goalId,
+											)}
+									>
+										Del
+									</button>
 								</div>
 							</div>
-
-							<button
-								class="px-2 text-xl text-white hover:text-white/70"
-								onclick={nextMonth}
-							>
-								▶
-							</button>
 						</div>
+					{/each}
+
+					<!-- Level 3: Shared lineGrid -->
+					{#if shouldShowThreadGrid(thread)}
+						{@const axisLimit = getThreadAxisLimit(thread)}
+						{@const dayNumbers = getMonthDayNumbers(thread)}
+						{@const yAxisLabels = getYAxisLabels(axisLimit)}
 
 						<div
-							class="mb-2 flex w-full items-center gap-4 text-md text-white/40"
+							class="mt-4 rounded-xl border border-white/10 bg-black/30 p-3"
 						>
-							<div class="shrink-0">
-								{getYAxisSummary(thread, axisLimit)}
+							<div
+								class="mb-3 flex items-center justify-between gap-4"
+							>
+								<button
+									class="px-2 text-xl text-white hover:text-white/70"
+									onclick={prevMonth}
+								>
+									◀
+								</button>
+
+								<div class="flex flex-col items-center gap-2">
+									<div
+										class="text-3xl font-semibold text-white"
+									>
+										{getMonthName(displayMonth)}
+										{displayYear}
+									</div>
+
+									<div
+										class="flex items-center gap-3 text-2xl"
+									>
+										<label
+											class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-1 text-white/70"
+										>
+											<input
+												type="checkbox"
+												checked={thread.iterateGoalMode}
+												onchange={() =>
+													toggleIterateGoalMode(
+														thread,
+													)}
+											/>
+
+											Iterate Goal Mode
+										</label>
+
+										{#if thread.iterateGoalMode}
+											<button
+												class="rounded border border-white/20 bg-white/10 px-3 py-1
+											text-white/70 hover:bg-white/20 hover:text-white"
+												onclick={() =>
+													cycleActiveGoal(thread)}
+											>
+												Next Goal
+											</button>
+
+											<div class="text-blue-500/60">
+												Viewing:
+												{getActiveGoal(thread)?.title ||
+													"Untitled Goal"},
+											</div>
+											<div class="text-red-500/60">
+												Failures Remaining:
+												{getActiveGoal(thread)
+													?.failureCount ?? 0},
+											</div>
+										{:else}
+											<div class="text-white/40">
+												Thread Mode: read-only overview
+											</div>
+										{/if}
+									</div>
+								</div>
+
+								<button
+									class="px-2 text-xl text-white hover:text-white/70"
+									onclick={nextMonth}
+								>
+									▶
+								</button>
 							</div>
 
-							{#if !thread.iterateGoalMode}
-								<div
-									class="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm text-white/70"
-								>
-									{#each getThreadLegendGoals(thread) as legendGoal (legendGoal.goalId)}
-										<div
-											class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-2 py-1"
-										>
-											<span
-												class="h-3 w-3 rounded-full border border-white/30"
-												style:background-color={legendGoal.color ??
-													"#ffffff"}
-											></span>
+							<div
+								class="mb-2 flex w-full items-center gap-4 text-md text-white/40"
+							>
+								<div class="shrink-0">
+									{getYAxisSummary(thread, axisLimit)}
+								</div>
 
-											<span>
-												{legendGoal.title ||
-													"Untitled Goal"}
-											</span>
+								{#if !thread.iterateGoalMode}
+									<div
+										class="flex flex-1 flex-wrap items-center justify-center gap-3 text-sm text-white/70"
+									>
+										{#each getThreadLegendGoals(thread) as legendGoal (legendGoal.goalId)}
+											<div
+												class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-2 py-1"
+											>
+												<span
+													class="h-3 w-3 rounded-full border border-white/30"
+													style:background-color={legendGoal.color ??
+														"#ffffff"}
+												></span>
+
+												<span>
+													{legendGoal.title ||
+														"Untitled Goal"}
+												</span>
+											</div>
+										{/each}
+									</div>
+								{/if}
+							</div>
+
+							<div class="grid grid-cols-[4rem_1fr] gap-2">
+								<!-- Y-axis labels -->
+								<div
+									class="relative h-[37rem] border-r border-white/20 pr-2"
+								>
+									{#each yAxisLabels as label}
+										<div
+											class="absolute right-2 -translate-y-1/2 text-xs text-white/50"
+											style:top={getYPercent(
+												label,
+												axisLimit,
+											) + "%"}
+										>
+											{formatYAxisLabel(thread, label)}
 										</div>
 									{/each}
 								</div>
-							{/if}
-						</div>
 
-						<div class="grid grid-cols-[4rem_1fr] gap-2">
-							<!-- Y-axis labels -->
-							<div
-								class="relative h-[37rem] border-r border-white/20 pr-2"
-							>
-								{#each yAxisLabels as label}
-									<div
-										class="absolute right-2 -translate-y-1/2 text-xs text-white/50"
-										style:top={getYPercent(
-											label,
-											axisLimit,
-										) + "%"}
-									>
-										{formatYAxisLabel(thread, label)}
-									</div>
-								{/each}
-							</div>
-
-							<!-- Grid area -->
-							<div
-								class="relative h-[37rem] border border-white/20 bg-white/5"
-							>
-								<!-- Horizontal grid lines -->
-								{#each yAxisLabels as label}
-									<div
-										class="absolute left-0 w-full border-t border-white/10"
-										style:top={getYPercent(
-											label,
-											axisLimit,
-										) + "%"}
-									></div>
-								{/each}
-
-								<!-- Zero line -->
+								<!-- Grid area -->
 								<div
-									class="absolute left-0 w-full border-t-2 border-white/40"
-									style:top={getYPercent(0, axisLimit) + "%"}
-								></div>
+									class="relative h-[37rem] border border-white/20 bg-white/5"
+								>
+									<!-- Horizontal grid lines -->
+									{#each yAxisLabels as label}
+										<div
+											class="absolute left-0 w-full border-t border-white/10"
+											style:top={getYPercent(
+												label,
+												axisLimit,
+											) + "%"}
+										></div>
+									{/each}
 
-								<!-- Vertical day lines -->
-								{#each dayNumbers as dayNumber}
+									<!-- Zero line -->
 									<div
-										class="absolute top-0 h-full border-l border-white/10"
-										style:left={((dayNumber - 1) /
-											Math.max(
-												dayNumbers.length - 1,
-												1,
-											)) *
-											100 +
+										class="absolute left-0 w-full border-t-2 border-white/40"
+										style:top={getYPercent(0, axisLimit) +
 											"%"}
 									></div>
-								{/each}
 
-								<!-- Goal lines and nodes -->
-								{#each getVisibleGoalsForThread(thread) as plottedGoal (plottedGoal.goalId)}
-									{@const plottedNodes =
-										getPlottedNodesForGoal(
-											thread,
-											plottedGoal,
+									<!-- Vertical day lines -->
+									{#each dayNumbers as dayNumber}
+										<div
+											class="absolute top-0 h-full border-l border-white/10"
+											style:left={((dayNumber - 1) /
+												Math.max(
+													dayNumbers.length - 1,
+													1,
+												)) *
+												100 +
+												"%"}
+										></div>
+									{/each}
+
+									<!-- Goal lines and nodes -->
+									{#each getVisibleGoalsForThread(thread) as plottedGoal (plottedGoal.goalId)}
+										{@const plottedNodes =
+											getPlottedNodesForGoal(
+												thread,
+												plottedGoal,
+												axisLimit,
+												dayNumbers.length,
+											)}
+										{@const highLimitPercent = getYPercent(
+											Number(plottedGoal.highLimit ?? 0),
 											axisLimit,
-											dayNumbers.length,
 										)}
-									{@const highLimitPercent = getYPercent(
-										Number(plottedGoal.highLimit ?? 0),
-										axisLimit,
-									)}
-									{@const lowLimitPercent = getYPercent(
-										Number(plottedGoal.lowLimit ?? 0),
-										axisLimit,
-									)}
-									{@const measurementAmountPercent =
-										getYPercent(
-											Number(
-												plottedGoal.measurementAmount ??
-													0,
-											),
+										{@const lowLimitPercent = getYPercent(
+											Number(plottedGoal.lowLimit ?? 0),
 											axisLimit,
 										)}
-									{@const goalLabelYOffset =
-										getGoalLabelYOffset(
-											thread,
-											plottedGoal,
-										)}
-
-									{#if thread.iterateGoalMode && thread.measurementType !== "none"}
-										<!-- Goal amount guide -->
-										<div
-											class="pointer-events-none absolute left-0 w-full border-t border-green-500 opacity-80"
-											style:top={measurementAmountPercent +
-												"%"}
-										></div>
-
-										<div
-											class="pointer-events-none absolute left-2 rounded bg-black/80 px-2 py-0.5 text-sm text-green-500"
-											style:top={"calc(" +
-												measurementAmountPercent +
-												"% + " +
-												goalLabelYOffset +
-												"px)"}
-										>
-											Goal {plottedGoal.measurementAmount}
-										</div>
-										<!-- High limit guide -->
-										<div
-											class="pointer-events-none absolute left-0 w-full border-2 border-dashed opacity-60"
-											style:top={highLimitPercent + "%"}
-											style:border-color={plottedGoal.color ??
-												"#ffffff"}
-										></div>
-
-										<div
-											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm"
-											style:top={highLimitPercent + "%"}
-											style:color="#ffffff"
-										>
-											High {plottedGoal.highLimit}
-										</div>
-
-										<!-- Low limit guide -->
-										<div
-											class="pointer-events-none absolute left-0 w-full border-2 border-dashed opacity-60"
-											style:top={lowLimitPercent + "%"}
-											style:border-color={plottedGoal.color ??
-												"#ffffff"}
-										></div>
-
-										<div
-											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm"
-											style:top={lowLimitPercent + "%"}
-											style:color="#ffffff"
-										>
-											Low {plottedGoal.lowLimit}
-										</div>
-									{/if}
-									{@const latestNode =
-										getLatestPlottedNode(plottedNodes)}
-									{#if latestNode}
-										<!-- Latest value horizontal guide -->
-										<div
-											class="pointer-events-none absolute left-0 w-full"
-											style:top={latestNode.yPercent +
-												"%"}
-										></div>
-
-										<div
-											class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm text-white"
-											style:top={latestNode.yPercent +
-												"%"}
-										>
-											{latestNode.entry.value}
-										</div>
-									{/if}
-									<!-- Line layer -->
-									<svg
-										class="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-									>
-										{#each plottedNodes as node, index (node.key)}
-											{#if index > 0}
-												{@const previousNode =
-													plottedNodes[index - 1]}
-
-												{#if node.entry.isConsequenceActive}
-													<line
-														x1={previousNode.xPercent +
-															"%"}
-														y1={previousNode.yPercent +
-															"%"}
-														x2={node.xPercent + "%"}
-														y2={node.yPercent + "%"}
-														stroke={getEntryLineColor(
-															node.entry,
-															plottedGoal,
-														)}
-														stroke-width="2"
-														stroke-linecap="round"
-														opacity={node.isPending
-															? "0.45"
-															: "0.9"}
-														transform="translate(0,-3)"
-													/>
-
-													<line
-														x1={previousNode.xPercent +
-															"%"}
-														y1={previousNode.yPercent +
-															"%"}
-														x2={node.xPercent + "%"}
-														y2={node.yPercent + "%"}
-														stroke={getEntryLineColor(
-															node.entry,
-															plottedGoal,
-														)}
-														stroke-width="2"
-														stroke-linecap="round"
-														opacity={node.isPending
-															? "0.45"
-															: "0.9"}
-														transform="translate(0,3)"
-													/>
-												{:else}
-													<line
-														x1={previousNode.xPercent +
-															"%"}
-														y1={previousNode.yPercent +
-															"%"}
-														x2={node.xPercent + "%"}
-														y2={node.yPercent + "%"}
-														stroke={getEntryLineColor(
-															node.entry,
-															plottedGoal,
-														)}
-														stroke-width="2"
-														stroke-linecap="round"
-														opacity={node.isPending
-															? "0.45"
-															: "0.9"}
-													/>
-												{/if}
-											{/if}
-										{/each}
-									</svg>
-
-									<!-- Node layer -->
-									{#each plottedNodes as node (node.key)}
-										{#if node.entry.progressMarker}
-											<div
-												class="pointer-events-none absolute top-0 h-full w-px bg-white/30"
-												style:left={node.xPercent + "%"}
-											></div>
-										{/if}
+										{@const measurementAmountPercent =
+											getYPercent(
+												Number(
+													plottedGoal.measurementAmount ??
+														0,
+												),
+												axisLimit,
+											)}
+										{@const goalLabelYOffset =
+											getGoalLabelYOffset(
+												thread,
+												plottedGoal,
+											)}
 
 										{#if thread.iterateGoalMode && thread.measurementType !== "none"}
+											<!-- Goal amount guide -->
 											<div
-												class="pointer-events-none absolute -translate-x-1/2 rounded bg-black/80 px-2 py-0.5 text-sm font-bold text-white/50"
-												style:left={node.xPercent + "%"}
+												class="pointer-events-none absolute left-0 w-full border-t border-green-500 opacity-80"
+												style:top={measurementAmountPercent +
+													"%"}
+											></div>
+
+											<div
+												class="pointer-events-none absolute left-2 rounded bg-black/80 px-2 py-0.5 text-sm text-green-500"
 												style:top={"calc(" +
-													node.yPercent +
-													"% - 32px)"}
+													measurementAmountPercent +
+													"% + " +
+													goalLabelYOffset +
+													"px)"}
 											>
-												{node.entry.value ?? ""}
+												Goal {plottedGoal.measurementAmount}
+											</div>
+											<!-- High limit guide -->
+											<div
+												class="pointer-events-none absolute left-0 w-full border-2 border-dashed opacity-60"
+												style:top={highLimitPercent +
+													"%"}
+												style:border-color={plottedGoal.color ??
+													"#ffffff"}
+											></div>
+
+											<div
+												class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm"
+												style:top={highLimitPercent +
+													"%"}
+												style:color="#ffffff"
+											>
+												High {plottedGoal.highLimit}
+											</div>
+
+											<!-- Low limit guide -->
+											<div
+												class="pointer-events-none absolute left-0 w-full border-2 border-dashed opacity-60"
+												style:top={lowLimitPercent +
+													"%"}
+												style:border-color={plottedGoal.color ??
+													"#ffffff"}
+											></div>
+
+											<div
+												class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm"
+												style:top={lowLimitPercent +
+													"%"}
+												style:color="#ffffff"
+											>
+												Low {plottedGoal.lowLimit}
 											</div>
 										{/if}
+										{@const latestNode =
+											getLatestPlottedNode(plottedNodes)}
+										{#if latestNode}
+											<!-- Latest value horizontal guide -->
+											<div
+												class="pointer-events-none absolute left-0 w-full"
+												style:top={latestNode.yPercent +
+													"%"}
+											></div>
 
-										<GoalEntryNode
-											entry={node.entry}
-											xPercent={node.xPercent}
-											yPercent={node.yPercent}
-											color={node.color}
-											isPending={node.isPending}
-											onOpen={(entry) => {
-												if (!thread.iterateGoalMode)
-													return;
+											<div
+												class="pointer-events-none absolute left-2 -translate-y-1/2 rounded bg-black/80 px-2 py-0.5 text-sm text-white"
+												style:top={latestNode.yPercent +
+													"%"}
+											>
+												{latestNode.entry.value}
+											</div>
+										{/if}
+										<!-- Line layer -->
+										<svg
+											class="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+										>
+											{#each plottedNodes as node, index (node.key)}
+												{#if index > 0}
+													{@const previousNode =
+														plottedNodes[index - 1]}
 
-												openGoalEntryEditor(
-													thread,
-													plottedGoal,
-													entry,
-												);
-											}}
-										/>
+													{#if node.entry.isConsequenceActive}
+														<line
+															x1={previousNode.xPercent +
+																"%"}
+															y1={previousNode.yPercent +
+																"%"}
+															x2={node.xPercent +
+																"%"}
+															y2={node.yPercent +
+																"%"}
+															stroke={getEntryLineColor(
+																node.entry,
+																plottedGoal,
+															)}
+															stroke-width="2"
+															stroke-linecap="round"
+															opacity={node.isPending
+																? "0.45"
+																: "0.9"}
+															transform="translate(0,-3)"
+														/>
+
+														<line
+															x1={previousNode.xPercent +
+																"%"}
+															y1={previousNode.yPercent +
+																"%"}
+															x2={node.xPercent +
+																"%"}
+															y2={node.yPercent +
+																"%"}
+															stroke={getEntryLineColor(
+																node.entry,
+																plottedGoal,
+															)}
+															stroke-width="2"
+															stroke-linecap="round"
+															opacity={node.isPending
+																? "0.45"
+																: "0.9"}
+															transform="translate(0,3)"
+														/>
+													{:else}
+														<line
+															x1={previousNode.xPercent +
+																"%"}
+															y1={previousNode.yPercent +
+																"%"}
+															x2={node.xPercent +
+																"%"}
+															y2={node.yPercent +
+																"%"}
+															stroke={getEntryLineColor(
+																node.entry,
+																plottedGoal,
+															)}
+															stroke-width="2"
+															stroke-linecap="round"
+															opacity={node.isPending
+																? "0.45"
+																: "0.9"}
+														/>
+													{/if}
+												{/if}
+											{/each}
+										</svg>
+
+										<!-- Node layer -->
+										{#each plottedNodes as node (node.key)}
+											{#if node.entry.progressMarker}
+												<div
+													class="pointer-events-none absolute top-0 h-full w-px bg-white/30"
+													style:left={node.xPercent +
+														"%"}
+												></div>
+											{/if}
+
+											{#if thread.iterateGoalMode && thread.measurementType !== "none"}
+												<div
+													class="pointer-events-none absolute -translate-x-1/2 rounded bg-black/80 px-2 py-0.5 text-sm font-bold text-white/50"
+													style:left={node.xPercent +
+														"%"}
+													style:top={"calc(" +
+														node.yPercent +
+														"% - 32px)"}
+												>
+													{node.entry.value ?? ""}
+												</div>
+											{/if}
+
+											<GoalEntryNode
+												entry={node.entry}
+												xPercent={node.xPercent}
+												yPercent={node.yPercent}
+												color={node.color}
+												isPending={node.isPending}
+												onOpen={(entry) => {
+													if (!thread.iterateGoalMode)
+														return;
+
+													openGoalEntryEditor(
+														thread,
+														plottedGoal,
+														entry,
+													);
+												}}
+											/>
+										{/each}
 									{/each}
-								{/each}
-							</div>
+								</div>
 
-							<div></div>
+								<div></div>
 
-							<!-- X-axis day labels -->
-							<div class="relative h-8">
-								{#each dayNumbers as dayNumber}
-									<div
-										class="absolute -translate-x-1/2 text-lg text-white/50"
-										style:left={((dayNumber - 1) /
-											Math.max(
-												dayNumbers.length - 1,
-												1,
-											)) *
-											100 +
-											"%"}
-									>
-										{dayNumber}
-									</div>
-								{/each}
+								<!-- X-axis day labels -->
+								<div class="relative h-8">
+									{#each dayNumbers as dayNumber}
+										<div
+											class="absolute -translate-x-1/2 text-lg text-white/50"
+											style:left={((dayNumber - 1) /
+												Math.max(
+													dayNumbers.length - 1,
+													1,
+												)) *
+												100 +
+												"%"}
+										>
+											{dayNumber}
+										</div>
+									{/each}
+								</div>
 							</div>
 						</div>
-					</div>
-				{/if}
-			</div>
-		{/if}
-	</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{/if}
 {/each}
 
 {#if selectedGoalEntryData}

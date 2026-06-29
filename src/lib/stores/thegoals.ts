@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 export type GoalMeasurementType = 'time' | 'count' | 'none';
 
@@ -245,6 +245,12 @@ export function generateTheGoalStructureToDate(targetDate: Date): void {
 			};
 		});
 	});
+}
+
+export function initGoalOrder(): string[]{
+	console.log(`In initGoalOrder`);
+	const goalThreadIds = get(goalData);
+	return goalThreadIds.map((thread) => thread.threadId);
 }
 
 export function addGoalThread(): void {

@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
 
@@ -10,6 +10,18 @@ export type ProfImage = {
 export const profGoalExpandedYears = writable<Record<string, boolean>>({});
 export const profGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const profGoalExpandedWeeks = writable<Record<string, boolean>>({});
+
+export interface ProfHighlightOrder {
+  top: string[];
+  middle: Record<string, string[]>;
+  lower: Record<string, string[]>;
+}
+
+export const profHighlightOrder = writable<ProfHighlightOrder>({
+  top: [],
+  middle: {},
+  lower: {},
+});
 
 interface HighlightLevel3 {
     text: string;
@@ -77,7 +89,7 @@ export interface ProfGoalYear {
 }
 
 export const profGoalData = writable<ProfGoalYear[]>([]);
-export const profOrder = writable<Record<string, string[]>>({});
+//export const profOrder = writable<Record<string, string[]>>({});
 
 export function generateProfGoalStructureToDate(targetDate: Date): void {
     const targetYear = targetDate.getFullYear();
@@ -484,13 +496,13 @@ export function addSubHighlight(
             }
         }
     }));
-      profOrder.update((order) => ({
-            ...order,
-            [parentId]: [
-                ...(order[parentId] ?? []),
-                id
-            ]
-        }));
+    //   profOrder.update((order) => ({
+    //         ...order,
+    //         [parentId]: [
+    //             ...(order[parentId] ?? []),
+    //             id
+    //         ]
+    //     }));
 }
 
 export function addDetailHighlight(
@@ -545,12 +557,12 @@ export function removeSubHighlight(
 
         return updated;
     });
-      profOrder.update((order) => ({
-         ...order,
-         [parentId]: (order[parentId] ?? []).filter(
-             (id) => id !== childId
-         )
-     }));
+    //   profOrder.update((order) => ({
+    //      ...order,
+    //      [parentId]: (order[parentId] ?? []).filter(
+    //          (id) => id !== childId
+    //      )
+    //  }));
 }
 
 export function removeDetailHighlight(
@@ -1018,21 +1030,40 @@ export function removeImagePatternStep(
   });
 }
 
-export function initProfOrder(profGoalHighlights: Record<string, HighlightLevel1>) {
-    if (!profGoalHighlights || Object.keys(profGoalHighlights).length === 0) return;
-    profOrder.update((currentOrder) => {
-        if (currentOrder && Object.keys(currentOrder).length > 0) {
-            return currentOrder;
-        }
-        console.log(`Initializing persOrder`);
-        const orderData: Record<string, string[]> = {};
+export function initProfHighlightOrder() {
+    const highlights = get(profGoalHighlights);
+  if (!highlights || Object.keys(highlights).length === 0) return;
+ 
+  profHighlightOrder.update((currentOrder) => {
+  //If profHighlightOrder levels are initialized with data return
+    const alreadyInitialized =
+      currentOrder.top.length > 0 ||
+      Object.keys(currentOrder.middle).length > 0 ||
+      Object.keys(currentOrder.lower).length > 0;
 
-        for (const levelOne of Object.values(profGoalHighlights)) {
-            orderData[levelOne.text] = Object.values(levelOne.children).map(
-                (levelTwo) => levelTwo.text
-            );
-        }
+    if (alreadyInitialized) {
+      return currentOrder;
+    }
 
-        return orderData;
-    });
+    console.log("Initializing profHighlightOrder");
+    const orderData: ProfHighlightOrder = {
+      top: [],
+      middle: {},
+      lower: {},
+    };
+    for (const [levelOneId, levelOne] of Object.entries(highlights)) {
+      orderData.top.push(levelOneId);
+
+      const levelTwoEntries = Object.entries(levelOne.children ?? {});
+      orderData.middle[levelOneId] = levelTwoEntries.map(
+        ([levelTwoId]) => levelTwoId,
+      );
+
+      for (const [levelTwoId, levelTwo] of levelTwoEntries) {
+        orderData.lower[levelTwoId] = Object.keys(levelTwo.children ?? {});
+      }
+    }
+
+    return orderData;
+  });
 }

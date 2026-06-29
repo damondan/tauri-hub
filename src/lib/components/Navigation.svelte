@@ -26,6 +26,7 @@
 
 	const tabs = [
 		{ path: "/", label: "Services" },
+		{ path: "/projects", label: "Logs" },
 		{ path: "/thegoals", label: "Goals" },
 		{ path: "/finances", label: "Finance" },
 		{ path: "/professional", label: "Prof" },
@@ -33,7 +34,6 @@
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/commands", label: "Commands" },
 		{ path: "/notifications", label: "Notifs" },
-		{ path: "/projects", label: "Logs" },
 		{ path: "/workspace_a", label: "XSpaceA" },
 		{ path: "/workspace_b", label: "XSpaceB" },
 		{ path: "/personal", label: "Pers" },

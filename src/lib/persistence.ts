@@ -15,9 +15,10 @@ import {
 	type PersLockState
 } from '$lib/stores/persgoal';
 import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, 
-	profGoalHighlights, profOrder } from '$lib/stores/profgoal';
+	profGoalHighlights, profHighlightOrder, initProfHighlightOrder,
+	type ProfHighlightOrder} from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
-import { goalData, goalOrder, type GoalThread } from './stores/thegoals';
+import { goalData, goalOrder, initGoalOrder, type GoalThread } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
 import { get } from 'svelte/store';
 
@@ -56,7 +57,8 @@ interface UserData {
 	finance?: any[];
 	calendar?: any[];                         
 	profgoal?: any[];
-	profhighlights?: Record<string, HighlightLevel1>;        
+	profhighlights?: Record<string, HighlightLevel1>; 
+	profhighlightorder?: ProfHighlightOrder;       
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -67,7 +69,7 @@ interface UserData {
 	projectExpandedTasks?: Record<string, boolean>;
 	projectorder?: string[];
 	persorder?: Record<string,string[]>;
-	proforder?: Record<string, string[]>;
+	//proforder?: Record<string, string[]>;
 	howtoExpandedCategories?: Record<string, boolean>;
 	howtoExpandedSubcategories?: Record<string, boolean>;
 	howtoExpandedTopics?: Record<string, boolean>;
@@ -192,6 +194,7 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			calendar: get(calendarData),
 			profgoal: get(profGoalData),
 			profhighlights: get(profGoalHighlights),
+			profhighlightorder: get(profHighlightOrder),
 			workspaceA: get(workspaceContentA),
 			workspaceB: get(workspaceContentB),
 			field1: get(todoField1),
@@ -202,7 +205,7 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			projectExpandedTasks: get(projectExpandedTasks),
 			projectorder: get(projectOrder),
 			persorder: get(persOrder),
-			proforder:get(profOrder),
+			//proforder:get(profOrder),
 			howtoExpandedCategories: get(howtoExpandedCategories),
 			howtoExpandedSubcategories: get(howtoExpandedSubcategories),
 			howtoExpandedTopics: get(howtoExpandedTopics),
@@ -267,17 +270,22 @@ export async function loadUserData(): Promise<void> {
 		if (data.projectExpandedTasks) {
 			projectExpandedTasks.set(data.projectExpandedTasks);
 		}
-		if (!data.projectorder) {
-			projectOrder.set(initProjectOrder());
-		}else{
+		if (data.projectorder) {
 			projectOrder.set(data.projectorder);
+		}
+		if (!data.profhighlightorder) {
+			alert(`Initializing profhighlihgtorder`);
+			initProfHighlightOrder();
+		}else{
+			alert(`Setting profhighlightorder to 0 - Abort`);
+			profHighlightOrder.set(data.profhighlightorder)
 		}
 		if (data.persorder) {
 			persOrder.set(data.persorder ?? []);
 		}
-		if (data.proforder) {
-			profOrder.set(data.proforder ?? []);
-		}
+		// if (data.proforder) {
+		// 	profOrder.set(data.proforder ?? []);
+		// }
 		if (data.howtoExpandedCategories) {
 			howtoExpandedCategories.set(data.howtoExpandedCategories);
 		}
@@ -456,10 +464,6 @@ export function initPersistence() {
 		if (!isHydrated) return;
 		scheduleSave("projects");
 	});
-	profOrder.subscribe(() => {
-		if (!isHydrated) return;
-		scheduleSave("profgoal");
-	});
 
 	// Subscribe to howto changes
 	howtoData.subscribe(() => {
@@ -561,6 +565,11 @@ export function initPersistence() {
 	});
 
 	profGoalHighlights.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("profgoal");
+	});
+
+	profHighlightOrder.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave("profgoal");
 	});

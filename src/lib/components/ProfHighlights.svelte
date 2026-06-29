@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
   import {
     profGoalHighlights,
-    profOrder,
+    profHighlightOrder,
     addHighlightItem,
     updateTopHighlight,
     addSubHighlight,
@@ -24,7 +24,7 @@
     removeStep,
     addImagePatternStep,
     removeImagePatternStep,
-    initProfOrder,
+    type HighlightLevel1,
     type HighlightLevel2,
   } from "$lib/stores/profgoal";
   import PatternComponent from "./PatternComponent.svelte";
@@ -37,9 +37,7 @@
     etext: string;
   } | null>(null);
 
-  onMount(() => {
-    initProfOrder($profGoalHighlights);
-  });
+  onMount(() => {});
 
   function toggleExpand(dayId: string) {
     const currentState = appProfState.expandedRowsTexArea[dayId] ?? false;
@@ -71,31 +69,160 @@
   }
 
   // Drag and Drop functionality for HighlightLevel2 rows
-  let draggingParentId = $state<string | null>(null);
-  let draggingChildId = $state<string | null>(null);
+  let draggingTopId: string | null = null;
+  let draggingMiddleId: string | null = null;
+  let draggingLowerId: string | null = null;
 
-  type LevelTwoChildren = Record<string, HighlightLevel2>;
+  //Top level drag and drop functions
+  function onTopDragStart(e: DragEvent, topId: string) {
+    draggingTopId = topId;
 
-  function getOrderedLevelTwoEntries(
-    parentId: string,
-    children: LevelTwoChildren,
-  ): [string, HighlightLevel2][] {
-    const childIds = Object.keys(children);
-    const orderedIds = $profOrder[parentId] ?? [];
+    if (!e.dataTransfer) return;
 
-    // Keep ids that still exist.
-    // Then append any new ids that are not yet in profOrder.
-    const normalizedOrder = [
-      ...orderedIds.filter((childid) => childid in children),
-      ...childIds.filter((childid) => !orderedIds.includes(childid)),
-    ];
-
-    return normalizedOrder.map((childid) => [childid, children[childid]]);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", topId);
   }
 
-  function onDragStart(e: DragEvent, parentId: string, childid: string) {
-    draggingParentId = parentId;
-    draggingChildId = childid;
+  function onTopDrop(e: DragEvent, targetId: string) {
+    e.preventDefault();
+
+    if (!draggingTopId || draggingTopId === targetId) {
+      draggingTopId = null;
+      return;
+    }
+
+    profHighlightOrder.update((order) => {
+      const currentIds = Object.keys($profGoalHighlights);
+
+      const normalizedTop = [
+        ...order.top.filter((id) => currentIds.includes(id)),
+        ...currentIds.filter((id) => !order.top.includes(id)),
+      ];
+
+      const fromIndex = normalizedTop.indexOf(draggingTopId ?? "");
+      const toIndex = normalizedTop.indexOf(targetId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const updatedTop = [...normalizedTop];
+      const [moved] = updatedTop.splice(fromIndex, 1);
+      updatedTop.splice(toIndex, 0, moved);
+
+      return {
+        ...order,
+        top: updatedTop,
+      };
+    });
+
+    draggingTopId = null;
+  }
+  function getOrderedLevelOneEntries(
+    highlights: Record<string, HighlightLevel1>,
+  ): [string, HighlightLevel1][] {
+    const ids = Object.keys(highlights);
+    const orderedIds = $profHighlightOrder.top ?? [];
+
+    const normalizedOrder = [
+      ...orderedIds.filter((id) => id in highlights),
+      ...ids.filter((id) => !orderedIds.includes(id)),
+    ];
+
+    return normalizedOrder.map((id) => [id, highlights[id]]);
+  }
+
+  //Middle level drag and drop functions
+  function getOrderedLevelTwoEntries(
+    parentId: string,
+    children: Record<string, HighlightLevel2>,
+  ): [string, HighlightLevel2][] {
+    const childIds = Object.keys(children);
+    const orderedIds = $profHighlightOrder.middle[parentId] ?? [];
+
+    const normalizedOrder = [
+      ...orderedIds.filter((childId) => childId in children),
+      ...childIds.filter((childId) => !orderedIds.includes(childId)),
+    ];
+
+    return normalizedOrder.map((childId) => [childId, children[childId]]);
+  }
+
+  function onMiddleDragStart(e: DragEvent, topId: string, middleId: string) {
+    draggingMiddleId = middleId;
+
+    if (!e.dataTransfer) return;
+
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", middleId);
+  }
+
+  function onMiddleDrop(e: DragEvent, topId: string, targetMiddleId: string) {
+    e.preventDefault();
+
+    if (!draggingMiddleId || draggingMiddleId === targetMiddleId) {
+      draggingMiddleId = null;
+      return;
+    }
+
+    profHighlightOrder.update((order) => {
+      const levelOne = $profGoalHighlights[topId];
+      const children = levelOne?.children ?? {};
+      const currentMiddleIds = Object.keys(children);
+
+      const normalizedMiddle = [
+        ...(order.middle[topId] ?? []).filter((id) =>
+          currentMiddleIds.includes(id),
+        ),
+        ...currentMiddleIds.filter(
+          (id) => !(order.middle[topId] ?? []).includes(id),
+        ),
+      ];
+
+      const fromIndex = normalizedMiddle.indexOf(draggingMiddleId ?? "");
+      const toIndex = normalizedMiddle.indexOf(targetMiddleId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const updatedMiddle = [...normalizedMiddle];
+      const [moved] = updatedMiddle.splice(fromIndex, 1);
+      updatedMiddle.splice(toIndex, 0, moved);
+
+      return {
+        ...order,
+        middle: {
+          ...order.middle,
+          [topId]: updatedMiddle,
+        },
+      };
+    });
+
+    draggingMiddleId = null;
+  }
+
+  //Lower level drag and drop functions
+  function getOrderedLevelThreeEntries(
+    topId: string,
+    children: Record<string, HighlightLevel2>,
+  ): [string, HighlightLevel2][] {
+    const childIds = Object.keys(children);
+    const orderedIds = $profHighlightOrder.middle[topId] ?? [];
+
+    const normalizedOrder = [
+      ...orderedIds.filter((childId) => childId in children),
+      ...childIds.filter((childId) => !orderedIds.includes(childId)),
+    ];
+
+    return normalizedOrder.map((childId) => [childId, children[childId]]);
+  }
+
+  function onLowerDragStart(
+    e: DragEvent,
+    topId: string,
+    middleId: string,
+    lowerId: string,
+  ) {
+    draggingTopId = topId;
+    draggingMiddleId = middleId;
+    draggingLowerId = draggingLowerId;
 
     if (!e.dataTransfer) return;
 
@@ -104,12 +231,50 @@
     e.dataTransfer.setData(
       "application/json",
       JSON.stringify({
-        parentId,
-        childid,
+        topId,
+        middleId,
+        lowerId,
       }),
     );
+  }
 
-    e.dataTransfer.setData("text/plain", childid);
+  function onLowerDrop(
+    e: DragEvent,
+    topId: string,
+    middleId: string,
+    lowerId: string,
+  ) {
+    e.preventDefault();
+
+    if (!draggingTopId || draggingTopId === topId) {
+      draggingTopId = null;
+      return;
+    }
+
+    profHighlightOrder.update((order) => {
+      const currentIds = Object.keys($profGoalHighlights);
+
+      const normalizedTop = [
+        ...order.top.filter((id) => currentIds.includes(id)),
+        ...currentIds.filter((id) => !order.top.includes(id)),
+      ];
+
+      const fromIndex = normalizedTop.indexOf(draggingTopId ?? "");
+      const toIndex = normalizedTop.indexOf(topId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const updatedTop = [...normalizedTop];
+      const [moved] = updatedTop.splice(fromIndex, 1);
+      updatedTop.splice(toIndex, 0, moved);
+
+      return {
+        ...order,
+        top: updatedTop,
+      };
+    });
+
+    draggingTopId = null;
   }
 
   function onDragOver(e: DragEvent) {
@@ -118,84 +283,6 @@
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = "move";
     }
-  }
-
-  function onDrop(
-    e: DragEvent,
-    targetParentId: string,
-    targetChildId: string,
-    children: LevelTwoChildren,
-  ) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    let sourceParentId = draggingParentId;
-    let sourceChildId = draggingChildId;
-
-    if ((!sourceParentId || !sourceChildId) && e.dataTransfer) {
-      try {
-        const payload = JSON.parse(
-          e.dataTransfer.getData("application/json"),
-        ) as {
-          parentId?: string;
-          childid?: string;
-        };
-
-        sourceParentId = payload.parentId ?? null;
-        sourceChildId = payload.childid ?? null;
-      } catch {
-        sourceChildId = e.dataTransfer.getData("text/plain") || null;
-      }
-    }
-
-    if (!sourceParentId || !sourceChildId) return;
-
-    // This keeps dragging limited to children inside the same parent.
-    // If later you want cross-parent drag/drop, this condition changes.
-    if (sourceParentId !== targetParentId) {
-      draggingParentId = null;
-      draggingChildId = null;
-      return;
-    }
-
-    if (sourceChildId === targetChildId) {
-      draggingParentId = null;
-      draggingChildId = null;
-      return;
-    }
-
-    profOrder.update((order) => {
-      const existingOrder = order[targetParentId] ?? [];
-      const childIds = Object.keys(children);
-
-      const normalizedOrder = [
-        ...existingOrder.filter((childid) => childid in children),
-        ...childIds.filter((childid) => !existingOrder.includes(childid)),
-      ];
-
-      const updatedOrder = [...normalizedOrder];
-
-      const fromIndex = updatedOrder.indexOf(sourceChildId);
-      const toIndex = updatedOrder.indexOf(targetChildId);
-
-      if (fromIndex === -1 || toIndex === -1) return order;
-
-      const [movedId] = updatedOrder.splice(fromIndex, 1);
-      updatedOrder.splice(toIndex, 0, movedId);
-
-      return {
-        ...order,
-        [targetParentId]: updatedOrder,
-      };
-    });
-
-    draggingParentId = null;
-    draggingChildId = null;
-  }
-
-  function onDragEnd() {
-    draggingParentId = null;
-    draggingChildId = null;
   }
 </script>
 
@@ -216,8 +303,14 @@
   Open All
 </button>
 <!-- Top level -->
-{#each Object.entries($profGoalHighlights) as [id, levelOne] (id)}
-  <div class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono">
+{#each getOrderedLevelOneEntries($profGoalHighlights) as [id, levelOne] (id)}
+  <div
+    class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono"
+    draggable="true"
+    ondragstart={(e) => onTopDragStart(e, id)}
+    ondragover={onDragOver}
+    ondrop={(e) => onTopDrop(e, id)}
+  >
     <div class="flex">
       <button
         class="bg-white/5 text-white/10
@@ -255,6 +348,16 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
       >
         -
       </button>
+      <div class="flex gap-10 ml-4 mt-3 items-center">
+        <div
+          draggable="true"
+          ondragstart={(e) => onTopDragStart(e, id)}
+          class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-4xl select-none"
+          title="Drag to reorder"
+        >
+          ⠿
+        </div>
+      </div>
     </div>
 
     <!-- Middle level: only render when this top row is expanded -->
@@ -262,9 +365,9 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
       {#each getOrderedLevelTwoEntries(id, levelOne.children ?? {}) as [childid, levelTwo] (childid)}
         <div
           class="px-6 flex flex-col w-full gap-3 mt-4
-  {draggingChildId === childid ? 'opacity-40' : ''}"
+  {draggingMiddleId === childid ? 'opacity-40' : ''}"
           ondragover={onDragOver}
-          ondrop={(e) => onDrop(e, id, childid, levelOne.children ?? {})}
+          ondrop={(e) => onMiddleDrop(e, id, childid)}
         >
           <div class="flex flex-row gap-2 items-start">
             <button
@@ -343,8 +446,7 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             <div class="flex gap-10 ml-auto mt-3">
               <div
                 draggable="true"
-                ondragstart={(e) => onDragStart(e, id, childid)}
-                ondragend={onDragEnd}
+                ondragstart={(e) => onMiddleDragStart(e, id, childid)}
                 class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl select-none"
                 title="Drag to reorder"
               >
