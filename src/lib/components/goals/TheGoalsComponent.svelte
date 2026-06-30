@@ -1725,7 +1725,7 @@
 									/>
 								</div>
 
-								<div
+								<!-- <div
 									class="flex min-w-64 max-w-[25%] flex-1 flex-col"
 								>
 									<label class="mb-1 text-xs text-white/40"
@@ -1746,7 +1746,7 @@
 													.value,
 											)}
 									/>
-								</div>
+								</div> -->
 
 								<div class="flex flex-col">
 									<label

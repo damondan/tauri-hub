@@ -11,16 +11,28 @@ export const profGoalExpandedYears = writable<Record<string, boolean>>({});
 export const profGoalExpandedMonths = writable<Record<string, boolean>>({});
 export const profGoalExpandedWeeks = writable<Record<string, boolean>>({});
 
+export interface ProfHighlightExpanded {
+  top: Record<string, boolean>;
+  middle: Record<string, boolean>;
+  lower: Record<string, boolean>;
+}
+
+export const profHighlightExpanded = writable<ProfHighlightExpanded>({
+  top: {},
+  middle: {},
+  lower: {},
+});
+
 export interface ProfHighlightOrder {
-  top: string[];
-  middle: Record<string, string[]>;
-  lower: Record<string, string[]>;
+    top: string[];
+    middle: Record<string, string[]>;
+    lower: Record<string, string[]>;
 }
 
 export const profHighlightOrder = writable<ProfHighlightOrder>({
-  top: [],
-  middle: {},
-  lower: {},
+    top: [],
+    middle: {},
+    lower: {},
 });
 
 interface HighlightLevel3 {
@@ -33,7 +45,7 @@ export interface HighlightLevel2 {
     text: string;
     children: Record<string, HighlightLevel3>;
     patterns?: Record<string, string[]>;
-    imagePatterns?: Record<string,ProfImage[]>;
+    imagePatterns?: Record<string, ProfImage[]>;
 }
 
 export interface HighlightLevel1 {
@@ -476,6 +488,10 @@ export function addHighlightItem() {
             children: {}
         }
     }));
+    profHighlightOrder.update((order) => ({
+        ...order,
+        top: [...order.top, id],
+    }));
 }
 
 export function addSubHighlight(
@@ -496,13 +512,13 @@ export function addSubHighlight(
             }
         }
     }));
-    //   profOrder.update((order) => ({
-    //         ...order,
-    //         [parentId]: [
-    //             ...(order[parentId] ?? []),
-    //             id
-    //         ]
-    //     }));
+    profHighlightOrder.update((order) => ({
+        ...order,
+        middle: {
+            ...order.middle,
+            [parentId]: [...(order.middle[parentId] ?? []), id],
+        },
+    }));
 }
 
 export function addDetailHighlight(
@@ -525,12 +541,19 @@ export function addDetailHighlight(
                             .children![childId]
                             .children,
                         [id]: {
-                            text: "",one:false,me:false
+                            text: "", one: false, me: false
                         }
                     }
                 }
             }
         }
+    }));
+    profHighlightOrder.update((order) => ({
+        ...order,
+        lower: {
+            ...order.lower,
+            [childId]: [...(order.lower[childId] ?? []), id],
+        },
     }));
 }
 
@@ -541,6 +564,16 @@ export function removeHighlight(
         const updated = { ...highlights };
         delete updated[id];
         return updated;
+    });
+    profHighlightOrder.update((order) => {
+        const updatedMiddle = { ...order.middle };
+        delete updatedMiddle[id];
+
+        return {
+            ...order,
+            top: order.top.filter((topId) => topId !== id),
+            middle: updatedMiddle,
+        };
     });
 }
 
@@ -557,12 +590,19 @@ export function removeSubHighlight(
 
         return updated;
     });
-    //   profOrder.update((order) => ({
-    //      ...order,
-    //      [parentId]: (order[parentId] ?? []).filter(
-    //          (id) => id !== childId
-    //      )
-    //  }));
+    profHighlightOrder.update((order) => {
+        const updatedLower = { ...order.lower };
+        delete updatedLower[childId];
+
+        return {
+            ...order,
+            middle: {
+                ...order.middle,
+                [parentId]: (order.middle[parentId] ?? []).filter((id) => id !== childId),
+            },
+            lower: updatedLower,
+        };
+    });
 }
 
 export function removeDetailHighlight(
@@ -579,6 +619,13 @@ export function removeDetailHighlight(
 
         return updated;
     });
+    profHighlightOrder.update((order) => ({
+        ...order,
+        lower: {
+            ...order.lower,
+            [childId]: (order.lower[childId] ?? []).filter((id) => id !== detailId),
+        },
+    }));
 }
 
 export function updateTopHighlight(
@@ -867,11 +914,11 @@ export function removeStep(
     });
 }
 
-export function updateDialogM( parentId: string,
+export function updateDialogM(parentId: string,
     childId: string,
     detailId: string,
-    value: boolean){
-     profGoalHighlights.update((highlights) => ({
+    value: boolean) {
+    profGoalHighlights.update((highlights) => ({
         ...highlights,
         [parentId]: {
             ...highlights[parentId],
@@ -897,11 +944,11 @@ export function updateDialogM( parentId: string,
     }));
 }
 
-export function updateDialogO( parentId: string,
+export function updateDialogO(parentId: string,
     childId: string,
     detailId: string,
-    value: boolean){
-     profGoalHighlights.update((highlights) => ({
+    value: boolean) {
+    profGoalHighlights.update((highlights) => ({
         ...highlights,
         [parentId]: {
             ...highlights[parentId],
@@ -928,142 +975,186 @@ export function updateDialogO( parentId: string,
 }
 
 export function updateDetailHighlightImagePattern(
-  id: string,
-  childid: string
+    id: string,
+    childid: string
 ): void {
-  profGoalHighlights.update((data) => {
-    const levelTwo = data[id]?.children?.[childid];
+    profGoalHighlights.update((data) => {
+        const levelTwo = data[id]?.children?.[childid];
 
-    if (!levelTwo) return data;
+        if (!levelTwo) return data;
 
-    levelTwo.imagePatterns ??= {};
+        levelTwo.imagePatterns ??= {};
 
-    levelTwo.imagePatterns[crypto.randomUUID()] = [];
+        levelTwo.imagePatterns[crypto.randomUUID()] = [];
 
-    return { ...data };
-  });
+        return { ...data };
+    });
 }
 
 export function addImagePatternStep(
-  id: string,
-  childid: string,
-  imagePatternId: string,
-  image: ProfImage
+    id: string,
+    childid: string,
+    imagePatternId: string,
+    image: ProfImage
 ): void {
-  profGoalHighlights.update((data) => {
-    const levelTwo = data[id]?.children?.[childid];
+    profGoalHighlights.update((data) => {
+        const levelTwo = data[id]?.children?.[childid];
 
-    if (!levelTwo) return data;
+        if (!levelTwo) return data;
 
-    if (!levelTwo.imagePatterns) {
-      levelTwo.imagePatterns = {};
-    }
+        if (!levelTwo.imagePatterns) {
+            levelTwo.imagePatterns = {};
+        }
 
-    if (!levelTwo.imagePatterns[imagePatternId]) {
-      levelTwo.imagePatterns[imagePatternId] = [];
-    }
+        if (!levelTwo.imagePatterns[imagePatternId]) {
+            levelTwo.imagePatterns[imagePatternId] = [];
+        }
 
-    levelTwo.imagePatterns[imagePatternId] = [
-      ...levelTwo.imagePatterns[imagePatternId],
-      image
-    ];
+        levelTwo.imagePatterns[imagePatternId] = [
+            ...levelTwo.imagePatterns[imagePatternId],
+            image
+        ];
 
-    return data;
-  });
+        return data;
+    });
 }
 
 export function removeImagePatternStep(
-  parentId: string,
-  childId: string,
-  imagePatternId: string
+    parentId: string,
+    childId: string,
+    imagePatternId: string
 ) {
-  profGoalHighlights.update((currentHighlights) => {
-    const existingPattern =
-      currentHighlights[parentId]
-        .children[childId]
-        .imagePatterns?.[imagePatternId] ?? [];
+    profGoalHighlights.update((currentHighlights) => {
+        const existingPattern =
+            currentHighlights[parentId]
+                .children[childId]
+                .imagePatterns?.[imagePatternId] ?? [];
 
-    const updatedPattern = [...existingPattern];
+        const updatedPattern = [...existingPattern];
 
-    updatedPattern.pop();
+        updatedPattern.pop();
 
-    const childImagePatterns =
-      currentHighlights[parentId]
-        .children[childId]
-        .imagePatterns ?? {};
+        const childImagePatterns =
+            currentHighlights[parentId]
+                .children[childId]
+                .imagePatterns ?? {};
 
-    if (updatedPattern.length === 0) {
-      const { [imagePatternId]: _, ...remainingImagePatterns } =
-        childImagePatterns;
+        if (updatedPattern.length === 0) {
+            const { [imagePatternId]: _, ...remainingImagePatterns } =
+                childImagePatterns;
 
-      return {
-        ...currentHighlights,
-        [parentId]: {
-          ...currentHighlights[parentId],
-          children: {
-            ...currentHighlights[parentId].children,
-            [childId]: {
-              ...currentHighlights[parentId].children[childId],
-              imagePatterns: remainingImagePatterns
-            }
-          }
+            return {
+                ...currentHighlights,
+                [parentId]: {
+                    ...currentHighlights[parentId],
+                    children: {
+                        ...currentHighlights[parentId].children,
+                        [childId]: {
+                            ...currentHighlights[parentId].children[childId],
+                            imagePatterns: remainingImagePatterns
+                        }
+                    }
+                }
+            };
         }
-      };
-    }
 
-    return {
-      ...currentHighlights,
-      [parentId]: {
-        ...currentHighlights[parentId],
-        children: {
-          ...currentHighlights[parentId].children,
-          [childId]: {
-            ...currentHighlights[parentId].children[childId],
-            imagePatterns: {
-              ...childImagePatterns,
-              [imagePatternId]: updatedPattern
+        return {
+            ...currentHighlights,
+            [parentId]: {
+                ...currentHighlights[parentId],
+                children: {
+                    ...currentHighlights[parentId].children,
+                    [childId]: {
+                        ...currentHighlights[parentId].children[childId],
+                        imagePatterns: {
+                            ...childImagePatterns,
+                            [imagePatternId]: updatedPattern
+                        }
+                    }
+                }
             }
-          }
-        }
-      }
-    };
-  });
+        };
+    });
 }
 
 export function initProfHighlightOrder() {
     const highlights = get(profGoalHighlights);
+    if (!highlights || Object.keys(highlights).length === 0) return;
+
+    profHighlightOrder.update((currentOrder) => {
+        //If profHighlightOrder levels are initialized with data return
+        const alreadyInitialized =
+            currentOrder.top.length > 0 ||
+            Object.keys(currentOrder.middle).length > 0 ||
+            Object.keys(currentOrder.lower).length > 0;
+
+        if (alreadyInitialized) {
+            return currentOrder;
+        }
+
+        console.log("Initializing profHighlightOrder");
+        const orderData: ProfHighlightOrder = {
+            top: [],
+            middle: {},
+            lower: {},
+        };
+        for (const [levelOneId, levelOne] of Object.entries(highlights)) {
+            orderData.top.push(levelOneId);
+
+            const levelTwoEntries = Object.entries(levelOne.children ?? {});
+            orderData.middle[levelOneId] = levelTwoEntries.map(
+                ([levelTwoId]) => levelTwoId,
+            );
+
+            for (const [levelTwoId, levelTwo] of levelTwoEntries) {
+                orderData.lower[levelTwoId] = Object.keys(levelTwo.children ?? {});
+            }
+        }
+
+        return orderData;
+    });
+}
+
+export function initProfHighlightExpanded() {
+  const highlights = get(profGoalHighlights);
+
   if (!highlights || Object.keys(highlights).length === 0) return;
- 
-  profHighlightOrder.update((currentOrder) => {
-  //If profHighlightOrder levels are initialized with data return
+
+  profHighlightExpanded.update((currentExpansion) => {
     const alreadyInitialized =
-      currentOrder.top.length > 0 ||
-      Object.keys(currentOrder.middle).length > 0 ||
-      Object.keys(currentOrder.lower).length > 0;
+      Object.keys(currentExpansion.top).length > 0 ||
+      Object.keys(currentExpansion.middle).length > 0 ||
+      Object.keys(currentExpansion.lower).length > 0;
 
     if (alreadyInitialized) {
-      return currentOrder;
+      return currentExpansion;
     }
 
-    console.log("Initializing profHighlightOrder");
-    const orderData: ProfHighlightOrder = {
-      top: [],
+    console.log("Initializing profHighlightExpanded");
+
+    const expandData: ProfHighlightExpanded = {
+      top: {},
       middle: {},
       lower: {},
     };
-    for (const [levelOneId, levelOne] of Object.entries(highlights)) {
-      orderData.top.push(levelOneId);
 
-      const levelTwoEntries = Object.entries(levelOne.children ?? {});
-      orderData.middle[levelOneId] = levelTwoEntries.map(
-        ([levelTwoId]) => levelTwoId,
-      );
+    for (const [levelOneId, levelOne] of Object.entries(highlights)) {
+      expandData.top[levelOneId] = false;
+
+      const levelTwoEntries = Object.entries(levelOne.children ?? {}) as [
+        string,
+        HighlightLevel2,
+      ][];
 
       for (const [levelTwoId, levelTwo] of levelTwoEntries) {
-        orderData.lower[levelTwoId] = Object.keys(levelTwo.children ?? {});
+        expandData.middle[levelTwoId] = false;
+
+        for (const levelThreeId of Object.keys(levelTwo.children ?? {})) {
+          expandData.lower[levelThreeId] = false;
+        }
       }
     }
 
-    return orderData;
+    return expandData;
   });
 }

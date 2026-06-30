@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 
 import { makeId, getDayOfWeek, getDaysInMonth } from './general';
-import { persOrder } from '$lib/stores/projects';
+import { persHighlightOrder } from '$lib/stores/persgoalplain';
 
 export const LockState = {
     LOCKED: 'locked',
@@ -176,24 +176,6 @@ export function generatePersGoalStructureToDate(targetDate: Date): void {
     });
 }
 
-export function initPersOrder(persGoalHighlights: Record<string, HighlightLevel1>) {
-	if (!persGoalHighlights || Object.keys(persGoalHighlights).length === 0) return;
-	persOrder.update((currentOrder) => {
-		if (currentOrder && Object.keys(currentOrder).length > 0) {
-			return currentOrder;
-		}
-        console.log(`Initializing persOrder`);
-		const orderData: Record<string, string[]> = {};
-
-		for (const levelOne of Object.values(persGoalHighlights)) {
-			orderData[levelOne.text] = Object.values(levelOne.children).map(
-				(levelTwo) => levelTwo.text
-			);
-		}
-
-		return orderData;
-	});
-}
 // Update year private goal
 // updateYearPrivateGoal(yearId: string, value: string): void
 export function updateYearPrivateGoal(
@@ -875,6 +857,10 @@ export function addHighlightItem() {
             children: {}
         }
     }));
+      persHighlightOrder.update((order) => ({
+            ...order,
+            top: [...order.top, id],
+        }));
 }
 
 //Add persOrder update
@@ -896,13 +882,13 @@ export function addSubHighlight(
             }
         }
     }));
-     persOrder.update((order) => ({
-        ...order,
-        [parentId]: [
-            ...(order[parentId] ?? []),
-            id
-        ]
-    }));
+     persHighlightOrder.update((order) => ({
+            ...order,
+            middle: {
+                ...order.middle,
+                [parentId]: [...(order.middle[parentId] ?? []), id],
+            },
+        }));
 }
 
 export function addDetailHighlight(
@@ -932,6 +918,13 @@ export function addDetailHighlight(
             }
         }
     }));
+    //  persHighlightOrder.update((order) => ({
+    //         ...order,
+    //         lower: {
+    //             ...order.lower,
+    //             [childId]: [...(order.lower[childId] ?? []), id],
+    //         },
+    //     }));
 }
 
 export function removeHighlight(
@@ -942,6 +935,16 @@ export function removeHighlight(
         delete updated[id];
         return updated;
     });
+    persHighlightOrder.update((order) => {
+            const updatedMiddle = { ...order.middle };
+            delete updatedMiddle[id];
+    
+            return {
+                ...order,
+                top: order.top.filter((topId) => topId !== id),
+                middle: updatedMiddle,
+            };
+        });
 }
 
 export function removeSubHighlight(
@@ -957,12 +960,19 @@ export function removeSubHighlight(
         return updated;
     });
 
-     persOrder.update((order) => ({
-        ...order,
-        [parentId]: (order[parentId] ?? []).filter(
-            (id) => id !== childId
-        )
-    }));
+    persHighlightOrder.update((order) => {
+           const updatedLower = { ...order.lower };
+           delete updatedLower[childId];
+   
+           return {
+               ...order,
+               middle: {
+                   ...order.middle,
+                   [parentId]: (order.middle[parentId] ?? []).filter((id) => id !== childId),
+               },
+               lower: updatedLower,
+           };
+       });
 }
 
 export function removeDetailHighlight(
@@ -979,6 +989,13 @@ export function removeDetailHighlight(
 
         return updated;
     });
+    //  persHighlightOrder.update((order) => ({
+    //         ...order,
+    //         lower: {
+    //             ...order.lower,
+    //             [childId]: (order.lower[childId] ?? []).filter((id) => id !== detailId),
+    //         },
+    //     }));
 }
 
 export function updateTopHighlight(

@@ -3,20 +3,29 @@
 import { invoke } from '@tauri-apps/api/core';
 import { todosByDate, todoField1, todoField2, todoExpandedState } from '$lib/stores/todo';
 import { commandData, commandExpandedCategories, commandExpandedSubcategories } from '$lib/stores/commands';
-import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, projectOrder, persOrder, initProjectOrder } from '$lib/stores/projects';
+import { projectsData, projectExpandedProjects, projectExpandedSubprojects, projectExpandedTasks, projectOrder, initProjectOrder } from '$lib/stores/projects';
 import { howtoData, howtoExpandedCategories, howtoExpandedSubcategories, howtoExpandedTopics } from '$lib/stores/howto';
-import { financeData, financeExpandedYears, financeExpandedMonths, 
-	financeExpandedWeeks, financeNames, type FinanceNames } from '$lib/stores/finance';
+import {
+	financeData, financeExpandedYears, financeExpandedMonths,
+	financeExpandedWeeks, financeNames, type FinanceNames
+} from '$lib/stores/finance';
 import { calendarData } from '$lib/stores/calendar';
 import {
-	persGoalData, persGoalEncryptedCache, persGoalExpandedYears, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalHighlights,
+	persGoalData, persGoalEncryptedCache, persGoalHighlights,
 	migratePersGoal, migratePersGoalHighlights, persGoalHighlightEncryptedCache, persLockState, type HighlightLevel1,
-	LockState,
+	LockState, persGoalExpandedMonths, persGoalExpandedWeeks, persGoalExpandedYears,
 	type PersLockState
 } from '$lib/stores/persgoal';
-import { profGoalData, profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks, 
-	profGoalHighlights, profHighlightOrder, initProfHighlightOrder,
-	type ProfHighlightOrder} from '$lib/stores/profgoal';
+import { persHighlightExpanded, persHighlightOrder,initPersHighlightExpanded, initPersHighlightOrder,
+	type PersHighlightExpanded, type PersHighlightOrder } 
+	from './stores/persgoalplain';
+import {
+	profGoalData, profHighlightExpanded,
+	profGoalHighlights, profHighlightOrder, initProfHighlightOrder, initProfHighlightExpanded,
+	profGoalExpandedYears, profGoalExpandedMonths, profGoalExpandedWeeks,
+	type ProfHighlightOrder,
+	type ProfHighlightExpanded
+} from '$lib/stores/profgoal';
 import { workspaceContentA, workspaceContentB } from '$lib/stores/workspace';
 import { goalData, goalOrder, initGoalOrder, type GoalThread } from './stores/thegoals';
 import { pass } from "$lib/stores/auth";
@@ -31,6 +40,7 @@ type PersistDomain =
 	| "finance"
 	| "calendar"
 	| "persgoal"
+	| "persgoalplain"
 	| "profgoal"
 	| "profhighlights"
 	| "workspaces"
@@ -55,10 +65,11 @@ interface UserData {
 	projects?: Record<string, any>;
 	howto?: any[];
 	finance?: any[];
-	calendar?: any[];                         
+	calendar?: any[];
 	profgoal?: any[];
-	profhighlights?: Record<string, HighlightLevel1>; 
-	profhighlightorder?: ProfHighlightOrder;       
+	profhighlights?: Record<string, HighlightLevel1>;
+	profhighlightorder?: ProfHighlightOrder;
+	profhighlightexpanded?: ProfHighlightExpanded;
 	workspaceA?: string;
 	workspaceB?: string;
 	field1?: string;
@@ -68,8 +79,9 @@ interface UserData {
 	projectExpandedSubprojects?: Record<string, boolean>;
 	projectExpandedTasks?: Record<string, boolean>;
 	projectorder?: string[];
-	persorder?: Record<string,string[]>;
-	//proforder?: Record<string, string[]>;
+	persorder?: Record<string, string[]>;
+	pershighlightorder?: PersHighlightOrder;
+	pershighlightexpanded?: PersHighlightExpanded;
 	howtoExpandedCategories?: Record<string, boolean>;
 	howtoExpandedSubcategories?: Record<string, boolean>;
 	howtoExpandedTopics?: Record<string, boolean>;
@@ -81,7 +93,7 @@ interface UserData {
 	profGoalExpandedWeeks?: Record<string, boolean>;
 	commandExpandedCategories?: Record<string, boolean>;
 	commandExpandedSubcategories?: Record<string, boolean>;
-	financenames:FinanceNames;
+	financenames: FinanceNames;
 	goaldata: GoalThread[];
 	goalorder: string[];
 }
@@ -118,7 +130,7 @@ function scheduleSave(domain: PersistDomain) {
 	}, 500);
 }
 
-function scheduleSaveEncrypt(domain:PersistDomain) {
+function scheduleSaveEncrypt(domain: PersistDomain) {
 	console.log(`In scheduleSaveEncrypt`);
 	pendingDomain = domain;
 	if (saveTimeout !== null) {
@@ -195,6 +207,9 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			profgoal: get(profGoalData),
 			profhighlights: get(profGoalHighlights),
 			profhighlightorder: get(profHighlightOrder),
+			profhighlightexpanded: get(profHighlightExpanded),
+			pershighlightorder: get(persHighlightOrder),
+			pershighlightexpanded: get(persHighlightExpanded),
 			workspaceA: get(workspaceContentA),
 			workspaceB: get(workspaceContentB),
 			field1: get(todoField1),
@@ -204,8 +219,6 @@ export async function saveUserData(domain: PersistDomain): Promise<void> {
 			projectExpandedSubprojects: get(projectExpandedSubprojects),
 			projectExpandedTasks: get(projectExpandedTasks),
 			projectorder: get(projectOrder),
-			persorder: get(persOrder),
-			//proforder:get(profOrder),
 			howtoExpandedCategories: get(howtoExpandedCategories),
 			howtoExpandedSubcategories: get(howtoExpandedSubcategories),
 			howtoExpandedTopics: get(howtoExpandedTopics),
@@ -274,18 +287,27 @@ export async function loadUserData(): Promise<void> {
 			projectOrder.set(data.projectorder);
 		}
 		if (!data.profhighlightorder) {
-			alert(`Initializing profhighlihgtorder`);
 			initProfHighlightOrder();
-		}else{
-			alert(`Setting profhighlightorder to 0 - Abort`);
+		} else {
 			profHighlightOrder.set(data.profhighlightorder)
 		}
-		if (data.persorder) {
-			persOrder.set(data.persorder ?? []);
+		if (!data.profhighlightexpanded) {
+			console.log(`Expanded being initialized - correct`);
+			initProfHighlightExpanded();
+		} else {
+			profHighlightExpanded.set(data.profhighlightexpanded);
 		}
-		// if (data.proforder) {
-		// 	profOrder.set(data.proforder ?? []);
-		// }
+		if (!data.pershighlightorder) {
+			initPersHighlightOrder();
+		} else {
+			persHighlightOrder.set(data.pershighlightorder)
+		}
+		if (!data.pershighlightexpanded) {
+			console.log(`Expanded being initialized - correct`);
+			initPersHighlightExpanded();
+		} else {
+			persHighlightExpanded.set(data.pershighlightexpanded);
+		}
 		if (data.howtoExpandedCategories) {
 			howtoExpandedCategories.set(data.howtoExpandedCategories);
 		}
@@ -362,6 +384,7 @@ export async function loadUserDataEncryption(): Promise<void> {
 		if (data.persGoalExpandedWeeks) {
 			persGoalExpandedWeeks.set(data.persGoalExpandedWeeks);
 		}
+
 		persGoalEncryptedCache.set(data.persgoalencryption ?? "");
 		persGoalHighlightEncryptedCache.set(data.persgoalhighlightsencrypted ?? "");
 		persLockState.set(data.perslockstate ?? LockState.NOT_SET);
@@ -373,7 +396,7 @@ export async function loadUserDataEncryption(): Promise<void> {
 	}
 }
 
-export async function saveUserEncryptionData (): Promise<void>{
+export async function saveUserEncryptionData(): Promise<void> {
 	try {
 		console.log(`In saveUserEncryptionData function`);
 		const dataEncrypted: UserEncryptData = {
@@ -383,7 +406,7 @@ export async function saveUserEncryptionData (): Promise<void>{
 			persGoalExpandedMonths: get(persGoalExpandedMonths),
 			persGoalExpandedWeeks: get(persGoalExpandedWeeks),
 			perslockstate: get(persLockState)
-					};
+		};
 		await invoke('save_user_data_encryption', { data: JSON.stringify(dataEncrypted) });
 		console.log('User data encryption saved');
 	} catch (error) {
@@ -456,11 +479,6 @@ export function initPersistence() {
 	});
 
 	projectOrder.subscribe(() => {
-		if (!isHydrated) return;
-		scheduleSave("projects");
-	});
-//did not want to mess with encryption - adding this pers functionality to projects. 
-	persOrder.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave("projects");
 	});
@@ -538,6 +556,7 @@ export function initPersistence() {
 		scheduleSaveEncrypt("persgoal");
 	});
 
+
 	// Subscribe to goal changes
 	persGoalData.subscribe(() => {
 		if (!isHydrated) return;
@@ -572,6 +591,21 @@ export function initPersistence() {
 	profHighlightOrder.subscribe(() => {
 		if (!isHydrated) return;
 		scheduleSave("profgoal");
+	});
+
+	profHighlightExpanded.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("profgoal");
+	});
+
+	persHighlightOrder.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("persgoalplain");
+	});
+
+	persHighlightExpanded.subscribe(() => {
+		if (!isHydrated) return;
+		scheduleSave("persgoalplain");
 	});
 
 	profGoalExpandedYears.subscribe(() => {

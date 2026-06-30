@@ -2,7 +2,7 @@
   import { autoResize } from "$lib/utils/textareaResize";
   import { appPersState } from "$lib/stores/state.svelte";
   import { onMount } from "svelte";
-  import { persOrder } from "$lib/stores/projects";
+  import { persHighlightExpanded, persHighlightOrder } from "$lib/stores/persgoalplain";
   import {
     persGoalHighlights,
     addHighlightItem,
@@ -17,14 +17,13 @@
     updateDetailHighlightPattern,
     updateDialogM,
     updateDialogO,
-    persGoalExpandedYears, //name makes no sense presently TODO but is functional
     updateDetailHighlightImagePattern,
     updatePatternSteps,
     initStep,
     removeStep,
     addImagePatternStep,
     removeImagePatternStep,
-    initPersOrder,
+    type HighlightLevel1,
     type HighlightLevel2,
   } from "$lib/stores/persgoal";
   import PatternComponent from "./PatternComponent.svelte";
@@ -37,9 +36,7 @@
     etext: string;
   } | null>(null);
 
-  onMount(() => {
-    initPersOrder($persGoalHighlights);
-  });
+  onMount(() => {});
 
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRowsTexArea[dayId] ?? false;
@@ -55,47 +52,190 @@
     );
   }
 
-  function togglesublevel(id: string) {
-    $persGoalExpandedYears[id] = !$persGoalExpandedYears[id];
+  function toggleTopLevel( topId: string) {
+    $persHighlightExpanded.top[topId] =
+      !$persHighlightExpanded.top[topId];
   }
 
-  function togglethirdlevel(childid: string) {
-    $persGoalExpandedYears[childid] = !$persGoalExpandedYears[childid];
+  function toggleMiddleLevel(middleId: string) {
+    $persHighlightExpanded.middle[middleId] =
+      !$persHighlightExpanded.middle[middleId];
   }
 
-  function openAllPersRows() {
-    for (const key in $persGoalExpandedYears) {
-      console.log(`In openAllPersRows ${key}`);
-      $persGoalExpandedYears[key] = true;
+  function toggleLowerLevel(lowerId: string) {
+    $persHighlightExpanded.lower[lowerId] =
+      !$persHighlightExpanded.lower[lowerId];
+  }
+
+  function openAllProfRows() {
+    for (const topId in $persHighlightExpanded.top) {
+      $persHighlightExpanded.top[topId] = true;
+    }
+
+    for (const middleId in $persHighlightExpanded.middle) {
+      $persHighlightExpanded.middle[middleId] = true;
+    }
+
+    for (const lowerId in $persHighlightExpanded.lower) {
+      $persHighlightExpanded.lower[lowerId] = true;
     }
   }
 
   // Drag and Drop functionality for HighlightLevel2 rows
-  let draggingParentId = $state<string | null>(null);
-  let draggingChildId = $state<string | null>(null);
+  let draggingTopId: string | null = null;
+  let draggingMiddleId: string | null = null;
+  let draggingLowerId: string | null = null;
 
-  type LevelTwoChildren = Record<string, HighlightLevel2>;
+  //Top level drag and drop functions
+  function onTopDragStart(e: DragEvent, topId: string) {
+    draggingTopId = topId;
 
-  function getOrderedLevelTwoEntries(
-    parentId: string,
-    children: LevelTwoChildren,
-  ): [string, HighlightLevel2][] {
-    const childIds = Object.keys(children);
-    const orderedIds = $persOrder[parentId] ?? [];
+    if (!e.dataTransfer) return;
 
-    // Keep ids that still exist.
-    // Then append any new ids that are not yet in persOrder.
-    const normalizedOrder = [
-      ...orderedIds.filter((childid) => childid in children),
-      ...childIds.filter((childid) => !orderedIds.includes(childid)),
-    ];
-
-    return normalizedOrder.map((childid) => [childid, children[childid]]);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", topId);
   }
 
-  function onDragStart(e: DragEvent, parentId: string, childid: string) {
-    draggingParentId = parentId;
-    draggingChildId = childid;
+  function onTopDrop(e: DragEvent, targetId: string) {
+    e.preventDefault();
+
+    if (!draggingTopId || draggingTopId === targetId) {
+      draggingTopId = null;
+      return;
+    }
+
+    persHighlightOrder.update((order) => {
+      const currentIds = Object.keys($persGoalHighlights);
+
+      const normalizedTop = [
+        ...order.top.filter((id) => currentIds.includes(id)),
+        ...currentIds.filter((id) => !order.top.includes(id)),
+      ];
+
+      const fromIndex = normalizedTop.indexOf(draggingTopId ?? "");
+      const toIndex = normalizedTop.indexOf(targetId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const updatedTop = [...normalizedTop];
+      const [moved] = updatedTop.splice(fromIndex, 1);
+      updatedTop.splice(toIndex, 0, moved);
+
+      return {
+        ...order,
+        top: updatedTop,
+      };
+    });
+
+    draggingTopId = null;
+  }
+  function getOrderedLevelOneEntries(
+    highlights: Record<string, HighlightLevel1>,
+  ): [string, HighlightLevel1][] {
+    const ids = Object.keys(highlights);
+    const orderedIds = $persHighlightOrder.top ?? [];
+
+    const normalizedOrder = [
+      ...orderedIds.filter((id) => id in highlights),
+      ...ids.filter((id) => !orderedIds.includes(id)),
+    ];
+
+    return normalizedOrder.map((id) => [id, highlights[id]]);
+  }
+
+  //Middle level drag and drop functions
+  function getOrderedLevelTwoEntries(
+    parentId: string,
+    children: Record<string, HighlightLevel2>,
+  ): [string, HighlightLevel2][] {
+    const childIds = Object.keys(children);
+    const orderedIds = $persHighlightOrder.middle[parentId] ?? [];
+
+    const normalizedOrder = [
+      ...orderedIds.filter((childId) => childId in children),
+      ...childIds.filter((childId) => !orderedIds.includes(childId)),
+    ];
+
+    return normalizedOrder.map((childId) => [childId, children[childId]]);
+  }
+
+  function onMiddleDragStart(e: DragEvent, topId: string, middleId: string) {
+    draggingMiddleId = middleId;
+
+    if (!e.dataTransfer) return;
+
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", middleId);
+  }
+
+  function onMiddleDrop(e: DragEvent, topId: string, targetMiddleId: string) {
+    e.preventDefault();
+
+    if (!draggingMiddleId || draggingMiddleId === targetMiddleId) {
+      draggingMiddleId = null;
+      return;
+    }
+
+    persHighlightOrder.update((order) => {
+      const levelOne = $persGoalHighlights[topId];
+      const children = levelOne?.children ?? {};
+      const currentMiddleIds = Object.keys(children);
+
+      const normalizedMiddle = [
+        ...(order.middle[topId] ?? []).filter((id) =>
+          currentMiddleIds.includes(id),
+        ),
+        ...currentMiddleIds.filter(
+          (id) => !(order.middle[topId] ?? []).includes(id),
+        ),
+      ];
+
+      const fromIndex = normalizedMiddle.indexOf(draggingMiddleId ?? "");
+      const toIndex = normalizedMiddle.indexOf(targetMiddleId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const updatedMiddle = [...normalizedMiddle];
+      const [moved] = updatedMiddle.splice(fromIndex, 1);
+      updatedMiddle.splice(toIndex, 0, moved);
+
+      return {
+        ...order,
+        middle: {
+          ...order.middle,
+          [topId]: updatedMiddle,
+        },
+      };
+    });
+
+    draggingMiddleId = null;
+  }
+
+  //Lower level drag and drop functions
+  function getOrderedLevelThreeEntries(
+    topId: string,
+    children: Record<string, HighlightLevel2>,
+  ): [string, HighlightLevel2][] {
+    const childIds = Object.keys(children);
+    const orderedIds = $persHighlightOrder.middle[topId] ?? [];
+
+    const normalizedOrder = [
+      ...orderedIds.filter((childId) => childId in children),
+      ...childIds.filter((childId) => !orderedIds.includes(childId)),
+    ];
+
+    return normalizedOrder.map((childId) => [childId, children[childId]]);
+  }
+
+  function onLowerDragStart(
+    e: DragEvent,
+    topId: string,
+    middleId: string,
+    lowerId: string,
+  ) {
+    draggingTopId = topId;
+    draggingMiddleId = middleId;
+    draggingLowerId = draggingLowerId;
 
     if (!e.dataTransfer) return;
 
@@ -104,12 +244,50 @@
     e.dataTransfer.setData(
       "application/json",
       JSON.stringify({
-        parentId,
-        childid,
+        topId,
+        middleId,
+        lowerId,
       }),
     );
+  }
 
-    e.dataTransfer.setData("text/plain", childid);
+  function onLowerDrop(
+    e: DragEvent,
+    topId: string,
+    middleId: string,
+    lowerId: string,
+  ) {
+    e.preventDefault();
+
+    if (!draggingTopId || draggingTopId === topId) {
+      draggingTopId = null;
+      return;
+    }
+
+    persHighlightOrder.update((order) => {
+      const currentIds = Object.keys($persGoalHighlights);
+
+      const normalizedTop = [
+        ...order.top.filter((id) => currentIds.includes(id)),
+        ...currentIds.filter((id) => !order.top.includes(id)),
+      ];
+
+      const fromIndex = normalizedTop.indexOf(draggingTopId ?? "");
+      const toIndex = normalizedTop.indexOf(topId);
+
+      if (fromIndex === -1 || toIndex === -1) return order;
+
+      const updatedTop = [...normalizedTop];
+      const [moved] = updatedTop.splice(fromIndex, 1);
+      updatedTop.splice(toIndex, 0, moved);
+
+      return {
+        ...order,
+        top: updatedTop,
+      };
+    });
+
+    draggingTopId = null;
   }
 
   function onDragOver(e: DragEvent) {
@@ -118,84 +296,6 @@
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = "move";
     }
-  }
-
-  function onDrop(
-    e: DragEvent,
-    targetParentId: string,
-    targetChildId: string,
-    children: LevelTwoChildren,
-  ) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    let sourceParentId = draggingParentId;
-    let sourceChildId = draggingChildId;
-
-    if ((!sourceParentId || !sourceChildId) && e.dataTransfer) {
-      try {
-        const payload = JSON.parse(
-          e.dataTransfer.getData("application/json"),
-        ) as {
-          parentId?: string;
-          childid?: string;
-        };
-
-        sourceParentId = payload.parentId ?? null;
-        sourceChildId = payload.childid ?? null;
-      } catch {
-        sourceChildId = e.dataTransfer.getData("text/plain") || null;
-      }
-    }
-
-    if (!sourceParentId || !sourceChildId) return;
-
-    // This keeps dragging limited to children inside the same parent.
-    // If later you want cross-parent drag/drop, this condition changes.
-    if (sourceParentId !== targetParentId) {
-      draggingParentId = null;
-      draggingChildId = null;
-      return;
-    }
-
-    if (sourceChildId === targetChildId) {
-      draggingParentId = null;
-      draggingChildId = null;
-      return;
-    }
-
-    persOrder.update((order) => {
-      const existingOrder = order[targetParentId] ?? [];
-      const childIds = Object.keys(children);
-
-      const normalizedOrder = [
-        ...existingOrder.filter((childid) => childid in children),
-        ...childIds.filter((childid) => !existingOrder.includes(childid)),
-      ];
-
-      const updatedOrder = [...normalizedOrder];
-
-      const fromIndex = updatedOrder.indexOf(sourceChildId);
-      const toIndex = updatedOrder.indexOf(targetChildId);
-
-      if (fromIndex === -1 || toIndex === -1) return order;
-
-      const [movedId] = updatedOrder.splice(fromIndex, 1);
-      updatedOrder.splice(toIndex, 0, movedId);
-
-      return {
-        ...order,
-        [targetParentId]: updatedOrder,
-      };
-    });
-
-    draggingParentId = null;
-    draggingChildId = null;
-  }
-
-  function onDragEnd() {
-    draggingParentId = null;
-    draggingChildId = null;
   }
 </script>
 
@@ -211,20 +311,26 @@
 <button
   class="ml-10 rounded text-sm bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
-  onclick={openAllPersRows}
+  onclick={openAllProfRows}
 >
   Open All
 </button>
 <!-- Top level -->
-{#each Object.entries($persGoalHighlights) as [id, levelOne] (id)}
-  <div class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono">
+{#each getOrderedLevelOneEntries($persGoalHighlights) as [id, levelOne] (id)}
+  <div
+    class="w-full flex flex-col gap-0 mb-5 pb-5 font-mono"
+    draggable="true"
+    ondragstart={(e) => onTopDragStart(e, id)}
+    ondragover={onDragOver}
+    ondrop={(e) => onTopDrop(e, id)}
+  >
     <div class="flex">
       <button
         class="bg-white/5 text-white/10
       hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => {
           addSubHighlight(id);
-          $persGoalExpandedYears[id] = true;
+          $persHighlightExpanded.top[id] = true;
         }}
       >
         +
@@ -232,9 +338,9 @@
 
       <button
         class="text-white/20 text-3xl w-6"
-        onclick={() => togglesublevel(id)}
+        onclick={() => toggleTopLevel(id)}
       >
-        {$persGoalExpandedYears[id] ? "▼" : "▷"}
+        {$persHighlightExpanded.top[id] ? "▼" : "▷"}
       </button>
 
       <textarea
@@ -255,24 +361,34 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
       >
         -
       </button>
+      <div class="flex gap-10 ml-4 mt-3 items-center">
+        <div
+          draggable="true"
+          ondragstart={(e) => onTopDragStart(e, id)}
+          class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-4xl select-none"
+          title="Drag to reorder"
+        >
+          ⠿
+        </div>
+      </div>
     </div>
 
     <!-- Middle level: only render when this top row is expanded -->
-    <!--Drag and Drop add here-->
-    {#if $persGoalExpandedYears[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
+    {#if $persHighlightExpanded.top[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
       {#each getOrderedLevelTwoEntries(id, levelOne.children ?? {}) as [childid, levelTwo] (childid)}
         <div
           class="px-6 flex flex-col w-full gap-3 mt-4
-  {draggingChildId === childid ? 'opacity-40' : ''}"
+  {draggingMiddleId === childid ? 'opacity-40' : ''}"
           ondragover={onDragOver}
-          ondrop={(e) => onDrop(e, id, childid, levelOne.children ?? {})}
+          ondrop={(e) => onMiddleDrop(e, id, childid)}
         >
           <div class="flex flex-row gap-2 items-start">
             <button
-              class="bg-white/5 text-white/10 hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
+              class="bg-white/5 text-white/10
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => {
                 addDetailHighlight(id, childid);
-                $persGoalExpandedYears[childid] = true;
+                $persHighlightExpanded.middle[childid] = true;
               }}
             >
               +
@@ -289,13 +405,13 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
 
             <button
               class="text-white/20 text-3xl w-6 mt-3"
-              onclick={() => togglethirdlevel(childid)}
+              onclick={() => toggleMiddleLevel(childid)}
             >
-              {$persGoalExpandedYears[childid] ? "▼" : "▷"}
+              {$persHighlightExpanded.middle[childid] ? "▼" : "▷"}
             </button>
 
             <textarea
-              class="flex-1 min-w-0 pb-3 pt-3 mb-2 bg-sky-400/20 rounded-2xl px-3 py-1 text-sky-200/70 text-3xl resize-none overflow-hidden
+              class="flex-1 pb-3 pt-3 mb-2 bg-sky-400/20 rounded-2xl px-3 py-1 text-sky-200/70 text-3xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-sky-300/80"
               use:autoResize={[
                 levelTwo.text,
@@ -313,33 +429,37 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             />
 
             <button
-              class="bg-white/5 text-white/10 hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
+              class="bg-white/5 text-white/10
+  hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => removeSubHighlight(id, childid)}
             >
               -
             </button>
             <div class="flex flex-col">
-            <button
-              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-1"
-              onclick={() => { updateDetailHighlightPattern(id, childid);
-                                 $persGoalExpandedYears[childid] = true; }}
-            >
-              P
-            </button>
+              <button
+                class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-1"
+                onclick={() => {
+                  updateDetailHighlightPattern(id, childid);
+                  $persHighlightExpanded.middle[childid] = true;
+                }}
+              >
+                P
+              </button>
 
-            <button
-              class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-3"
-              onclick={() => { updateDetailHighlightImagePattern(id, childid);
-                                $persGoalExpandedYears[childid] = true; }}
-            >
-              IP
-            </button>
+              <button
+                class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-3"
+                onclick={() => {
+                  updateDetailHighlightImagePattern(id, childid);
+                  $persHighlightExpanded.middle[childid] = true;
+                }}
+              >
+                IP
+              </button>
             </div>
             <div class="flex gap-10 ml-auto mt-3">
               <div
                 draggable="true"
-                ondragstart={(e) => onDragStart(e, id, childid)}
-                ondragend={onDragEnd}
+                ondragstart={(e) => onMiddleDragStart(e, id, childid)}
                 class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl select-none"
                 title="Drag to reorder"
               >
@@ -349,97 +469,97 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
           </div>
 
           <!-- Lower level: only render when this middle row is expanded -->
-          {#if $persGoalExpandedYears[childid]}
-           {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
-            {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
-              <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
-                <button
-                  onclick={() => toggleExpand(detailid)}
-                  class="mt-0 mr-2 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
-                  title="Toggle Expand"
-                >
-                  {appPersState.expandedRowsTexArea[detailid] ? "S" : "E"}
-                </button>
+          {#if $persHighlightExpanded.middle[childid]}
+            {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
+              {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
+                <div class="ml-15 flex items-center px-16 w-[95%] mt-0">
+                  <button
+                    onclick={() => toggleExpand(detailid)}
+                    class="mt-0 mr-2 w-6 h-6 flex-none rounded-lg border border-white/20 bg-white/5 hover:bg-white/20 text-white font-mono text-xs transition-colors"
+                    title="Toggle Expand"
+                  >
+                    {appPersState.expandedRowsTexArea[detailid] ? "S" : "E"}
+                  </button>
 
-                <textarea
-                  class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
+                  <textarea
+                    class="flex-1 pb-2 pt-2 mb-4 rounded-2xl px-3 py-1 text-2xl resize-none overflow-hidden
                   focus:outline-none focus:ring-1 {levelThree.one
-                    ? 'bg-white/70 text-black border border-white/30 focus:ring-white/80'
-                    : levelThree.me
-                      ? 'bg-black/20 text-white/70 border border-white/20 focus:ring-white/60'
-                      : 'bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80'}"
-                  use:autoResize={[
-                    levelThree.text,
-                    appPersState.expandedRowsTexArea[detailid],
-                  ]}
-                  ondblclick={() => {
-                    editingDay = {
-                      eid: id,
-                      echildid: childid,
-                      edetailid: detailid,
-                      etext: levelThree.text || "",
-                    };
-                  }}
-                  value={levelThree.text}
-                  rows="1"
-                  oninput={(e) => {
-                    updateDetailHighlight(
-                      id,
-                      childid,
-                      detailid,
-                      (e.target as HTMLTextAreaElement).value,
-                    );
-                  }}
-                />
+                      ? 'bg-white/40 text-black border border-white/30 focus:ring-white/80'
+                      : levelThree.me
+                        ? 'bg-black/20 text-white/70 border border-white/20 focus:ring-white/60'
+                        : 'bg-amber-400/10 text-amber-100/60 focus:ring-amber-300/80'}"
+                    use:autoResize={[
+                      levelThree.text,
+                      appPersState.expandedRowsTexArea[detailid],
+                    ]}
+                    ondblclick={() => {
+                      editingDay = {
+                        eid: id,
+                        echildid: childid,
+                        edetailid: detailid,
+                        etext: levelThree.text || "",
+                      };
+                    }}
+                    value={levelThree.text}
+                    rows="1"
+                    oninput={(e) => {
+                      updateDetailHighlight(
+                        id,
+                        childid,
+                        detailid,
+                        (e.target as HTMLTextAreaElement).value,
+                      );
+                    }}
+                  />
 
-                <button
-                  class="bg-white/10 text-white/30
+                  <button
+                    class="bg-white/10 text-white/30
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6 ml-2 mr-25"
-                  onclick={() => removeDetailHighlight(id, childid, detailid)}
-                >
-                  -
-                </button>
-                <div class="flex flex-col float-end">
-                  <label class="flex gap-1 cursor-pointer">
-                    <span class="text-teal-100/50 text-sm leading-tight">
-                      M
-                    </span>
+                    onclick={() => removeDetailHighlight(id, childid, detailid)}
+                  >
+                    -
+                  </button>
+                  <div class="flex flex-col float-end">
+                    <label class="flex gap-1 cursor-pointer">
+                      <span class="text-teal-100/20 text-sm leading-tight">
+                        M
+                      </span>
 
-                    <input
-                      type="checkbox"
-                      bind:checked={levelThree.me}
-                      onchange={(e) =>
-                        updateDialogM(
-                          id,
-                          childid,
-                          detailid,
-                          (e.target as HTMLInputElement).checked,
-                        )}
-                      class="w-4 h-4 accent-teal-500 opacity-20"
-                    />
-                  </label>
+                      <input
+                        type="checkbox"
+                        bind:checked={levelThree.me}
+                        onchange={(e) =>
+                          updateDialogM(
+                            id,
+                            childid,
+                            detailid,
+                            (e.target as HTMLInputElement).checked,
+                          )}
+                        class="w-4 h-4 accent-teal-500 opacity-10"
+                      />
+                    </label>
 
-                  <label class="flex gap-1 cursor-pointer">
-                    <span class="text-cyan-100/50 text-sm leading-tight">
-                      O
-                    </span>
+                    <label class="flex gap-1 cursor-pointer">
+                      <span class="text-cyan-100/20 text-sm leading-tight">
+                        O
+                      </span>
 
-                    <input
-                      type="checkbox"
-                      bind:checked={levelThree.one}
-                      onchange={(e) =>
-                        updateDialogO(
-                          id,
-                          childid,
-                          detailid,
-                          (e.target as HTMLInputElement).checked,
-                        )}
-                      class="w-4 h-4 accent-cyan-500 opacity-20"
-                    />
-                  </label>
+                      <input
+                        type="checkbox"
+                        bind:checked={levelThree.one}
+                        onchange={(e) =>
+                          updateDialogO(
+                            id,
+                            childid,
+                            detailid,
+                            (e.target as HTMLInputElement).checked,
+                          )}
+                        class="w-4 h-4 accent-cyan-500 opacity-10"
+                      />
+                    </label>
+                  </div>
                 </div>
-              </div>
-            {/each}
+              {/each}
             {/if}
             {#if Object.keys(levelTwo.patterns ?? {}).length !== 0}
               <PatternComponent
@@ -453,12 +573,13 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
             {/if}
 
             {#if Object.keys(levelTwo.imagePatterns ?? {}).length !== 0}
-              <ImagePattern 
-                {id} 
-                {childid} 
+              <ImagePattern
+                {id}
+                {childid}
                 {levelTwo}
                 {addImagePatternStep}
-                {removeImagePatternStep} />
+                {removeImagePatternStep}
+              />
             {/if}
           {/if}
         </div>

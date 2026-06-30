@@ -126,7 +126,7 @@
 					rows="2"
 					class="resize-none rounded border border-white/20 bg-white/5 px-3 py-2 text-white/70 placeholder-white/30"
 					bind:value={entryConsequenceDescr}
-					placeholder="Will you be modifying a consequence for this goal today ?"
+					placeholder="Provide the excuse here you will have to speak, if you fail in your Goal for today?"
 				></textarea>
 			</div>
 			<div class="flex flex-row">

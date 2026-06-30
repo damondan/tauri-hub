@@ -5,6 +5,7 @@
   import {
     profGoalHighlights,
     profHighlightOrder,
+    profHighlightExpanded,
     addHighlightItem,
     updateTopHighlight,
     addSubHighlight,
@@ -17,7 +18,6 @@
     updateDetailHighlightPattern,
     updateDialogM,
     updateDialogO,
-    profGoalExpandedYears, //name makes no sense presently TODO but is functional
     updateDetailHighlightImagePattern,
     updatePatternSteps,
     initStep,
@@ -53,18 +53,32 @@
     );
   }
 
-  function togglesublevel(id: string) {
-    $profGoalExpandedYears[id] = !$profGoalExpandedYears[id];
+  function toggleTopLevel( topId: string) {
+    $profHighlightExpanded.top[topId] =
+      !$profHighlightExpanded.top[topId];
   }
 
-  function togglethirdlevel(childid: string) {
-    $profGoalExpandedYears[childid] = !$profGoalExpandedYears[childid];
+  function toggleMiddleLevel(middleId: string) {
+    $profHighlightExpanded.middle[middleId] =
+      !$profHighlightExpanded.middle[middleId];
+  }
+
+  function toggleLowerLevel(lowerId: string) {
+    $profHighlightExpanded.lower[lowerId] =
+      !$profHighlightExpanded.lower[lowerId];
   }
 
   function openAllProfRows() {
-    for (const key in $profGoalExpandedYears) {
-      console.log(`In openAllProfRows ${key}`);
-      $profGoalExpandedYears[key] = true;
+    for (const topId in $profHighlightExpanded.top) {
+      $profHighlightExpanded.top[topId] = true;
+    }
+
+    for (const middleId in $profHighlightExpanded.middle) {
+      $profHighlightExpanded.middle[middleId] = true;
+    }
+
+    for (const lowerId in $profHighlightExpanded.lower) {
+      $profHighlightExpanded.lower[lowerId] = true;
     }
   }
 
@@ -317,7 +331,7 @@
       hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
         onclick={() => {
           addSubHighlight(id);
-          $profGoalExpandedYears[id] = true;
+          $profHighlightExpanded.top[id] = true;
         }}
       >
         +
@@ -325,9 +339,9 @@
 
       <button
         class="text-white/20 text-3xl w-6"
-        onclick={() => togglesublevel(id)}
+        onclick={() => toggleTopLevel(id)}
       >
-        {$profGoalExpandedYears[id] ? "▼" : "▷"}
+        {$profHighlightExpanded.top[id] ? "▼" : "▷"}
       </button>
 
       <textarea
@@ -361,7 +375,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
     </div>
 
     <!-- Middle level: only render when this top row is expanded -->
-    {#if $profGoalExpandedYears[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
+    {#if $profHighlightExpanded.top[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
       {#each getOrderedLevelTwoEntries(id, levelOne.children ?? {}) as [childid, levelTwo] (childid)}
         <div
           class="px-6 flex flex-col w-full gap-3 mt-4
@@ -375,7 +389,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
   hover:bg-black/70 hover:text-white/80 float-left rounded text-4xl w-6"
               onclick={() => {
                 addDetailHighlight(id, childid);
-                $profGoalExpandedYears[childid] = true;
+                $profHighlightExpanded.middle[childid] = true;
               }}
             >
               +
@@ -392,9 +406,9 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
 
             <button
               class="text-white/20 text-3xl w-6 mt-3"
-              onclick={() => togglethirdlevel(childid)}
+              onclick={() => toggleMiddleLevel(childid)}
             >
-              {$profGoalExpandedYears[childid] ? "▼" : "▷"}
+              {$profHighlightExpanded.middle[childid] ? "▼" : "▷"}
             </button>
 
             <textarea
@@ -427,7 +441,7 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-1"
                 onclick={() => {
                   updateDetailHighlightPattern(id, childid);
-                  $profGoalExpandedYears[childid] = true;
+                  $profHighlightExpanded.middle[childid] = true;
                 }}
               >
                 P
@@ -437,7 +451,7 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
                 class="bg-white/10 text-white/40 hover:bg-black/70 hover:text-white/80 rounded text-xl px-2 h-5 mt-3"
                 onclick={() => {
                   updateDetailHighlightImagePattern(id, childid);
-                  $profGoalExpandedYears[childid] = true;
+                  $profHighlightExpanded.middle[childid] = true;
                 }}
               >
                 IP
@@ -456,7 +470,7 @@ focus:outline-none focus:ring-1 focus:ring-sky-300/80"
           </div>
 
           <!-- Lower level: only render when this middle row is expanded -->
-          {#if $profGoalExpandedYears[childid]}
+          {#if $profHighlightExpanded.middle[childid]}
             {#if levelTwo.children && Object.keys(levelTwo.children).length > 0}
               {#each Object.entries(levelTwo.children ?? {}) as [detailid, levelThree] (detailid)}
                 <div class="ml-15 flex items-center px-16 w-[95%] mt-0">

@@ -37,21 +37,6 @@ export interface Project {
 export const projectsData = writable<Record<string, Project>>({});
 export const projectOrder = writable<string[]>([]);
 
-//encryption is persOrder - encrypting this is unneeded - adding it in here
-export const persOrder = writable<Record<string, string[]>>({});
-
-export interface PersHighlightOrder {
-  top: string[];
-  middle: Record<string, string[]>;
-  lower: Record<string, string[]>;
-}
-
-export const persHighlightOrder = writable<PersHighlightOrder>({
-  top: [],
-  middle: {},
-  lower: {},
-});
-
 // Delete a project
 // deleteProject(projectName: string): void
 export function deleteProject(projectName: string): void {

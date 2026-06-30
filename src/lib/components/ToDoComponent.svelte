@@ -183,7 +183,8 @@
           class="group relative flex flex-col bg-white/7.5 rounded-xl border-2 transition-all duration-200 mb-2
            {draggingId === item.id
             ? 'opacity-20 border-blue-500'
-            : index === 0 ? 'border-l-4 border-l-blue-300' : 'border-transparent hover:border-white/20'}"
+            : index === 0 ? 'border-l-4 border-l-blue-300 shadow-[0_0_10px_rgba(147,197,253,1)]' : 
+            'border-transparent hover:border-white/20'}"
         >
           <div class="ml-10 mr-10 flex items-center gap-4 p-4">
             <div
