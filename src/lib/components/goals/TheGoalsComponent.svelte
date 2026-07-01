@@ -175,7 +175,7 @@
 		openInfoModal(
 			"failureCount",
 			"Failure Count Updated",
-			"Your failure count has gone down.",
+			"Your failure count has gone down. Follow up on your excuse in the Goal Entry",
 		);
 	}
 
@@ -1320,7 +1320,6 @@
 							)}
 					/>
 
-					<!--ToDo -->
 					<div
             draggable="true"
             ondragstart={(e) => onDragStart(e, thread.threadId)}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GoalEntry } from '$lib/stores/thegoals';
+	import type { GoalEntry } from "$lib/stores/thegoals";
 
 	interface Props {
 		entry: GoalEntry;
@@ -14,9 +14,9 @@
 		entry,
 		xPercent,
 		yPercent,
-		color = '#ffffff',
+		color = "#ffffff",
 		isPending = false,
-		onOpen
+		onOpen,
 	}: Props = $props();
 </script>
 
@@ -24,9 +24,16 @@
 	type="button"
 	class="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white transition-transform hover:scale-125"
 	class:opacity-50={isPending}
-	style:left={xPercent + '%'}
-	style:top={yPercent + '%'}
+	style:left={xPercent + "%"}
+	style:top={yPercent + "%"}
 	style:background-color={color}
-	title={entry.description ?? 'Goal entry'}
+	title={[
+		`${entry.description ?? "Goal entry"}`,
+		entry.consequenceDescription
+			? `Excuse: ${entry.consequenceDescription}`
+			: null,
+	]
+		.filter(Boolean)
+		.join("\n")}
 	onclick={() => onOpen(entry)}
 ></button>
