@@ -81,6 +81,7 @@ export interface Goal {
 	isExpanded?: boolean;
 	isPersisted?: boolean;
 	isInitialized?: boolean;
+	hasExcuseOption?: boolean;
 
 	isCompleted?: boolean;
 	isSucceeded?: boolean;
@@ -158,6 +159,7 @@ export function createEmptyGoal(): Goal {
 		isExpanded: false,
 		isPersisted: false,
 		isInitialized: false,
+		hasExcuseOption: false,
 
 		isCompleted: false,
 		isSucceeded: false,
@@ -289,11 +291,10 @@ export function initGoalThread(threadId: string): void {
 	goalData.update((threads) => {
 		return threads.map((thread) => {
 			if (thread.threadId !== threadId) return thread;
-
 			return {
 				...thread,
 				isInitialized: true,
-				isExpanded: true
+				isExpanded: true,
 			};
 		});
 	});
@@ -396,6 +397,7 @@ export function updateGoalField<K extends keyof Goal>(
 	field: K,
 	value: Goal[K]
 ): void {
+	console.log(`in updateGoalField and field is ${field} and value is ${value}`);
 	goalData.update((threads) => {
 		return threads.map((thread) => {
 			if (thread.threadId !== threadId) return thread;

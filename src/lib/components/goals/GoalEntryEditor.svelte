@@ -116,7 +116,7 @@
 					disabled={isNoneGoal}
 				/>
 			</div>
-			{#if isConsequenceActive}
+			{#if isConsequenceActive && goal.hasExcuseOption}
 				<div class="flex flex-col">
 					<label class="mb-1 text-sm text-white/50"> Excuse ? </label>
 
@@ -129,7 +129,7 @@
 				</div>
 			{/if}
 			<div class="flex flex-row">
-				{#if isConsequenceActive}
+				{#if isConsequenceActive && goal.hasExcuseOption}
 					<label
 						class="flex items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70 mx-auto"
 					>

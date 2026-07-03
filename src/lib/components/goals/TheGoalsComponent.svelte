@@ -249,6 +249,26 @@
 		updateGoalField(threadId, goalId, "isCompleted", isCompleted);
 	}
 
+	function handleGoalExcuseChange(
+		threadId: string,
+		goalId: string,
+		hasExcuseOption: boolean,
+	): void {
+		const thread = $goalData.find(
+			(existingThread) => existingThread.threadId === threadId,
+		);
+
+		if (!thread) return;
+
+		const goal = thread.goals.find(
+			(existingGoal) => existingGoal.goalId === goalId,
+		);
+
+		if (!goal) return;
+
+		updateGoalField(threadId, goalId, "hasExcuseOption", hasExcuseOption);
+	}
+
 	function completeGoalAndLog(thread: GoalThread, goal: Goal): void {
 		logAndRemoveGoal(thread, goal, "completed");
 		triggerGoalCompletedInfoModal();
@@ -411,11 +431,9 @@
 			isCompleted: false,
 			isSucceeded: false,
 			hasFailed: false,
-			isConsequenceActive: getLastConsequenceStateBeforeDate(
-				thread,
-				goal,
-				date,
-			),
+			isConsequenceActive: goal.hasExcuseOption
+	? getLastConsequenceStateBeforeDate(thread, goal, date)
+	: false,
 			createdAt: date.toISOString().slice(0, 10),
 			updatedAt: new Date().toISOString(),
 		};
@@ -1044,14 +1062,14 @@
 
 	function handleEntryUpdate(
 		entry: GoalEntry,
-		value:number,
+		value: number,
 		description: string,
 		isConsequenceActive: boolean,
 		goalEntryConsequence: string,
 		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
-console.log(`Goal entry value is ${value}`);
+		console.log(`Goal entry value is ${value}`);
 		const { thread, goal } = selectedGoalEntryData;
 
 		if (entry.entryId.startsWith("start-")) {
@@ -1227,6 +1245,9 @@ console.log(`Goal entry value is ${value}`);
 			showMissingHighLimitWarning(thread.threadId, goal.goalId);
 			return;
 		}
+		if (!goal.hasExcuseOption) {
+			goal.hasExcuseOption = false;
+		}
 
 		initGoal(thread.threadId, goal.goalId);
 	}
@@ -1280,9 +1301,11 @@ console.log(`Goal entry value is ${value}`);
 	{#if thread}
 		<div class="mb-3">
 			<!-- Level 1: Goal Thread Row -->
-			<div class="rounded-xl bg-white/10 p-3"
-			 ondragover={(e) => e.preventDefault()}
-      ondrop={() => onDrop(thread.threadId)}>
+			<div
+				class="rounded-xl bg-white/10 p-3"
+				ondragover={(e) => e.preventDefault()}
+				ondrop={() => onDrop(thread.threadId)}
+			>
 				<div class="flex items-center gap-3">
 					<button
 						class="w-8 border text-3xl text-white {threadHasPendingGoalForToday(
@@ -1323,12 +1346,12 @@ console.log(`Goal entry value is ${value}`);
 					/>
 
 					<div
-            draggable="true"
-            ondragstart={(e) => onDragStart(e, thread.threadId)}
-            class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
-          >
-            ⠿
-          </div>
+						draggable="true"
+						ondragstart={(e) => onDragStart(e, thread.threadId)}
+						class="cursor-grab active:cursor-grabbing text-white/20 hover:text-white text-2xl"
+					>
+						⠿
+					</div>
 
 					<select
 						class="rounded border border-white/20 bg-black/70 px-3 py-2 text-black"
@@ -1752,7 +1775,7 @@ console.log(`Goal entry value is ${value}`);
 								<div class="flex flex-col">
 									<label
 										class="invisible mb-1 text-xs text-white/40"
-										>Completed</label
+										>Is Completed</label
 									>
 									<label
 										class="flex h-10 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70"
@@ -1772,7 +1795,6 @@ console.log(`Goal entry value is ${value}`);
 										Completed
 									</label>
 								</div>
-
 								<div class="flex flex-col">
 									<label
 										class="invisible mb-1 text-xs text-white/40"
@@ -1797,6 +1819,29 @@ console.log(`Goal entry value is ${value}`);
 										Persisting
 									</label>
 								</div>
+								<label
+									class="flex h-10 items-center gap-3 rounded border border-white/10 bg-white/5 px-3 py-2 text-white/70 mr-10"
+								>
+									<input
+										type="checkbox"
+										class="peer sr-only"
+										checked={goal.hasExcuseOption}
+										onchange={(e) =>
+											handleGoalExcuseChange(
+												thread.threadId,
+												goal.goalId,
+												(e.target as HTMLInputElement)
+													.checked,
+											)}
+									/>
+
+									<span
+										class="relative h-6 w-11 rounded-full bg-white/20 transition-colors peer-checked:bg-green-500/50
+										after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-transform
+										peer-checked:after:translate-x-5"
+										title="Turn on Excuse Option for Goals"
+									></span>
+								</label>
 
 								<div class="flex flex-col">
 									{#if shouldShowMissingHighLimitWarning(thread, goal)}
