@@ -22,6 +22,7 @@
 		) => void;
 		onUpdate: (
 			entry: GoalEntry,
+			value: number,
 			description: string,
 			consequenceCompleted: boolean,
 			entryConsequenceDescr: string,
@@ -157,6 +158,7 @@
 				onclick={() =>
 					onUpdate(
 						entry,
+						entryValue,
 						entryDescription,
 						isConsequenceActive,
 						entryConsequenceDescr,

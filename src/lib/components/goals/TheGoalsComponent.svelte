@@ -1044,13 +1044,14 @@
 
 	function handleEntryUpdate(
 		entry: GoalEntry,
+		value:number,
 		description: string,
 		isConsequenceActive: boolean,
 		goalEntryConsequence: string,
 		progressMarker: boolean,
 	) {
 		if (!selectedGoalEntryData) return;
-
+console.log(`Goal entry value is ${value}`);
 		const { thread, goal } = selectedGoalEntryData;
 
 		if (entry.entryId.startsWith("start-")) {
@@ -1059,6 +1060,7 @@
 		}
 
 		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
+			value,
 			description,
 			isConsequenceActive,
 			consequenceDescription: goalEntryConsequence,
