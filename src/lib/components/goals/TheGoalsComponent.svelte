@@ -172,18 +172,20 @@
 	}
 
 	function triggerFailureCountInfoModal(): void {
+		console.log(`In triggerfailurecountdown`);
 		openInfoModal(
 			"failureCount",
 			"Failure Count Updated",
-			"Your failure count has gone down. Follow up on your excuse in the Goal Entry",
+			"Your failure count has gone down.",
 		);
 	}
 
 	function triggerFailureCountHasExcuseInfoModal(): void {
+		console.log(`In trigger excuseoption true`);
 		openInfoModal(
 			"failureCount",
 			"Failure Count Updated",
-			"Your failure count limit has gone down.",
+			"Your failure count limit has gone down. Follow up on your excuse in the Goal Entry",
 		);
 	}
 

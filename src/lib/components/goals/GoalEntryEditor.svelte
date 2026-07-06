@@ -124,7 +124,7 @@
 						rows="2"
 						class="resize-none rounded border border-white/20 bg-white/5 px-3 py-2 text-white/70 placeholder-white/30 h-25"
 						bind:value={entryConsequenceDescr}
-						placeholder="If you so choose ... type down the excuse of why you falled short in your goal, read it out loud, and than write about it. Once completed, uncheck the excuse checkbox."
+						placeholder="Type down the excuse of why you falled short in your goal, read it out loud, and than write about it. Once completed, uncheck the excuse checkbox."
 					></textarea>
 				</div>
 			{/if}
