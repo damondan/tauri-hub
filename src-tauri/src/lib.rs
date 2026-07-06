@@ -363,6 +363,52 @@ async fn launch_app(
             return Err(format!("App working directory does not exist: {:?}", workdir));
         }
 
+        // First try to find and launch an AppImage inside the working directory.
+        let appimage_path = std::fs::read_dir(&workdir)
+            .map_err(|e| e.to_string())?
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .find(|path| {
+                path.is_file()
+                    && path
+                        .extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext == "AppImage")
+                        .unwrap_or(false)
+            });
+
+        if let Some(appimage) = appimage_path {
+            std::fs::write(
+                "/tmp/taurihub-launch-debug.log",
+                format!(
+                    "Launching AppImage\napp_id: {}\nname: {}\nworkdir: {:?}\nappimage: {:?}\nPATH: {}\n",
+                    app.id,
+                    app.name,
+                    workdir,
+                    appimage,
+                    external_command_path()
+                ),
+            )
+            .ok();
+
+            let result = command_with_clean_env(appimage.as_os_str())
+                .current_dir(&workdir)
+                .spawn();
+
+            match result {
+                Ok(_) => {
+                    app.status = AppStatus::Running;
+                    save_registry(&app_handle, &apps)?;
+                    return Ok(());
+                }
+                Err(e) => {
+                    app.status = AppStatus::Error;
+                    save_registry(&app_handle, &apps)?;
+                    return Err(format!("Failed to launch AppImage {:?}: {}", appimage, e));
+                }
+            }
+        }
+
         let parts = split_command_line(&app.executable);
         if parts.is_empty() {
             return Err("Executable is empty".to_string());

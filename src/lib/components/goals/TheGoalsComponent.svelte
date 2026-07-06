@@ -179,6 +179,14 @@
 		);
 	}
 
+	function triggerFailureCountHasExcuseInfoModal(): void {
+		openInfoModal(
+			"failureCount",
+			"Failure Count Updated",
+			"Your failure count limit has gone down.",
+		);
+	}
+
 	function triggerGoalFailedInfoModal(): void {
 		openInfoModal(
 			"failureCount",
@@ -214,8 +222,11 @@
 			failGoalAndLog(thread, goal);
 			return;
 		}
-
-		triggerFailureCountInfoModal();
+		if (!goal.hasExcuseOption) {
+			triggerFailureCountInfoModal();
+		} else {
+			triggerFailureCountHasExcuseInfoModal();
+		}
 	}
 
 	function handleGoalCompletedChange(
@@ -432,8 +443,8 @@
 			isSucceeded: false,
 			hasFailed: false,
 			isConsequenceActive: goal.hasExcuseOption
-	? getLastConsequenceStateBeforeDate(thread, goal, date)
-	: false,
+				? getLastConsequenceStateBeforeDate(thread, goal, date)
+				: false,
 			createdAt: date.toISOString().slice(0, 10),
 			updatedAt: new Date().toISOString(),
 		};
@@ -1430,7 +1441,7 @@
 									{goal.isExpanded ? "▼" : "▷"}
 								</button>
 
-								<div class="flex min-w-64 flex-1 flex-col">
+								<div class="flex min-w-[10%] flex-1 flex-col">
 									<label
 										class="invisible mb-1 text-xs text-white/40"
 										>Title</label
@@ -1451,7 +1462,7 @@
 									/>
 								</div>
 
-								<div class="flex min-w-[50%] flex-1 flex-col">
+								<div class="flex min-w-[30%] flex-1 flex-col">
 									<label
 										class="invisible mb-1 text-xs text-white/40"
 										>Description</label
