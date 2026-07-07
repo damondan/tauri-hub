@@ -346,7 +346,7 @@
       <textarea
        class="w-full flex-1 rounded-2xl px-8 pb-5 pt-6 ml-3 mr-3 bg-indigo-400/20 text-indigo-200/50 text-4xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgba(165,180,252,0.35)]
-        {index === 0 ? 'border-l-4 border-l-indigo-800 shadow-[0_0_10px_rgba(55,48,163,1)]': ""}"
+        {index === 0 ? 'border-l-9 border-l-indigo-500 shadow-[0_0_15px_rgba(55,48,163,1)]': ""}"
         placeholder="Principles ... Questions ... Dialog ... Vocabulary ..."
         rows="1"
         value={levelOne.text || ""}
