@@ -141,3 +141,15 @@ export function deleteTodoRow(date: string, itemId: string, rowId: string): void
 	});
 }
 
+export function getFirstTodoIdFromTodosByDate(
+	todosByDate: Record<string, TodoItem[]>,
+): string | null {
+	for (const items of Object.values(todosByDate)) {
+		if (items.length > 0) {
+			return items[0].id;
+		}
+	}
+
+	return null;
+}
+

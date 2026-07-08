@@ -14,6 +14,7 @@
     todoField2,
     todoExpandedState,
     updateActiveTodo,
+    getFirstTodoIdFromTodosByDate,
   } from "$lib/stores/todo";
   import { sendTodoToProjects } from "$lib/stores/projects";
   import {
@@ -26,6 +27,10 @@
   // --- Reactive State ---
   let draggingId = $state<string | null>(null);
   let activeTodo = $state(false);
+
+    const firstTodoId = $derived(
+	getFirstTodoIdFromTodosByDate($todosByDate),
+);
 
   // --- Drag and Drop Handlers ---
   function onDragStart(e: DragEvent, id: string) {
@@ -166,7 +171,7 @@
 <!--items is TodoItem[]-->
 {#each Object.entries($todosByDate) as [date, items] (date)}
   {#if items.length > 0}
-    <div class="w-full flex flex-col gap-2 py-2 px-6 border-b border-white/10">
+    <div class="w-full flex flex-col gap-2 py-2 px-6 border-white/10">
     <!--item is rows:TodoRow[]-->
       {#each items as item,index (item.id)}
         <div
@@ -183,7 +188,8 @@
           class="group relative flex flex-col bg-white/7.5 rounded-xl border-2 transition-all duration-200 mb-2
            {draggingId === item.id
             ? 'opacity-20 border-blue-500'
-            : index === 0 ? 'border-l-4 border-l-white shadow-[0_0_10px_rgba(147,197,253,1)]' : 
+            : item.id === firstTodoId
+  ? 'border-l-4 border-l-white shadow-[0_0_10px_rgba(147,197,253,1)]' : 
             'border-transparent hover:border-white/20'}"
         >
           <div class="ml-10 mr-10 flex items-center gap-4 p-4">
