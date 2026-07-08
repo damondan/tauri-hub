@@ -84,6 +84,7 @@ export interface Goal {
 	hasExcuseOption?: boolean;
 
 	isCompleted?: boolean;
+	isLogged?: boolean;
 	isSucceeded?: boolean;
 	hasFailed?: boolean;
 	lastGoalEntrySummary?: string;

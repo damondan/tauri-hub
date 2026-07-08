@@ -167,7 +167,7 @@
 		openInfoModal(
 			"isCompleted",
 			"Goal Completed",
-			"Congratulations ! This goal has been completed. It will be logged in the Log component.",
+			"This goal has been completed. It will be logged in the Log component.",
 		);
 	}
 
@@ -247,6 +247,8 @@
 		);
 
 		if (!goal) return;
+
+		goal.isLogged = true;
 
 		if (isCompleted) {
 			pendingCompletedGoalData = {
@@ -483,6 +485,7 @@
 
 						return {
 							...goal,
+							isCompleted: true,
 						};
 					}
 
@@ -1795,7 +1798,7 @@
 									>
 										<input
 											type="checkbox"
-											checked={goal.isCompleted}
+											checked={goal.isLogged ?? false}
 											onchange={(e) =>
 												handleGoalCompletedChange(
 													thread.threadId,
