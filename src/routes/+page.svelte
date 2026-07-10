@@ -87,9 +87,10 @@
 			alert("Please fill in all required fields");
 			return;
 		}
-
+console.log(`newApp is ${newApp.executable}`);
+console.log(`newApp is ${newApp.path}`);
 		newApp.id = Date.now().toString(); // Simple ID generation
-
+console.log(`newApp id is ${newApp.id}`);
 		try {
 			const appToAdd = {
 				...newApp,
@@ -127,6 +128,7 @@
 	}
 
 	async function removeApp(appId: string) {
+		console.log(`IN remove app an app id is ${appId}`);
 		try {
 			await invoke("remove_app", { appId });
 			hideContextMenu();
@@ -567,7 +569,8 @@
 						</button>
 						<button
 							onclick={() => (showAddDialog = true)}
-							class="bg-black/20 border-white/20 border hover:border-white {borderNTextNBg.lightText} px-6 rounded-lg font-semibold transition-colors flex justify-center items-center gap-2 h-[62px] w-[150px]"
+							class="bg-black/20 border-white/20 border hover:border-white {borderNTextNBg.lightText} px-6 rounded-lg font-semibold 
+							transition-colors flex justify-center items-center gap-2 h-[62px] w-[150px]"
 						>
 							➕ AddApps
 						</button>
@@ -893,7 +896,22 @@
 			</div>
 		</div>
 
-		<!-- Add App Dialog -->
+		<!-- Context Menu -->
+		{#if contextMenu.show}
+			<div
+				class="fixed bg-white rounded-lg shadow-xl py-2 z-50 min-w-[150px]"
+				style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
+			>
+				<button
+					onclick={() => removeApp(contextMenu.appId)}
+					class="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 font-medium transition-colors flex items-center gap-2"
+				>
+					🗑️ Remove App
+				</button>
+			</div>
+		{/if}
+	{/if}
+	<!-- Add App Dialog -->
 		{#if showAddDialog}
 			<div
 				class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -985,20 +1003,4 @@
 				</div>
 			</div>
 		{/if}
-
-		<!-- Context Menu -->
-		{#if contextMenu.show}
-			<div
-				class="fixed bg-white rounded-lg shadow-xl py-2 z-50 min-w-[150px]"
-				style="left: {contextMenu.x}px; top: {contextMenu.y}px;"
-			>
-				<button
-					onclick={() => removeApp(contextMenu.appId)}
-					class="w-full px-4 py-2 text-left hover:bg-red-50 text-red-600 font-medium transition-colors flex items-center gap-2"
-				>
-					🗑️ Remove App
-				</button>
-			</div>
-		{/if}
-	{/if}
 </div>
