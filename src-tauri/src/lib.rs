@@ -198,7 +198,6 @@ fn save_registry(
     fs::write(&registry_path, content).map_err(|e| format!("Failed to write registry: {}", e))
 }
 
-
 fn home_dir() -> Result<String, String> {
     std::env::var("HOME").map_err(|e| format!("Failed to get HOME: {}", e))
 }
@@ -360,40 +359,46 @@ async fn launch_app(
         if !workdir.exists() {
             app.status = AppStatus::Error;
             save_registry(&app_handle, &apps)?;
-            return Err(format!("App working directory does not exist: {:?}", workdir));
+            return Err(format!(
+                "App working directory does not exist: {:?}",
+                workdir
+            ));
         }
 
-      let executable_path = workdir.join(&app.executable);
+        let executable_path = workdir.join(&app.executable);
 
-if executable_path
-    .extension()
-    .and_then(|ext| ext.to_str())
-    .map(|ext| ext == "AppImage")
-    .unwrap_or(false)
-{
-    if !executable_path.exists() {
-        app.status = AppStatus::Error;
-        save_registry(&app_handle, &apps)?;
-        return Err(format!("AppImage does not exist: {:?}", executable_path));
-    }
+        if executable_path
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| ext == "AppImage")
+            .unwrap_or(false)
+        {
+            if !executable_path.exists() {
+                app.status = AppStatus::Error;
+                save_registry(&app_handle, &apps)?;
+                return Err(format!("AppImage does not exist: {:?}", executable_path));
+            }
 
-    let result = command_with_clean_env(executable_path.as_os_str())
-        .current_dir(&workdir)
-        .spawn();
+            let result = command_with_clean_env(executable_path.as_os_str())
+                .current_dir(&workdir)
+                .spawn();
 
-    match result {
-        Ok(_) => {
-            app.status = AppStatus::Running;
-            save_registry(&app_handle, &apps)?;
-            return Ok(());
+            match result {
+                Ok(_) => {
+                    app.status = AppStatus::Running;
+                    save_registry(&app_handle, &apps)?;
+                    return Ok(());
+                }
+                Err(e) => {
+                    app.status = AppStatus::Error;
+                    save_registry(&app_handle, &apps)?;
+                    return Err(format!(
+                        "Failed to launch AppImage {:?}: {}",
+                        executable_path, e
+                    ));
+                }
+            }
         }
-        Err(e) => {
-            app.status = AppStatus::Error;
-            save_registry(&app_handle, &apps)?;
-            return Err(format!("Failed to launch AppImage {:?}: {}", executable_path, e));
-        }
-    }
-}
 
         let parts = split_command_line(&app.executable);
         if parts.is_empty() {
@@ -689,9 +694,7 @@ async fn stop_recording_and_transcribe(
             "--output_format",
             "txt",
             "--output_dir",
-            output_dir
-                .to_str()
-                .ok_or("Invalid temp directory path")?,
+            output_dir.to_str().ok_or("Invalid temp directory path")?,
         ])
         .env_remove("PYTHONHOME")
         .env_remove("PYTHONPATH")
@@ -845,8 +848,8 @@ async fn toggle_ossec(start: bool) -> Result<(), String> {
 async fn open_file_in_terminal(file_path: String) -> Result<(), String> {
     // Open file in nano using the user's default terminal emulator
     // Use pkexec for files that require elevated permissions
-    let needs_sudo = file_path.starts_with("/var/ossec/")
-        || file_path == "/var/ossec/etc/ossec.conf";
+    let needs_sudo =
+        file_path.starts_with("/var/ossec/") || file_path == "/var/ossec/etc/ossec.conf";
 
     if needs_sudo {
         // For privileged files, use pkexec to run the nano command
@@ -1288,10 +1291,10 @@ async fn toggle_ollama(start: bool) -> Result<(), String> {
         Err(format!("Failed to {} Ollama: {}", action, stderr))
     }
 }
-//Warp - keeping for using it for something else. 
+//Warp - keeping for using it for something else.
 // #[tauri::command]
 // async fn check_warp_status() -> Result<bool, String> {
- 
+
 //     let output = command_with_clean_env("/usr/bin/pgrep")
 //         .arg("-f")
 //         .arg("Warp")
@@ -1680,8 +1683,8 @@ pub fn run() {
             toggle_lmstudio,
             check_ollama_status,
             toggle_ollama,
-          //  check_warp_status,
-           // toggle_warp,
+            //  check_warp_status,
+            // toggle_warp,
             check_docker_enabled,
             check_docker_active,
             toggle_docker_enable,
