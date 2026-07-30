@@ -98,14 +98,25 @@
 		thread: GoalThread;
 		goal: Goal;
 	} | null>(null);
+	let pendingFailureGoalData = $state<{
+		thread: GoalThread;
+		goal: Goal;
+	} | null>(null);
 
 	let showGoalCompletionSummaryModal = $state(false);
+	let showGoalFailureSummaryModal = $state(false);
 	let goalCompletionSummaryText = $state("");
 
 	function closeGoalCompletionSummaryModal(): void {
 		showGoalCompletionSummaryModal = false;
 		goalCompletionSummaryText = "";
 		pendingCompletedGoalData = null;
+	}
+
+	function closeGoalFailureSummaryModal(): void {
+		showGoalFailureSummaryModal = false;
+		goalCompletionSummaryText = "";
+		pendingFailureGoalData = null;
 	}
 
 	function completeGoalWithoutSummary(): void {
@@ -136,6 +147,31 @@
 
 		completeGoalAndLog(thread, completedGoal);
 	}
+
+	function failureGoalWithSummary(): void {
+		if (!pendingFailureGoalData) return;
+
+		const { thread, goal } = pendingFailureGoalData;
+		goal.lastGoalEntrySummary = goalCompletionSummaryText;
+
+		showGoalFailureSummaryModal = false;
+		goalCompletionSummaryText = "";
+		pendingFailureGoalData = null;
+
+	failGoalAndLog(thread, goal);
+	}
+
+	function failureGoalWithoutSummary(): void {
+	if (!pendingFailureGoalData) return;
+
+	const { thread, goal } = pendingFailureGoalData;
+
+	showGoalFailureSummaryModal = false;
+	goalCompletionSummaryText = "";
+	pendingFailureGoalData = null;
+
+	failGoalAndLog(thread, goal);
+}
 
 	function openInfoModal(
 		reason: "dateEnd" | "isCompleted" | "failureCount",
@@ -214,14 +250,16 @@
 
 		return value < lowLimit;
 	}
-
+	//Note
 	function handleFailureCountModal(
 		thread: GoalThread,
 		goal: Goal,
 		nextFailureCount: number,
 	): void {
 		if (nextFailureCount <= 0) {
-			failGoalAndLog(thread, goal);
+			//**set the lastGoalEntrySummary here
+			pendingFailureGoalData = { thread, goal };
+			showGoalFailureSummaryModal = true;
 			return;
 		}
 		if (!goal.hasExcuseOption) {
@@ -1765,29 +1803,6 @@
 									/>
 								</div>
 
-								<!-- <div
-									class="flex min-w-64 max-w-[25%] flex-1 flex-col"
-								>
-									<label class="mb-1 text-xs text-white/40"
-										>Consequence</label
-									>
-									<input
-										type="text"
-										class="rounded border border-white/20 bg-white/5 px-3 py-2 text-white placeholder-white/40"
-										placeholder="Add a consequence ?"
-										value={goal.consequenceDescription}
-										title={goal.consequenceDescription}
-										oninput={(e) =>
-											updateGoalField(
-												thread.threadId,
-												goal.goalId,
-												"consequenceDescription",
-												(e.target as HTMLInputElement)
-													.value,
-											)}
-									/>
-								</div> -->
-
 								<div class="flex flex-col">
 									<label
 										class="invisible mb-1 text-xs text-white/40"
@@ -2333,6 +2348,7 @@
 		onCancel={closeGoalEntryEditor}
 	/>
 {/if}
+
 {#if showGoalCompletionSummaryModal}
 	<div
 		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
@@ -2376,6 +2392,51 @@
 		</div>
 	</div>
 {/if}
+
+{#if showGoalFailureSummaryModal}
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+	>
+		<div
+			class="w-full max-w-lg rounded-xl border border-white/20 bg-zinc-900 p-5 text-white shadow-xl"
+		>
+			<div class="mb-3 text-xl font-semibold">
+				Do you want to provide a summary for the falling short of this
+				goal?
+			</div>
+
+			<textarea
+				class="mb-4 min-h-32 w-full rounded border border-white/20 bg-black/40 p-3 text-white placeholder-white/40"
+				placeholder="Completion summary..."
+				bind:value={goalCompletionSummaryText}
+			></textarea>
+
+			<div class="flex justify-end gap-3">
+				<button
+					class="rounded bg-white/10 px-4 py-2 text-white/70 hover:bg-white/20 hover:text-white"
+					onclick={failureGoalWithoutSummary}
+				>
+					No
+				</button>
+
+				<button
+					class="rounded bg-green-600/70 px-4 py-2 text-white hover:bg-green-600"
+					onclick={failureGoalWithSummary}
+				>
+					Yes
+				</button>
+
+				<button
+					class="rounded bg-red-600/50 px-4 py-2 text-white hover:bg-red-600"
+					onclick={closeGoalFailureSummaryModal}
+				>
+					Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
 {#if showInfoModal}
 	<InfoModal
 		title={infoModalTitle}

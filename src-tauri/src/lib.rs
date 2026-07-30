@@ -359,25 +359,103 @@ async fn launch_app(
         if !workdir.exists() {
             app.status = AppStatus::Error;
             save_registry(&app_handle, &apps)?;
+
             return Err(format!(
                 "App working directory does not exist: {:?}",
                 workdir
             ));
         }
 
-        let executable_path = workdir.join(&app.executable);
+        /*
+         * CHANGED:
+         *
+         * Build the executable path using the executable registered
+         * for this specific application.
+         *
+         * Previously, the code searched the working directory and
+         * launched the first AppImage it found. That caused every
+         * registered app to launch bravesearchapi.AppImage.
+         */
+        let executable_path = {
+            let registered_executable = Path::new(&app.executable);
 
-        if executable_path
+            // Support either:
+            // "./tauripdfdocsearch.AppImage"
+            // or an absolute path such as:
+            // "/home/damond/Prog/Apps/appimages/tauripdfdocsearch.AppImage"
+            if registered_executable.is_absolute() {
+                registered_executable.to_path_buf()
+            } else {
+                workdir.join(registered_executable)
+            }
+        };
+
+        /*
+         * CHANGED:
+         *
+         * Determine whether the specifically registered executable
+         * is an AppImage. The comparison is case-insensitive.
+         */
+        let is_appimage = executable_path
             .extension()
             .and_then(|ext| ext.to_str())
-            .map(|ext| ext == "AppImage")
-            .unwrap_or(false)
-        {
+            .map(|ext| ext.eq_ignore_ascii_case("AppImage"))
+            .unwrap_or(false);
+
+        /*
+         * CHANGED:
+         *
+         * Launch only the AppImage named in app.executable.
+         * Do not scan the directory for another AppImage.
+         */
+        if is_appimage {
             if !executable_path.exists() {
                 app.status = AppStatus::Error;
                 save_registry(&app_handle, &apps)?;
-                return Err(format!("AppImage does not exist: {:?}", executable_path));
+
+                return Err(format!(
+                    "Registered AppImage does not exist: {:?}",
+                    executable_path
+                ));
             }
+
+            if !executable_path.is_file() {
+                app.status = AppStatus::Error;
+                save_registry(&app_handle, &apps)?;
+
+                return Err(format!(
+                    "Registered AppImage path is not a file: {:?}",
+                    executable_path
+                ));
+            }
+
+            /*
+             * CHANGED:
+             *
+             * Add AppImage-specific logging so the exact registered
+             * executable can be verified.
+             */
+            std::fs::write(
+                "/tmp/taurihub-launch-debug.log",
+                format!(
+                    "Launching registered AppImage\n\
+                     app_id: {}\n\
+                     name: {}\n\
+                     registered_path: {:?}\n\
+                     registered_executable: {:?}\n\
+                     workdir: {:?}\n\
+                     executable_path: {:?}\n\
+                     PATH: {}\n",
+                    app.id,
+                    app.name,
+                    app.path,
+                    app.executable,
+                    workdir,
+                    executable_path,
+                    external_command_path()
+                ),
+            )
+            .ok();
 
             let result = command_with_clean_env(executable_path.as_os_str())
                 .current_dir(&workdir)
@@ -389,9 +467,11 @@ async fn launch_app(
                     save_registry(&app_handle, &apps)?;
                     return Ok(());
                 }
+
                 Err(e) => {
                     app.status = AppStatus::Error;
                     save_registry(&app_handle, &apps)?;
+
                     return Err(format!(
                         "Failed to launch AppImage {:?}: {}",
                         executable_path, e
@@ -400,7 +480,13 @@ async fn launch_app(
             }
         }
 
+        // Existing command-based launching logic continues here.
+        // This handles commands such as:
+        // pnpm
+        // cargo
+        // pnpm run tauri:dev
         let parts = split_command_line(&app.executable);
+
         if parts.is_empty() {
             return Err("Executable is empty".to_string());
         }
@@ -408,22 +494,26 @@ async fn launch_app(
         let program = parts[0].clone();
         let extra_args = &parts[1..];
         let program_path = resolve_program_path(&program);
+
         let program_name = Path::new(&program)
             .file_name()
-            .and_then(|n| n.to_str())
+            .and_then(|name| name.to_str())
             .unwrap_or(&program);
 
         let mut cmd = command_with_clean_env(program_path.as_os_str());
 
         if extra_args.is_empty() {
-            // Only apply special-case defaults when no explicit args are provided.
+            // Only apply special-case defaults when no explicit
+            // command arguments were registered.
             match program_name {
                 "pnpm" => {
                     cmd.arg("run").arg("tauri:dev");
                 }
+
                 "cargo" => {
                     cmd.arg("tauri").arg("dev");
                 }
+
                 _ => {}
             }
         } else {
@@ -435,9 +525,18 @@ async fn launch_app(
         std::fs::write(
             "/tmp/taurihub-launch-debug.log",
             format!(
-                "Launching registered app\napp_id: {}\nname: {}\nworkdir: {:?}\nprogram: {}\nprogram_path: {:?}\nargs: {:?}\nPATH: {}\n",
+                "Launching registered app\n\
+                 app_id: {}\n\
+                 name: {}\n\
+                 registered_executable: {}\n\
+                 workdir: {:?}\n\
+                 program: {}\n\
+                 program_path: {:?}\n\
+                 args: {:?}\n\
+                 PATH: {}\n",
                 app.id,
                 app.name,
+                app.executable,
                 workdir,
                 program,
                 program_path,
@@ -455,9 +554,11 @@ async fn launch_app(
                 save_registry(&app_handle, &apps)?;
                 Ok(())
             }
+
             Err(e) => {
                 app.status = AppStatus::Error;
                 save_registry(&app_handle, &apps)?;
+
                 Err(format!(
                     "Failed to launch app using {:?} from {:?}: {}",
                     program_path, workdir, e
