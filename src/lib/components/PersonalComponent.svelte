@@ -230,7 +230,7 @@
 </div>
 <div
   class="{appPersState.showTopPers
-    ? 'bg-white/10 rounded-xl mb-2 ml-2'
+    ? 'bg-black/10 rounded-xl mb-2 ml-2'
     : borderNTextNBg.collapseRows} "
 >
   <PersHighlights />
