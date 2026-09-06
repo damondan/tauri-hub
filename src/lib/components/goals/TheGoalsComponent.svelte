@@ -40,6 +40,13 @@
 	let todayDate: Date = $state(new Date());
 	let missingHighLimitWarnings = $state<Record<string, boolean>>({});
 
+	let selectedThread = $derived(
+		$goalData.find(
+			(thread) =>
+				thread.threadId === selectedGoalEntryData?.thread.threadId,
+		),
+	);
+
 	//Drag and Drop
 	let draggingId = $state<string | null>(null);
 	function onDragStart(e: DragEvent, goalId: string) {
@@ -159,20 +166,20 @@
 		goalCompletionSummaryText = "";
 		pendingFailureGoalData = null;
 
-	failGoalAndLog(thread, goal);
+		failGoalAndLog(thread, goal);
 	}
 
 	function failureGoalWithoutSummary(): void {
-	if (!pendingFailureGoalData) return;
+		if (!pendingFailureGoalData) return;
 
-	const { thread, goal } = pendingFailureGoalData;
+		const { thread, goal } = pendingFailureGoalData;
 
-	showGoalFailureSummaryModal = false;
-	goalCompletionSummaryText = "";
-	pendingFailureGoalData = null;
+		showGoalFailureSummaryModal = false;
+		goalCompletionSummaryText = "";
+		pendingFailureGoalData = null;
 
-	failGoalAndLog(thread, goal);
-}
+		failGoalAndLog(thread, goal);
+	}
 
 	function openInfoModal(
 		reason: "dateEnd" | "isCompleted" | "failureCount",
@@ -984,8 +991,8 @@
 		selectedGoalEntryData = null;
 	}
 
-	function removeExcuse(excuseid: string, threadid: string){
-		removeExcuseFromGoalThread(excuseid,threadid);
+	function removeExcuse(excuseId: string, threadId: string) {
+		removeExcuseFromGoalThread(threadId, excuseId);
 	}
 
 	function handleEntryDone(
@@ -1039,8 +1046,6 @@
 			closeGoalEntryEditor();
 			return;
 		}
-
-
 
 		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
 			value: recordedValue,
@@ -2346,7 +2351,7 @@
 
 {#if selectedGoalEntryData}
 	<GoalEntryEditor
-		thread={selectedGoalEntryData.thread}
+		thread={selectedThread ?? selectedGoalEntryData.thread}
 		goal={selectedGoalEntryData.goal}
 		entry={selectedGoalEntryData.entry}
 		onDone={handleEntryDone}
