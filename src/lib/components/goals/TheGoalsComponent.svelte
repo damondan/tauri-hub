@@ -31,6 +31,7 @@
 		type Goal,
 		type GoalEntry,
 		updateRealGoalEntry,
+		removeExcuseFromGoalThread,
 	} from "$lib/stores/thegoals";
 
 	let displayYear: number = $state(0);
@@ -983,6 +984,10 @@
 		selectedGoalEntryData = null;
 	}
 
+	function removeExcuse(excuseid: string, threadid: string){
+		removeExcuseFromGoalThread(excuseid,threadid);
+	}
+
 	function handleEntryDone(
 		entry: GoalEntry,
 		value: number,
@@ -1034,6 +1039,8 @@
 			closeGoalEntryEditor();
 			return;
 		}
+
+
 
 		updateRealGoalEntry(thread.threadId, goal.goalId, entry.entryId, {
 			value: recordedValue,
@@ -2346,6 +2353,7 @@
 		onNotDone={handleEntryNotDone}
 		onUpdate={handleEntryUpdate}
 		onCancel={closeGoalEntryEditor}
+		onRemoveExcuse={removeExcuse}
 	/>
 {/if}
 

@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+  import { writable, get } from 'svelte/store';
 
 export type GoalMeasurementType = 'time' | 'count' | 'none';
 
@@ -13,6 +13,12 @@ export type GoalEntryStatus =
 	| 'projected'
 	| 'missed';
 
+export interface Excuse {
+	excuseId: string;
+	excuse: string;
+	excuseCount: number;
+}
+
 export interface GoalEntry {
 	entryId: string;
 	goalId: string;
@@ -26,6 +32,8 @@ export interface GoalEntry {
 	consequenceDescription?: string;
 	isConsequenceActive?: boolean;
 	isConsequenceCompleted?: boolean;
+
+	excuseId?: string;
 
 	isCompleted?: boolean;
 	isSucceeded?: boolean;
@@ -107,6 +115,7 @@ export interface GoalThread {
 	activeGoalId?: string;
 
 	goals: Goal[];
+	excuses: Excuse[];
 
 	goalCalendar: Record<number, GoalYear>;
 }
@@ -185,6 +194,7 @@ export function createEmptyGoalThread(): GoalThread {
 		isInitialized: false,
 
 		goals: [],
+		excuses: [],
 
 		goalCalendar: {}
 	};
@@ -428,6 +438,34 @@ export function updateRealGoalEntry(
 		return threads.map((thread) => {
 			if (thread.threadId !== threadId) return thread;
 
+			let updatedExcuses = [...(thread.excuses ?? [])];
+
+			// If a new excuse description was provided,
+			// add it to this GoalThread's shared excuse list.
+			if (updates.consequenceDescription?.trim()) {
+				const existingExcuse = updatedExcuses.find(
+					(excuse) =>
+						excuse.excuse.trim().toLowerCase() ===
+						updates.consequenceDescription!.trim().toLowerCase(),
+				);
+
+				if (!existingExcuse) {
+					const newExcuse: Excuse = {
+						excuseId: crypto.randomUUID(),
+						excuse: updates.consequenceDescription.trim(),
+						excuseCount: 0,
+					};
+
+					updatedExcuses.push(newExcuse);
+
+					// Also connect this GoalEntry to the new excuse.
+					updates.excuseId = newExcuse.excuseId;
+				} else {
+					// Reuse the existing excuse instead of creating a duplicate.
+					updates.excuseId = existingExcuse.excuseId;
+				}
+			}
+
 			const updatedCalendar = { ...thread.goalCalendar };
 
 			for (const yearKey of Object.keys(updatedCalendar)) {
@@ -455,6 +493,7 @@ export function updateRealGoalEntry(
 
 			return {
 				...thread,
+				excuses: updatedExcuses,
 				goalCalendar: updatedCalendar,
 			};
 		});
@@ -638,4 +677,47 @@ export function updateFutureConsequenceState(
 			};
 		});
 	});
+}
+
+export function removeExcuseFromGoalThread(
+	threadId: string,
+	excuseId: string,
+): void {
+	goalData.update((threads) => {
+		return threads.map((thread) => {
+			if (thread.threadId !== threadId) {
+				return thread;
+			}
+
+			return {
+				...thread,
+				excuses: thread.excuses.filter(
+					(excuse) => excuse.excuseId !== excuseId
+				),
+			};
+		});
+	});
+}
+
+export function incrementExcuseCount(
+	threadId: string,
+	excuseId: string
+): void {
+	goalData.update((threads) =>
+		threads.map((thread) => {
+			if (thread.threadId !== threadId) return thread;
+
+			return {
+				...thread,
+				excuses: thread.excuses.map((excuse) =>
+					excuse.excuseId === excuseId
+						? {
+								...excuse,
+								excuseCount: excuse.excuseCount + 1,
+							}
+						: excuse
+				),
+			};
+		})
+	);
 }

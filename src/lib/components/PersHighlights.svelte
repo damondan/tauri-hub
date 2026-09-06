@@ -36,6 +36,15 @@
     etext: string;
   } | null>(null);
 
+  let randomPickTop: number = $state(0);
+  let randomPickMid: number = $state(0);
+
+  $effect(() => {
+    let getLengthTop:number = Object.keys($persGoalHighlights).length;
+    randomPickTop = Math.floor(Math.random() * (getLengthTop + 1));
+
+  } );
+
   onMount(() => {});
 
   function toggleExpand(dayId: string) {

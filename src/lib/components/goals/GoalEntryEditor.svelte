@@ -1,6 +1,9 @@
 <script lang="ts">
 	import type { Goal, GoalEntry, GoalThread } from "$lib/stores/thegoals";
+	import { incrementExcuseCount } from "$lib/stores/thegoals";
+	import { onMount } from "svelte";
 
+	//Each GoalEntry has a GoalId
 	interface Props {
 		thread: GoalThread;
 		goal: Goal;
@@ -17,7 +20,7 @@
 			entry: GoalEntry,
 			description: string,
 			consequenceCompleted: boolean,
-			entryConsequenceDescr: string,
+			entryConsequenceDescr: string, //entryConsequenceDescr is the excuse
 			progressMarker: boolean,
 		) => void;
 		onUpdate: (
@@ -29,10 +32,19 @@
 			progressMarker: boolean,
 		) => void;
 		onCancel: () => void;
+		onRemoveExcuse: (excuseId: string, threadId: string) => void;
 	}
 
-	let { thread, goal, entry, onDone, onNotDone, onUpdate, onCancel }: Props =
-		$props();
+	let {
+		thread,
+		goal,
+		entry,
+		onDone,
+		onNotDone,
+		onUpdate,
+		onCancel,
+		onRemoveExcuse,
+	}: Props = $props();
 
 	let entryValue = $state<number>(Number(entry.value ?? 0));
 	let entryDescription = $state<string>(entry.description ?? "");
@@ -48,6 +60,8 @@
 	const isCountGoal = $derived(thread.measurementType === "count");
 	const isTimeGoal = $derived(thread.measurementType === "time");
 
+	let excuseCounts = $state<Record<string, number>>({});
+
 	const question = $derived.by(() => {
 		if (isCountGoal) {
 			return `How many ${goal.title || "items"} did you do today?`;
@@ -59,6 +73,7 @@
 
 		return `Did you fulfill your goal ${goal.title || "for today"}?`;
 	});
+
 </script>
 
 <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
@@ -116,6 +131,38 @@
 					disabled={isNoneGoal}
 				/>
 			</div>
+			{#if isConsequenceActive && goal.hasExcuseOption && thread.excuses.length > 0}
+				<div class="flex flex-col gap-2">
+					{#each thread.excuses as excuse (excuse.excuseId)}
+						<div class="flex gap-2">
+							<button
+								onclick={() =>
+									incrementExcuseCount(
+										thread.threadId,
+										excuse.excuseId,
+									)}
+							>
+								▲
+							</button>
+
+							<p class="mr-2">
+								{excuse.excuseCount}
+							</p>
+							<span class="mr-auto">{excuse.excuse}</span>
+							<button
+								class="border w-4 h-6 text-xl mr-3 text-red-800 hover:text-red-600"
+								onclick={() =>
+									onRemoveExcuse(
+										excuse.excuseId,
+										thread.threadId,
+									)}
+							>
+								X
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
 			{#if isConsequenceActive && goal.hasExcuseOption}
 				<div class="flex flex-col">
 					<label class="mb-1 text-sm text-white/50"> Excuse ? </label>
