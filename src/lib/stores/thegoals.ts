@@ -453,7 +453,7 @@ export function updateRealGoalEntry(
 					const newExcuse: Excuse = {
 						excuseId: crypto.randomUUID(),
 						excuse: updates.consequenceDescription.trim(),
-						excuseCount: 0,
+						excuseCount: 1,
 					};
 
 					updatedExcuses.push(newExcuse);
