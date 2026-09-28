@@ -26,7 +26,8 @@
 
 	const tabs = [
 		{ path: "/", label: "Services" },
-		{ path: "/projects", label: "Logs" },
+		{ path: "/personal", label: "Pers" },
+		{ path: "/articulate", label: "Artic" },
 		{ path: "/thegoals", label: "Goals" },
 		{ path: "/finances", label: "Finance" },
 		{ path: "/professional", label: "Prof" },
@@ -36,8 +37,7 @@
 		{ path: "/notifications", label: "Notifs" },
 		{ path: "/workspace_a", label: "XSpaceA" },
 		{ path: "/workspace_b", label: "XSpaceB" },
-		{ path: "/personal", label: "Pers" },
-		{ path: "/articulate", label: "Artic" },
+		{ path: "/projects", label: "Logs" },
 	];
 
 	onMount(() => {
@@ -170,14 +170,10 @@
 			}}
 			ondblclick={() => setlock()}
 			class="px-6 py-3 rounded-t-lg font-semibold transition-all
-			{tab.label === 'Pers'
+			{tab.label === 'Logs'
 				? page.url.pathname === tab.path
 					? 'bg-white/20 hover:bg-white/10 hover:text-blue-600 text-white border-b-2 border-blue-500/50 ml-auto'
 					: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/30 border-b-2 border-blue-500/50 ml-auto'
-				: tab.label === 'Artic'
-					? page.url.pathname === tab.path
-						? 'bg-white/20 hover:bg-white/10 hover:text-blue-600 text-white border-b-2 border-blue-500/50'
-						: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/30 border-b-2 border-blue-500/50'
 					: page.url.pathname === tab.path
 						? 'bg-white/20 border-b-2 border-white text-white'
 						: tab.label === 'Goals' && hasPendingGoalToday

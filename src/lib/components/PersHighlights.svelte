@@ -2,7 +2,10 @@
   import { autoResize } from "$lib/utils/textareaResize";
   import { appPersState } from "$lib/stores/state.svelte";
   import { onMount } from "svelte";
-  import { persHighlightExpanded, persHighlightOrder } from "$lib/stores/persgoalplain";
+  import {
+    persHighlightExpanded,
+    persHighlightOrder,
+  } from "$lib/stores/persgoalplain";
   import {
     persGoalHighlights,
     addHighlightItem,
@@ -39,14 +42,6 @@
   let randomPickTop: number = $state(0);
   let randomPickMid: number = $state(0);
 
-  $effect(() => {
-    let getLengthTop:number = Object.keys($persGoalHighlights).length;
-    randomPickTop = Math.floor(Math.random() * (getLengthTop + 1));
-
-  } );
-
-  onMount(() => {});
-
   function toggleExpand(dayId: string) {
     const currentState = appPersState.expandedRowsTexArea[dayId] ?? false;
 
@@ -61,9 +56,8 @@
     );
   }
 
-  function toggleTopLevel( topId: string) {
-    $persHighlightExpanded.top[topId] =
-      !$persHighlightExpanded.top[topId];
+  function toggleTopLevel(topId: string) {
+    $persHighlightExpanded.top[topId] = !$persHighlightExpanded.top[topId];
   }
 
   function toggleMiddleLevel(middleId: string) {
@@ -351,11 +345,13 @@
       >
         {$persHighlightExpanded.top[id] ? "▼" : "▷"}
       </button>
-
+      <!-- TODO -->
       <textarea
-       class="w-full flex-1 rounded-2xl px-8 pb-5 pt-6 ml-3 mr-3 bg-indigo-400/20 text-indigo-200/50 text-4xl resize-none overflow-hidden
+        class="w-full flex-1 rounded-2xl px-8 pb-5 pt-6 ml-3 mr-3 bg-indigo-400/20 text-indigo-200/50 text-4xl resize-none overflow-hidden
 focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgba(165,180,252,0.35)]
-        {index === 0 ? 'border-l-9 border-l-indigo-500 shadow-[0_0_15px_rgba(55,48,163,1)]': ""}"
+        {index === 0
+            ? 'border-l-9 border-l-indigo-500 shadow-[0_0_15px_rgba(55,48,163,1)]'
+            : ''}"
         placeholder="Principles ... Questions ... Dialog ... Vocabulary ..."
         rows="1"
         value={levelOne.text || ""}
@@ -385,7 +381,7 @@ focus:outline-none focus:ring-1 focus:ring-indigo-300 focus:shadow-[0_0_20px_rgb
 
     <!-- Middle level: only render when this top row is expanded -->
     {#if $persHighlightExpanded.top[id] && levelOne.children && Object.keys(levelOne.children).length > 0}
-      {#each getOrderedLevelTwoEntries(id, levelOne.children ?? {}) as [childid, levelTwo] (childid)}
+      {#each getOrderedLevelTwoEntries(id, levelOne.children ?? {}) as [childid, levelTwo], index (childid)}
         <div
           class="px-6 flex flex-col w-full gap-3 mt-4
   {draggingMiddleId === childid ? 'opacity-40' : ''}"
