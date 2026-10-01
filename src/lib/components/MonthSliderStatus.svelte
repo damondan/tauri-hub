@@ -9,6 +9,7 @@
     import {
         calendarData,
         getFinanceMonthCal,
+        setCalMonthLimits,
     } from "$lib/stores/calendar";
 
     let { displayMonth, displayYear } = $props();
@@ -24,6 +25,22 @@
     const accounts: (keyof FinanceNames)[] = ["checking", "primaryCard", "secondaryCard"];
 
     function getMonthStatus() {
+        const presentMonth = getFinanceMonthCal(
+            $calendarData,
+            displayYear,
+            displayMonth,
+        );
+        // Commit the input drafts only when Status is clicked.
+        setCalMonthLimits(
+            displayYear,
+            displayMonth,
+            projectedEarnings,
+            projectedExpenses,
+            presentMonth?.monthBalLimit ?? "",
+            foodSpendLimit,
+            gasSpendLimit,
+            persSpendLimit,
+        );
         accountSpending = calculateMonthAccountSpending(
             $financeData,
             displayYear,
@@ -46,13 +63,11 @@
             displayMonth,
         );
 
-        if (!presentMonth) return;
-
-        projectedEarnings = presentMonth.projectedEarnings ?? "";
-        projectedExpenses = presentMonth.projectedExpenses ?? "";
-        gasSpendLimit = presentMonth.gasLimit ?? "";
-        foodSpendLimit = presentMonth.foodLimit ?? "";
-        persSpendLimit = presentMonth.otherLimit ?? "";
+        projectedEarnings = presentMonth?.projectedEarnings ?? "";
+        projectedExpenses = presentMonth?.projectedExpenses ?? "";
+        gasSpendLimit = presentMonth?.gasLimit ?? "";
+        foodSpendLimit = presentMonth?.foodLimit ?? "";
+        persSpendLimit = presentMonth?.otherLimit ?? "";
     });
 </script>
 
