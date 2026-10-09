@@ -2304,6 +2304,7 @@
 												entry={node.entry}
 												xPercent={node.xPercent}
 												yPercent={node.yPercent}
+												hoverWidthPercent={100 / Math.max(dayNumbers.length - 1, 1)}
 												color={node.color}
 												isPending={node.isPending}
 												onOpen={(entry) => {
