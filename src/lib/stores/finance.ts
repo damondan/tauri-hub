@@ -87,6 +87,9 @@ export function calculateMonthAccountSpending(
     for (const week of month?.weeks ?? []) {
         for (const day of week.days) {
             for (const entry of day.entries) {
+                // Sync entries do not contribute to checking spending.
+                if (entry.isHB && /!sync/i.test(entry.description)) continue;
+
                 // Checking spending uses the - field; card spending uses the + field.
                 if (entry.isHB) totals.checking += Math.abs(parseFloat(entry.subAmount) || 0);
                 else if (entry.isDisc) totals.primaryCard += parseFloat(entry.addAmount) || 0;
