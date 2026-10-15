@@ -1,7 +1,6 @@
 <!-- src/lib/components/FinanceComponent.svelte -->
 <script lang="ts">
   import { onMount } from "svelte";
-  import { get } from "svelte/store";
   import { getMonthName } from "$lib/stores/general";
   import FinanceCalendar from "$lib/components/FinanceCalendar.svelte";
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
@@ -15,7 +14,6 @@
     updateFinanceEntryCheckbox,
     updateFinanceMonthAmount,
     calculateYearTotal,
-    calculateMonthTotal,
     calculateMonthHBBalance,
     calculateWeekTotal,
     formatCurrency,
@@ -442,7 +440,9 @@
                               <label class="text-white text-xl w-4">+</label>
                               <input
                                 type="text"
-                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-34"
+                                class="bg-white/10 border rounded px-2 py-1 text-white text-xl w-34
+                                {entry.isHB ? 'border-2 border-red-600': entry.isDisc ? 'border-2 border-green-500': entry.isAmerX ? 
+                                'border-2 border-blue-500':"border-white/20"}"
                                 placeholder="0"
                                 value={entry.addAmount}
                                 oninput={(e) =>
@@ -463,7 +463,9 @@
                               >
                               <input
                                 type="text"
-                                class="bg-white/10 border border-white/20 rounded px-2 py-1 text-white text-xl w-34"
+                                class="bg-white/10 border rounded px-2 py-1 text-white text-xl w-34
+                                {entry.isHB ? 'border-2 border-red-500': entry.isDisc ? 'border-2 border-green-500': entry.isAmerX ? 
+                                'border-2 border-blue-500':"border-white/20"}"
                                 placeholder="0"
                                 value={entry.subAmount}
                                 oninput={(e) =>
@@ -483,13 +485,13 @@
                                 <!-- Payment method group -->
                                 <div class="flex items-center gap-2">
                                   <label
-                                    class="text-white text-sm flex items-center gap-1"
+                                    class="text-white text-lg flex items-center gap-1"
                                   >
                                     {$financeNames.checking}
                                     <input
                                       type="radio"
                                       name="card-{entry.id}"
-                                      class="w-3 h-3"
+                                      class="w-5 h-5"
                                       checked={entry.isHB || false}
                                       onchange={() =>
                                         handleRadioChange(
@@ -504,13 +506,13 @@
                                   </label>
                                   <label
                                     for="Primary Credit Card Radio"
-                                    class="text-white text-sm flex items-center gap-1"
+                                    class="text-white text-lg flex items-center gap-1"
                                   >
                                     {$financeNames.primaryCard}
                                     <input
                                       type="radio"
                                       name="card-{entry.id}"
-                                      class="w-3 h-3"
+                                      class="w-5 h-5"
                                       checked={entry.isDisc || false}
                                       onchange={() =>
                                         handleRadioChange(
@@ -525,13 +527,13 @@
                                   </label>
                                   <label
                                     for="Secondary Credit Card Radio"
-                                    class="text-white text-sm flex items-center gap-1"
+                                    class="text-white text-lg flex items-center gap-1"
                                   >
                                     {$financeNames.secondaryCard}
                                     <input
                                       type="radio"
                                       name="card-{entry.id}"
-                                      class="w-3 h-3"
+                                      class="w-5 h-5"
                                       checked={entry.isAmerX || false}
                                       onchange={() =>
                                         handleRadioChange(
@@ -549,13 +551,13 @@
                                 <!-- Category group -->
                                 <div class="flex items-center gap-2">
                                   <label
-                                    class="text-white text-sm flex items-center gap-1"
+                                    class="text-white text-lg flex items-center gap-1"
                                   >
                                     Gas
                                     <input
                                       type="radio"
                                       name="category-{entry.id}"
-                                      class="w-3 h-3"
+                                      class="w-5 h-5"
                                       checked={entry.isGas || false}
                                       onchange={() =>
                                         handleRadioChange(
@@ -569,13 +571,13 @@
                                     />
                                   </label>
                                   <label
-                                    class="text-white text-sm flex items-center gap-1"
+                                    class="text-white text-lg flex items-center gap-1"
                                   >
                                     Food
                                     <input
                                       type="radio"
                                       name="category-{entry.id}"
-                                      class="w-3 h-3"
+                                      class="w-5 h-5"
                                       checked={entry.isFood || false}
                                       onchange={() =>
                                         handleRadioChange(
@@ -589,13 +591,13 @@
                                     />
                                   </label>
                                   <label
-                                    class="text-white text-sm flex items-center gap-1"
+                                    class="text-white text-lg flex items-center gap-1"
                                   >
                                     Other
                                     <input
                                       type="radio"
                                       name="category-{entry.id}"
-                                      class="w-3 h-3"
+                                      class="w-5 h-5"
                                       checked={entry.isOther || false}
                                       onchange={() =>
                                         handleRadioChange(
