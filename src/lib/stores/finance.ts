@@ -89,7 +89,9 @@ export function calculateMonthAccountSpending(
             for (const entry of day.entries) {
                 // Sync entries do not contribute to checking spending.
                 if (entry.isHB && /!sync/i.test(entry.description)) continue;
-
+                    if(week.weekNumber == 5){
+                    console.log("HB subAmount is " + entry.subAmount);
+                    }
                 // Checking spending uses the - field; card spending uses the + field.
                 if (entry.isHB) totals.checking += Math.abs(parseFloat(entry.subAmount) || 0);
                 else if (entry.isDisc) totals.primaryCard += parseFloat(entry.addAmount) || 0;
@@ -201,7 +203,7 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                             addAmount: '',
                             subAmount: '',
                             description: '',
-                            isHB: true,
+                            isHB: false,
                             isDisc: false,
                             isAmerX: false,
                             isGas: false,
@@ -248,7 +250,7 @@ export function addFinanceEntry(
                                                         ...d,
                                                         entries: [...d.entries, {
                                                             id: entryId, addAmount: '', subAmount: '', description: '',
-                                                            isHB: true, isDisc: false, isAmerX: false, isGas: false, isFood: false,
+                                                            isHB: false, isDisc: false, isAmerX: false, isGas: false, isFood: false,
                                                             isOther: false
                                                         }]
                                                     };
