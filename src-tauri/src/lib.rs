@@ -1267,96 +1267,96 @@ async fn toggle_opensnitch(start: bool) -> Result<(), String> {
 }
 
 // Open WebUI commands
-#[tauri::command]
-async fn check_openwebui_status() -> Result<bool, String> {
-    // Check if Open WebUI is running by checking systemd service
-    let output = command_with_clean_env("/usr/bin/systemctl")
-        .arg("is-active")
-        .arg("open-webui")
-        .output()
-        .map_err(|e| format!("Failed to check Open WebUI status: {}", e))?;
+// #[tauri::command]
+// async fn check_openwebui_status() -> Result<bool, String> {
+//     // Check if Open WebUI is running by checking systemd service
+//     let output = command_with_clean_env("/usr/bin/systemctl")
+//         .arg("is-active")
+//         .arg("open-webui")
+//         .output()
+//         .map_err(|e| format!("Failed to check Open WebUI status: {}", e))?;
 
-    // systemctl is-active returns "active" and exit code 0 if running
-    Ok(output.status.success())
-}
+//     // systemctl is-active returns "active" and exit code 0 if running
+//     Ok(output.status.success())
+// }
 
-#[tauri::command]
-async fn toggle_openwebui(start: bool) -> Result<(), String> {
-    let action = if start { "start" } else { "stop" };
+// #[tauri::command]
+// async fn toggle_openwebui(start: bool) -> Result<(), String> {
+//     let action = if start { "start" } else { "stop" };
 
-    let output = command_with_clean_env("/usr/bin/pkexec")
-        .arg("/usr/bin/systemctl")
-        .arg(action)
-        .arg("open-webui")
-        .output()
-        .map_err(|e| format!("Failed to {} Open WebUI: {}", action, e))?;
+//     let output = command_with_clean_env("/usr/bin/pkexec")
+//         .arg("/usr/bin/systemctl")
+//         .arg(action)
+//         .arg("open-webui")
+//         .output()
+//         .map_err(|e| format!("Failed to {} Open WebUI: {}", action, e))?;
 
-    if output.status.success() {
-        Ok(())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(format!("Failed to {} Open WebUI: {}", action, stderr))
-    }
-}
+//     if output.status.success() {
+//         Ok(())
+//     } else {
+//         let stderr = String::from_utf8_lossy(&output.stderr);
+//         Err(format!("Failed to {} Open WebUI: {}", action, stderr))
+//     }
+// }
 
 // check_lmstudio_status() -> Result<bool, String>
 // Checks if LM Studio process is running
-#[tauri::command]
-async fn check_lmstudio_status() -> Result<bool, String> {
-    // Check if LM Studio is running by looking for its process
-    let output = command_with_clean_env("/usr/bin/pgrep")
-        .arg("-f")
-        .arg("LM-Studio")
-        .output()
-        .map_err(|e| format!("Failed to check LM Studio status: {}", e))?;
+// #[tauri::command]
+// async fn check_lmstudio_status() -> Result<bool, String> {
+//     // Check if LM Studio is running by looking for its process
+//     let output = command_with_clean_env("/usr/bin/pgrep")
+//         .arg("-f")
+//         .arg("LM-Studio")
+//         .output()
+//         .map_err(|e| format!("Failed to check LM Studio status: {}", e))?;
 
-    Ok(output.status.success() && !output.stdout.is_empty())
-}
+//     Ok(output.status.success() && !output.stdout.is_empty())
+// }
 
 // toggle_lmstudio(start: bool) -> Result<(), String>
 // Launches or stops LM Studio AppImage from ~/Prog directory
-#[tauri::command]
-async fn toggle_lmstudio(start: bool) -> Result<(), String> {
-    if start {
-        // Get home directory
-        let home =
-            std::env::var("HOME").map_err(|e| format!("Failed to get HOME directory: {}", e))?;
+// #[tauri::command]
+// async fn toggle_lmstudio(start: bool) -> Result<(), String> {
+//     if start {
+//         // Get home directory
+//         let home =
+//             std::env::var("HOME").map_err(|e| format!("Failed to get HOME directory: {}", e))?;
 
-        let prog_dir = format!("{}/Prog", home);
-        let appimage_path = format!("{}/LM-Studio-0.3.32-2-x64.AppImage", prog_dir);
+//         let prog_dir = format!("{}/Prog", home);
+//         let appimage_path = format!("{}/LM-Studio-0.3.32-2-x64.AppImage", prog_dir);
 
-        // Check if AppImage exists
-        if !std::path::Path::new(&appimage_path).exists() {
-            return Err(format!(
-                "LM Studio AppImage not found at: {}",
-                appimage_path
-            ));
-        }
+//         // Check if AppImage exists
+//         if !std::path::Path::new(&appimage_path).exists() {
+//             return Err(format!(
+//                 "LM Studio AppImage not found at: {}",
+//                 appimage_path
+//             ));
+//         }
 
-        // Launch the AppImage
-        command_with_clean_env(appimage_path.as_str())
-            .current_dir(&prog_dir)
-            .spawn()
-            .map_err(|e| format!("Failed to launch LM Studio: {}", e))?;
+//         // Launch the AppImage
+//         command_with_clean_env(appimage_path.as_str())
+//             .current_dir(&prog_dir)
+//             .spawn()
+//             .map_err(|e| format!("Failed to launch LM Studio: {}", e))?;
 
-        Ok(())
-    } else {
-        // To stop LM Studio, we need to find and kill its process
-        // Look for the LM Studio process by name
-        let output = command_with_clean_env("/usr/bin/pkill")
-            .arg("-f")
-            .arg("LM-Studio")
-            .output()
-            .map_err(|e| format!("Failed to stop LM Studio: {}", e))?;
+//         Ok(())
+//     } else {
+//         // To stop LM Studio, we need to find and kill its process
+//         // Look for the LM Studio process by name
+//         let output = command_with_clean_env("/usr/bin/pkill")
+//             .arg("-f")
+//             .arg("LM-Studio")
+//             .output()
+//             .map_err(|e| format!("Failed to stop LM Studio: {}", e))?;
 
-        if output.status.success() {
-            Ok(())
-        } else {
-            // pkill returns non-zero if no process was found, which is not really an error
-            Ok(())
-        }
-    }
-}
+//         if output.status.success() {
+//             Ok(())
+//         } else {
+//             // pkill returns non-zero if no process was found, which is not really an error
+//             Ok(())
+//         }
+//     }
+// }
 
 // check_ollama_status() -> Result<bool, String>
 // Checks if Ollama systemd service is active (running)
@@ -1778,10 +1778,10 @@ pub fn run() {
             get_ossec_notifications_enabled,
             check_opensnitch_status,
             toggle_opensnitch,
-            check_openwebui_status,
-            toggle_openwebui,
-            check_lmstudio_status,
-            toggle_lmstudio,
+           // check_openwebui_status,
+           // toggle_openwebui,
+          //  check_lmstudio_status,
+           // toggle_lmstudio,
             check_ollama_status,
             toggle_ollama,
             //  check_warp_status,

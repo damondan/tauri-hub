@@ -199,11 +199,11 @@
 		infoModalReason = "";
 	}
 
-	function triggerDateEndInfoModal(): void {
+	function triggerDateEndInfoModal(goalTitles:string): void {
 		openInfoModal(
 			"dateEnd",
 			"Last Day Reached",
-			"Congratulations ! This goal has been completed. Check Completed when you are ready to log it.",
+			"Congratulations !" + goalTitles + " has been completed. Check Completed when you are ready to log it.",
 		);
 	}
 
@@ -337,7 +337,7 @@
 
 	function endGoalAndLog(thread: GoalThread, goal: Goal): void {
 		logAndRemoveGoal(thread, goal, "ended");
-		triggerDateEndInfoModal();
+		triggerDateEndInfoModal(goal.title || "");
 	}
 
 	function logAndRemoveGoal(
@@ -506,6 +506,7 @@
 		const yearNumber = date.getFullYear();
 		const monthIndex = date.getMonth();
 		const dayIndex = date.getDate() - 1;
+		let goalTitles:string = "";
 
 		let shouldShowDateEndNotice = false;
 
@@ -528,6 +529,8 @@
 					if (dateEndReached && !goal.isCompleted) {
 						didGoalStatusChange = true;
 						shouldShowDateEndNotice = true;
+						goalTitles += (goal.title ?? "");
+						goalTitles += " ";
 
 						return {
 							...goal,
@@ -600,7 +603,7 @@
 		});
 
 		if (shouldShowDateEndNotice) {
-			triggerDateEndInfoModal();
+			triggerDateEndInfoModal(goalTitles);
 		}
 	}
 

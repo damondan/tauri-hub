@@ -302,14 +302,14 @@ console.log(`newApp id is ${newApp.id}`);
 	}
 
 	// Open WebUI functions
-	async function checkOpenWebUIStatus() {
-		try {
-			openwebuiRunning = await invoke<boolean>("check_openwebui_status");
-		} catch (error) {
-			console.log("IN Error at checkOpenWebUIStatus");
-			console.error("Failed to check Open WebUI status:", error);
-		}
-	}
+	// async function checkOpenWebUIStatus() {
+	// 	try {
+	// 		openwebuiRunning = await invoke<boolean>("check_openwebui_status");
+	// 	} catch (error) {
+	// 		console.log("IN Error at checkOpenWebUIStatus");
+	// 		console.error("Failed to check Open WebUI status:", error);
+	// 	}
+	// }
 
 	// Open WebUI functions
 	async function checkLMStudioStatus() {
@@ -338,16 +338,16 @@ console.log(`newApp id is ${newApp.id}`);
 	// 	}
 	// }
 
-	async function toggleOpenWebUI() {
-		console.log("toggle OpenWebUI");
-		try {
-			await invoke("toggle_openwebui", { start: !openwebuiRunning });
-			await checkOpenWebUIStatus();
-		} catch (error) {
-			console.error("Failed to toggle Open WebUI:", error);
-			alert("Failed to toggle Open WebUI: " + error);
-		}
-	}
+	// async function toggleOpenWebUI() {
+	// 	console.log("toggle OpenWebUI");
+	// 	try {
+	// 		await invoke("toggle_openwebui", { start: !openwebuiRunning });
+	// 		await checkOpenWebUIStatus();
+	// 	} catch (error) {
+	// 		console.error("Failed to toggle Open WebUI:", error);
+	// 		alert("Failed to toggle Open WebUI: " + error);
+	// 	}
+	// }
 
 	async function toggleLMStudio() {
 		try {
@@ -453,8 +453,8 @@ console.log(`newApp id is ${newApp.id}`);
 		// checkAlertsLogModified(); // Disabled to prevent password prompt on startup
 		checkOssecNotificationsEnabled();
 		checkOpenSnitchStatus();
-		checkOpenWebUIStatus();
-		checkLMStudioStatus();
+		//checkOpenWebUIStatus();
+		//checkLMStudioStatus();
 		checkOllamaStatus();
 	//	checkWarpStatus();
 		checkDockerStatus();
@@ -696,18 +696,18 @@ console.log(`newApp id is ${newApp.id}`);
 							class="flex items-center gap-2 justify-center px-2"
 						>
 							<!-- Toggle Open WebUI Button -->
-							<button
+							<!-- <button
 								onclick={toggleOpenWebUI}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
 									? buttonStyles.greenButton
 									: buttonStyles.deleteButton}"
 							>
 								{openwebuiRunning ? "On" : "Off"}
-							</button>
+							</button> -->
 						</div>
 					</div>
 					<!-- LM Studio -->
-					<div
+					<!-- <div
 						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 h-[82px]"
 					>
 						<div
@@ -718,7 +718,7 @@ console.log(`newApp id is ${newApp.id}`);
 						<div
 							class="flex items-center gap-2 justify-center px-2"
 						>
-							<!-- Toggle Open LM Studio Button -->
+							
 							<button
 								onclick={toggleLMStudio}
 								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {lmstudioRunning
@@ -728,7 +728,7 @@ console.log(`newApp id is ${newApp.id}`);
 								{lmstudioRunning ? "On" : "Off"}
 							</button>
 						</div>
-					</div>
+					</div> -->
 				</div>
 			</div>
 			<!-- SecOp Services Sub-Container -->
