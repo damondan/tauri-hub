@@ -143,7 +143,7 @@
 			onclick={() => {
 				console.log("tab:", tab.path);
 
-				if (tab.label === "Pers") {
+				if (tab.label === "PersArt") {
 					if ($persLockState === LockState.LOCKED) {
 						console.log(
 							`************Lock State is ${$persLockState}`,
