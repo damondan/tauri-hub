@@ -15,7 +15,8 @@
 	let opensnitchRunning = $state(false);
 	let showOpenSnitchTooltip = $state(false);
 	let openSnitchTooltipTimeout: number | null = null;
-	let openwebuiRunning = $state(false);
+	let openOdysseusRunning = $state(false);
+	let odysseusBusy = $state(false);
 	let lmstudioRunning = $state(false);
 	let ollamaRunning = $state(false);
 	let warpRunning = $state(false);
@@ -301,26 +302,25 @@ console.log(`newApp id is ${newApp.id}`);
 		showOpenSnitchTooltip = false;
 	}
 
-	// Open WebUI functions
-	// async function checkOpenWebUIStatus() {
-	// 	try {
-	// 		openwebuiRunning = await invoke<boolean>("check_openwebui_status");
-	// 	} catch (error) {
-	// 		console.log("IN Error at checkOpenWebUIStatus");
-	// 		console.error("Failed to check Open WebUI status:", error);
-	// 	}
-	// }
-
-	// Open WebUI functions
-	async function checkLMStudioStatus() {
+	// Odysseus functions
+	async function checkOdysseusStatus() {
 		try {
-			lmstudioRunning = await invoke<boolean>("check_lmstudio_status");
+			openOdysseusRunning = await invoke<boolean>("check_odysseus_status");
 		} catch (error) {
-			console.error("Failed to check LM studio status:", error);
+			console.error("Failed to check Odysseus status:", error);
 		}
 	}
 
 	// Open WebUI functions
+	// async function checkLMStudioStatus() {
+	// 	try {
+	// 		lmstudioRunning = await invoke<boolean>("check_lmstudio_status");
+	// 	} catch (error) {
+	// 		console.error("Failed to check LM studio status:", error);
+	// 	}
+	// }
+
+	// Ollama functions
 	async function checkOllamaStatus() {
 		try {
 			ollamaRunning = await invoke<boolean>("check_ollama_status");
@@ -338,26 +338,29 @@ console.log(`newApp id is ${newApp.id}`);
 	// 	}
 	// }
 
-	// async function toggleOpenWebUI() {
-	// 	console.log("toggle OpenWebUI");
-	// 	try {
-	// 		await invoke("toggle_openwebui", { start: !openwebuiRunning });
-	// 		await checkOpenWebUIStatus();
-	// 	} catch (error) {
-	// 		console.error("Failed to toggle Open WebUI:", error);
-	// 		alert("Failed to toggle Open WebUI: " + error);
-	// 	}
-	// }
-
-	async function toggleLMStudio() {
+	async function toggleOpenOdysseus() {
+		if (odysseusBusy) return;
+		odysseusBusy = true;
 		try {
-			await invoke("toggle_lmstudio", { start: !lmstudioRunning });
-			await checkLMStudioStatus();
+			await invoke("toggle_openodysseus", { start: !openOdysseusRunning });
 		} catch (error) {
-			console.error("Failed to toggle LM Studio:", error);
-			alert("Failed to toggle LM Studio: " + error);
+			console.error("Failed to toggle Odysseus:", error);
+			alert("Failed to toggle Odysseus: " + error);
+		} finally {
+			await checkOdysseusStatus();
+			odysseusBusy = false;
 		}
 	}
+
+	// async function toggleLMStudio() {
+	// 	try {
+	// 		await invoke("toggle_lmstudio", { start: !lmstudioRunning });
+	// 		await checkLMStudioStatus();
+	// 	} catch (error) {
+	// 		console.error("Failed to toggle LM Studio:", error);
+	// 		alert("Failed to toggle LM Studio: " + error);
+	// 	}
+	// }
 
 	async function toggleOllama() {
 		try {
@@ -453,7 +456,7 @@ console.log(`newApp id is ${newApp.id}`);
 		// checkAlertsLogModified(); // Disabled to prevent password prompt on startup
 		checkOssecNotificationsEnabled();
 		checkOpenSnitchStatus();
-		//checkOpenWebUIStatus();
+		checkOdysseusStatus();
 		//checkLMStudioStatus();
 		checkOllamaStatus();
 	//	checkWarpStatus();
@@ -683,27 +686,29 @@ console.log(`newApp id is ${newApp.id}`);
 							</button>
 						</div>
 					</div>
-					<!-- Open WebUI Controls -->
+					<!-- Odysseus Controls -->
 					<div
 						class="bg-black/20 backdrop-blur-sm rounded-2xl p-3 h-[82px]"
 					>
 						<div
 							class="{borderNTextNBg.lightText} text-center font-semibold text-base mb-1"
 						>
-							OpWebUI
+							Odysseus
 						</div>
 						<div
 							class="flex items-center gap-2 justify-center px-2"
 						>
-							<!-- Toggle Open WebUI Button -->
-							<!-- <button
-								onclick={toggleOpenWebUI}
-								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openwebuiRunning
+							<!-- Toggle Odysseus -->
+							 <button
+								onclick={toggleOpenOdysseus}
+								disabled={odysseusBusy}
+								aria-busy={odysseusBusy}
+								class="px-2 py-1 rounded-lg font-semibold text-md transition-colors flex items-center justify-center {openOdysseusRunning
 									? buttonStyles.greenButton
 									: buttonStyles.deleteButton}"
 							>
-								{openwebuiRunning ? "On" : "Off"}
-							</button> -->
+								{odysseusBusy ? "Working…" : openOdysseusRunning ? "On" : "Off"}
+							</button>
 						</div>
 					</div>
 					<!-- LM Studio -->

@@ -1266,38 +1266,164 @@ async fn toggle_opensnitch(start: bool) -> Result<(), String> {
     }
 }
 
-// Open WebUI commands
-// #[tauri::command]
-// async fn check_openwebui_status() -> Result<bool, String> {
-//     // Check if Open WebUI is running by checking systemd service
-//     let output = command_with_clean_env("/usr/bin/systemctl")
-//         .arg("is-active")
-//         .arg("open-webui")
-//         .output()
-//         .map_err(|e| format!("Failed to check Open WebUI status: {}", e))?;
+// Odysseus runs directly from its Python virtual environment, without systemd.
+static ODYSSEUS_PROCESS: Mutex<Option<Child>> = Mutex::new(None);
 
-//     // systemctl is-active returns "active" and exit code 0 if running
-//     Ok(output.status.success())
-// }
+fn odysseus_dir() -> Result<PathBuf, String> {
+    Ok(PathBuf::from(home_dir()?).join("Prog/AI/Odysseus/git/odysseus"))
+}
 
-// #[tauri::command]
-// async fn toggle_openwebui(start: bool) -> Result<(), String> {
-//     let action = if start { "start" } else { "stop" };
+fn odysseus_pids() -> Result<Vec<u32>, String> {
+    let workdir = odysseus_dir()?;
+    let entries = fs::read_dir("/proc")
+        .map_err(|e| format!("Failed to inspect Odysseus processes: {}", e))?;
+    let mut pids = Vec::new();
+    for entry in entries.flatten() {
+        let Ok(pid) = entry.file_name().to_string_lossy().parse::<u32>() else {
+            continue;
+        };
+        // Match the installation as well as argv, so other Uvicorn apps are untouched.
+        if fs::read_link(entry.path().join("cwd")).ok().as_ref() != Some(&workdir) {
+            continue;
+        }
+        let Ok(cmdline) = fs::read(entry.path().join("cmdline")) else {
+            continue;
+        };
+        let args: Vec<_> = cmdline.split(|b| *b == 0).collect();
+        if args
+            .windows(2)
+            .any(|a| a == [b"-m".as_slice(), b"uvicorn".as_slice()])
+            && args.contains(&b"app:app".as_slice())
+            && args
+                .windows(2)
+                .any(|a| a == [b"--port".as_slice(), b"7000".as_slice()])
+        {
+            pids.push(pid);
+        }
+    }
+    Ok(pids)
+}
 
-//     let output = command_with_clean_env("/usr/bin/pkexec")
-//         .arg("/usr/bin/systemctl")
-//         .arg(action)
-//         .arg("open-webui")
-//         .output()
-//         .map_err(|e| format!("Failed to {} Open WebUI: {}", action, e))?;
+fn odysseus_listening() -> bool {
+    std::net::TcpStream::connect_timeout(
+        &std::net::SocketAddr::from(([127, 0, 0, 1], 7000)),
+        std::time::Duration::from_millis(200),
+    )
+    .is_ok()
+}
 
-//     if output.status.success() {
-//         Ok(())
-//     } else {
-//         let stderr = String::from_utf8_lossy(&output.stderr);
-//         Err(format!("Failed to {} Open WebUI: {}", action, stderr))
-//     }
-// }
+#[tauri::command]
+fn check_odysseus_status() -> Result<bool, String> {
+    Ok(!odysseus_pids()?.is_empty() && odysseus_listening())
+}
+
+#[tauri::command]
+async fn toggle_openodysseus(start: bool) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || toggle_odysseus_process(start))
+        .await
+        .map_err(|e| format!("Odysseus task failed: {}", e))?
+}
+
+fn toggle_odysseus_process(start: bool) -> Result<(), String> {
+    // Serialize requests and retain the child so it can be reaped after shutdown.
+    let mut process = ODYSSEUS_PROCESS.lock().map_err(|e| e.to_string())?;
+    if let Some(child) = process.as_mut() {
+        if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+            *process = None;
+        }
+    }
+    let pids = odysseus_pids()?;
+    if start {
+        if !pids.is_empty() {
+            return if odysseus_listening() {
+                Ok(())
+            } else {
+                Err("Odysseus is running but is not listening on port 7000 yet".into())
+            };
+        }
+        if odysseus_listening() {
+            return Err("Port 7000 is already in use by another process".into());
+        }
+        let workdir = odysseus_dir()?;
+        let log_path = std::env::temp_dir().join("taurihub-odysseus.log");
+        let log = fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .map_err(|e| format!("Failed to open Odysseus log: {}", e))?;
+        let stderr = log.try_clone().map_err(|e| e.to_string())?;
+        let child = command_with_clean_env(workdir.join("venv/bin/python"))
+            .current_dir(&workdir)
+            .args([
+                "-m",
+                "uvicorn",
+                "app:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "7000",
+            ])
+            .stdin(Stdio::null())
+            .stdout(Stdio::from(log))
+            .stderr(Stdio::from(stderr))
+            .spawn()
+            .map_err(|e| format!("Failed to start Odysseus in {}: {}", workdir.display(), e))?;
+        *process = Some(child);
+        for _ in 0..300 {
+            if let Some(status) = process
+                .as_mut()
+                .unwrap()
+                .try_wait()
+                .map_err(|e| e.to_string())?
+            {
+                *process = None;
+                return Err(format!(
+                    "Odysseus exited with {}. See {}",
+                    status,
+                    log_path.display()
+                ));
+            }
+            if odysseus_listening() {
+                return Ok(());
+            }
+            thread::sleep(std::time::Duration::from_millis(100));
+        }
+        // Roll back an unsuccessful startup rather than leave an invisible process.
+        if let Some(mut child) = process.take() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+        Err(format!(
+            "Odysseus did not start within 30 seconds. See {}",
+            log_path.display()
+        ))
+    } else {
+        for pid in &pids {
+            let output = command_with_clean_env("/usr/bin/kill")
+                .args(["-TERM", &pid.to_string()])
+                .output()
+                .map_err(|e| format!("Failed to stop Odysseus: {}", e))?;
+            if !output.status.success() && odysseus_pids()?.contains(pid) {
+                return Err(format!(
+                    "Failed to stop Odysseus: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ));
+            }
+        }
+        for _ in 0..300 {
+            if let Some(child) = process.as_mut() {
+                if child.try_wait().map_err(|e| e.to_string())?.is_some() {
+                    *process = None;
+                }
+            }
+            if odysseus_pids()?.is_empty() {
+                return Ok(());
+            }
+            thread::sleep(std::time::Duration::from_millis(100));
+        }
+        Err("Odysseus has not finished shutting down after 30 seconds".into())
+    }
+}
 
 // check_lmstudio_status() -> Result<bool, String>
 // Checks if LM Studio process is running
@@ -1778,8 +1904,8 @@ pub fn run() {
             get_ossec_notifications_enabled,
             check_opensnitch_status,
             toggle_opensnitch,
-           // check_openwebui_status,
-           // toggle_openwebui,
+            check_odysseus_status,
+            toggle_openodysseus,
           //  check_lmstudio_status,
            // toggle_lmstudio,
             check_ollama_status,
