@@ -1,7 +1,6 @@
 <script lang="ts">
   import { autoResize } from "$lib/utils/textareaResize";
   import { appPersState } from "$lib/stores/state.svelte";
-  import { onMount } from "svelte";
   import {
     persHighlightExpanded,
     persHighlightOrder,

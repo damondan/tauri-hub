@@ -6,7 +6,6 @@
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import { appPersState } from "$lib/stores/state.svelte";
   import PersHighlights from "$lib/components/PersHighlights.svelte";
-  import { tick } from "svelte";
   import { fade } from "svelte/transition";
   import {
     persGoalData,

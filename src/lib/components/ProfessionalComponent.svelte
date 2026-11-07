@@ -5,6 +5,7 @@
   import { getMonthName } from "$lib/stores/general";
   import { borderNTextNBg, buttonStyles } from "$lib/styles";
   import { appProfState } from "$lib/stores/state.svelte";
+  import ProfHighlights from "$lib/components/ProfHighlights.svelte";
   import {
     profGoalData,
     generateProfGoalStructureToDate,
@@ -129,22 +130,28 @@
 
 </script>
 
-<!-- <div>
+<!-- Empty state -->
+{#if $profGoalData.length === 0}
+  <div class="text-white/70 italic">Locked or Loading...</div>
+{/if}
+
+<div>
   <button
     class="float-right rounded text-sm bg-white/10 text-white/30
-  hover:bg-black/70 hover:text-white/80 border border-white/30"
+  hover:bg-black/70 hover:text-white/80 border border-white/30 ml-2"
     onclick={() => showTopToggle()}
   >
     Top
   </button>
-</div> -->
-<!-- <div
+</div>
+<div
   class="{appProfState.showTopProf
-    ? 'bg-white/10 rounded-xl mb-2 ml-2'
+    ? 'bg-black/10 rounded-xl mb-2 ml-2'
     : borderNTextNBg.collapseRows} "
 >
   <ProfHighlights />
-</div> -->
+</div>
+
 
 <!-- Empty state -->
 {#if $profGoalData.length === 0}
