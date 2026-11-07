@@ -355,12 +355,6 @@
                 >
                   {formatCurrency(calculateMonthHBBalance(year, month))}
                 </div>
-              {:else}
-                <div
-                  class="absolute right-0 text-white text-2xl font-semibold pr-2"
-                >
-                  {formatCurrency(calculateMonthHBBalance(year, month))}
-                </div>
               {/if}
             </div>
           </div>

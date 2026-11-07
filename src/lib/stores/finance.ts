@@ -783,40 +783,48 @@ export function calculateMonthTotal(month: FinanceMonth): number {
 
 // Calculate HB balance for a month (starting balance from balanceMonth + this month's HB transactions)
 // calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number
-export function calculateMonthHBBalance(year: FinanceYear, month: FinanceMonth): number {
-    //This fwd's the balance to the next month. 
-    const startingBalance = parseFloat(month.balanceMonth) || 0;
-    let initBalance = "";
+export function calculateMonthHBBalance(
+    year: FinanceYear,
+    month: FinanceMonth
+): number {
 
-    if (startingBalance === 0 && month.monthNumber === 1
-        && isPriorYearPresent(year)) {
-        //get prior year, 12th month balance and set it to 
-        //year-month monthBalance
-        //return
-        const priorMonth = get(financeData).find(y =>
-            y.year === year.year - 1)?.months.find(m => m.monthNumber === 12);
-        if (priorMonth?.balanceMonth) {
-            initBalance = priorMonth?.balanceMonth;
-            return parseFloat(initBalance);
-        }
-    } else if (startingBalance === 0 && month.monthNumber != 1) {
-        const priorMonth = get(financeData).find(y =>
-            y.year === year.year)?.months.find(m => m.monthNumber === month.monthNumber - 1);
-        if (priorMonth?.balanceMonth) {
-            initBalance = priorMonth?.balanceMonth;
-            return parseFloat(initBalance);
+    let startingBalance = parseFloat(month.balanceMonth) || 0;
+
+    //If startingBalance of new month is zero, get prior months hb balance
+    if (startingBalance === 0) {
+
+        const years = get(financeData);
+
+        //If January, get prior years December balance
+        const priorYear = month.monthNumber === 1
+            ? years.find(y => y.year === year.year - 1)
+            : year;
+
+        //If January set prior month to december number, else current month minus one
+        const priorMonthNumber = month.monthNumber === 1
+            ? 12
+            : month.monthNumber - 1;
+
+        // NEW: Find the previous month's FinanceMonth object.
+        const priorMonth = priorYear?.months.find(
+            m => m.monthNumber === priorMonthNumber
+        );
+
+        if (priorMonth && priorYear) {
+            startingBalance = calculateMonthHBBalance(
+                priorYear,
+                priorMonth
+            );
         }
     }
 
-
-    // Calculate this month's HB transactions
     let monthHBTotal = 0;
+
     if (month.weeks) {
         for (const week of month.weeks) {
-            monthHBTotal += calculateWeekTotal(week); // Week total already only counts HB
+            monthHBTotal += calculateWeekTotal(week);
         }
     }
-
     return startingBalance + monthHBTotal;
 }
 
