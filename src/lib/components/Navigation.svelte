@@ -26,18 +26,18 @@
 
 	const tabs = [
 		{ path: "/", label: "Services" },
-		{ path: "/personal", label: "Pers" },
-		{ path: "/articulate", label: "Artic" },
 		{ path: "/thegoals", label: "Goals" },
 		{ path: "/finances", label: "Finance" },
-		{ path: "/professional", label: "Prof" },
+		{ path: "/projects", label: "Logs" },
 		{ path: "/todo", label: "ToDo" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/commands", label: "Commands" },
-		{ path: "/notifications", label: "Notifs" },
+		{ path: "/professional", label: "Prof" },
+		{ path: "/articulate", label: "Articulate" },
 		{ path: "/workspace_a", label: "XSpaceA" },
 		{ path: "/workspace_b", label: "XSpaceB" },
-		{ path: "/projects", label: "Logs" },
+		{ path: "/notifications", label: "Notifs" },
+		{ path: "/personal", label: "PersArt" },
 	];
 
 	onMount(() => {
@@ -170,7 +170,7 @@
 			}}
 			ondblclick={() => setlock()}
 			class="px-6 py-3 rounded-t-lg font-semibold transition-all
-			{tab.label === 'Logs'
+			{tab.label === 'PersArt'
 				? page.url.pathname === tab.path
 					? 'bg-white/20 hover:bg-white/10 hover:text-blue-600 text-white border-b-2 border-blue-500/50 ml-auto'
 					: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/30 border-b-2 border-blue-500/50 ml-auto'
