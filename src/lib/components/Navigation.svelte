@@ -32,12 +32,12 @@
 		{ path: "/todo", label: "ToDo" },
 		{ path: "/howto", label: "HowTo" },
 		{ path: "/commands", label: "Commands" },
-		{ path: "/professional", label: "ProfArt" },
 		//{ path: "/articulate", label: "Articulate" },
 		{ path: "/workspace_a", label: "XSpaceA" },
 		{ path: "/workspace_b", label: "XSpaceB" },
 		{ path: "/notifications", label: "Notifs" },
 		{ path: "/personal", label: "PersArt" },
+		{ path: "/professional", label: "ProfArt" },
 	];
 
 	onMount(() => {
@@ -169,16 +169,25 @@
 				goto(tab.path);
 			}}
 			ondblclick={() => setlock()}
-			class="px-6 py-3 rounded-t-lg font-semibold transition-all
-			{tab.label === 'PersArt'
+			class="px-6 py-3 rounded-t-lg font-semibold transition-all text-xl
+			{page.url.pathname === tab.path ? 'text-white' : 'text-white/50'}
+    {tab.label === 'PersArt' || tab.label === 'ProfArt'
 				? page.url.pathname === tab.path
-					? 'bg-white/20 hover:bg-white/10 hover:text-blue-600 text-white border-b-2 border-blue-500/50 ml-auto'
-					: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/30 border-b-2 border-blue-500/50 ml-auto'
-					: page.url.pathname === tab.path
-						? 'bg-white/20 border-b-2 border-white text-white'
-						: tab.label === 'Goals' && hasPendingGoalToday
-							? 'bg-green-400/10 border-b-2 border-green-400/50 text-green-100 hover:bg-green-400/15'
-							: 'bg-white/5 hover:bg-white/10 text-white/30'}"
+					? 'bg-white/20 hover:bg-white/10 border-b-2 border-blue-500/50 text-white'
+					: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/50 border-b-2 border-blue-500/50'
+				: page.url.pathname === tab.path
+					? 'bg-white/20 border-b-2 border-white text-white'
+					: tab.label === 'Goals' && hasPendingGoalToday
+						? 'bg-red-400/10 border-b-2 border-red-400/50 hover:bg-red-400/15 hover:text-white text-white'
+						: tab.label === 'Finance'
+							? 'bg-green-500/10 hover:bg-green-500/20 border-b-2 border-green-500/50 text-green-200 hover:text-white text-white'
+							: tab.label === 'Logs' || tab.label === 'ToDo'
+								? 'bg-purple-500/10 hover:bg-purple-500/20 border-b-2 border-purple-500/50 text-white hover:text-white'
+								: tab.label === 'HowTo' ||
+									  tab.label === 'Commands'
+									? 'bg-cyan-500/10 hover:bg-cyan-500/20 border-b-2 border-cyan-500/50 text-white hover:text-white'
+									: 'bg-white/5 hover:bg-white/10 text-white/30 hover:text-white'}
+    {tab.label === 'PersArt' ? 'ml-auto' : ''}"
 		>
 			{tab.label}
 		</button>
