@@ -62,7 +62,7 @@ export interface FinanceMonth {
     amerXIntAmount: string;//Secondarry CC Interest
     foodAmount: string;
     gasAmount: string;
-    balanceMonth: string;
+    balanceMonth: string; // Saved opening checking balance; '0' is an explicit zero.
     weeks: FinanceWeek[];
 }
 
@@ -215,6 +215,23 @@ export function generateFinanceStructureToDate(targetDate: Date): void {
                     weekEntry.days.push(dayEntry);
                     weekEntry.days.sort((a, b) => a.dayNumber - b.dayNumber);
                 }
+            }
+        }
+
+        // Initialize opening balances once, in calendar order. Never overwrite a
+        // saved opening balance when an earlier month's transactions are edited.
+        for (const savedYear of [...updatedYears].sort((a, b) => a.year - b.year)) {
+            for (const savedMonth of [...savedYear.months].sort((a, b) => a.monthNumber - b.monthNumber)) {
+                if (savedMonth.balanceMonth?.trim()) continue;
+                const priorYear = savedMonth.monthNumber === 1
+                    ? updatedYears.find(y => y.year === savedYear.year - 1)
+                    : savedYear;
+                const priorMonth = priorYear?.months.find(m =>
+                    m.monthNumber === (savedMonth.monthNumber === 1 ? 12 : savedMonth.monthNumber - 1)
+                );
+                savedMonth.balanceMonth = priorYear && priorMonth
+                    ? calculateMonthHBBalance(priorYear, priorMonth).toFixed(2)
+                    : '0';
             }
         }
 
@@ -788,35 +805,7 @@ export function calculateMonthHBBalance(
     month: FinanceMonth
 ): number {
 
-    let startingBalance = parseFloat(month.balanceMonth) || 0;
-
-    //If startingBalance of new month is zero, get prior months hb balance
-    if (startingBalance === 0) {
-
-        const years = get(financeData);
-
-        //If January, get prior years December balance
-        const priorYear = month.monthNumber === 1
-            ? years.find(y => y.year === year.year - 1)
-            : year;
-
-        //If January set prior month to december number, else current month minus one
-        const priorMonthNumber = month.monthNumber === 1
-            ? 12
-            : month.monthNumber - 1;
-
-        // NEW: Find the previous month's FinanceMonth object.
-        const priorMonth = priorYear?.months.find(
-            m => m.monthNumber === priorMonthNumber
-        );
-
-        if (priorMonth && priorYear) {
-            startingBalance = calculateMonthHBBalance(
-                priorYear,
-                priorMonth
-            );
-        }
-    }
+    const startingBalance = parseFloat(month.balanceMonth) || 0;
 
     let monthHBTotal = 0;
 
@@ -825,17 +814,25 @@ export function calculateMonthHBBalance(
             monthHBTotal += calculateWeekTotal(week);
         }
     }
-    return startingBalance + monthHBTotal;
+    return roundCurrency(startingBalance + monthHBTotal);
 }
 
-// Calculate year total (returns the latest month's HB balance)
+// Calculate checking additions entered within this year, excluding carried balances.
 // calculateYearTotal(year: FinanceYear): number
 export function calculateYearTotal(year: FinanceYear): number {
-    if (year.months && year.months.length > 0) {
-        const lastMonth = year.months[year.months.length - 1];
-        return calculateMonthHBBalance(year, lastMonth);
+    let total = 0;
+    for (const month of year.months ?? []) {
+        for (const week of month.weeks ?? []) {
+            for (const day of week.days ?? []) {
+                for (const entry of day.entries ?? []) {
+                    if (entry.isHB) {
+                        total += parseFloat(entry.addAmount) || 0;
+                    }
+                }
+            }
+        }
     }
-    return 0;
+    return roundCurrency(total);
 }
 
 // Format amount as currency

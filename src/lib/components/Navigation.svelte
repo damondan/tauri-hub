@@ -137,7 +137,7 @@
 	}
 </script>
 
-<nav class="flex gap-2 mb-6 border-b border-white/20 pb-2 font-mono">
+<nav class="flex w-full justify-between gap-2 mb-6 border-b border-white/20 pb-2 font-mono">
 	{#each tabs as tab}
 		<button
 			onclick={() => {
@@ -173,7 +173,7 @@
 			{page.url.pathname === tab.path ? 'text-white' : 'text-white/50'}
     {tab.label === 'PersArt' || tab.label === 'ProfArt'
 				? page.url.pathname === tab.path
-					? 'bg-white/20 hover:bg-white/10 border-b-2 border-blue-500/50 text-white'
+					? 'bg-white/20 hover:bg-white/10 border-b-3 border-blue-500/50 text-white'
 					: 'bg-white/5 hover:bg-white/10 hover:text-blue-600 text-white/50 border-b-2 border-blue-500/50'
 				: page.url.pathname === tab.path
 					? 'bg-white/20 border-b-2 border-white text-white'
@@ -186,8 +186,7 @@
 								: tab.label === 'HowTo' ||
 									  tab.label === 'Commands'
 									? 'bg-cyan-500/10 hover:bg-cyan-500/20 border-b-2 border-cyan-500/50 text-white hover:text-white'
-									: 'bg-white/5 hover:bg-white/10 text-white/30 hover:text-white'}
-    {tab.label === 'PersArt' ? 'ml-auto' : ''}"
+									: 'bg-white/5 hover:bg-white/10 text-white/30 hover:text-white'}"
 		>
 			{tab.label}
 		</button>

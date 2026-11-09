@@ -70,6 +70,16 @@
     }
 
     generateFinanceStructureToDate(today);
+
+    // Create the new day/month even when the finance view stays open overnight.
+    let generatedDate = today.toDateString();
+    const dateTimer = setInterval(() => {
+      const now = new Date();
+      if (now.toDateString() === generatedDate) return;
+      generateFinanceStructureToDate(now);
+      generatedDate = now.toDateString();
+    }, 1000);
+    return () => clearInterval(dateTimer);
   });
 
   // isCurrentDay(year: number, month: number, day: number): boolean
@@ -349,13 +359,11 @@
               </div>
 
               <!-- HB Balance pinned to far right -->
-              {#if currentMonth == month.monthNumber}
-                <div
-                  class="absolute right-0 text-green-600 text-3xl font-semibold pr-2"
-                >
-                  {formatCurrency(calculateMonthHBBalance(year, month))}
-                </div>
-              {/if}
+              <div
+                class="absolute right-0 text-green-600 text-3xl font-semibold pr-2"
+              >
+                {formatCurrency(calculateMonthHBBalance(year, month))}
+              </div>
             </div>
           </div>
 
