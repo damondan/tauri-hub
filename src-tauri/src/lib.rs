@@ -1270,7 +1270,7 @@ async fn toggle_opensnitch(start: bool) -> Result<(), String> {
 static ODYSSEUS_PROCESS: Mutex<Option<Child>> = Mutex::new(None);
 
 fn odysseus_dir() -> Result<PathBuf, String> {
-    Ok(PathBuf::from(home_dir()?).join("Prog/AI/Odysseus/git/odysseus"))
+    Ok(PathBuf::from(home_dir()?).join("Prog/ai/applications/Odysseus/git/odysseus"))
 }
 
 fn odysseus_pids() -> Result<Vec<u32>, String> {
